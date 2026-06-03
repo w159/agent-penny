@@ -4,7 +4,7 @@ sidebar_label: "Huggingface Tokenizers"
 description: "为研究和生产优化的快速 tokenizer"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Huggingface Tokenizers
 
@@ -36,6 +36,7 @@ description: "为研究和生产优化的快速 tokenizer"
 ## 何时使用 HuggingFace Tokenizers
 
 **在以下情况下使用 HuggingFace Tokenizers：**
+
 - 需要极快的分词速度（每 GB 文本 &lt;20 秒）
 - 从头训练自定义 tokenizer
 - 需要对齐追踪（token → 原始文本位置）
@@ -43,11 +44,13 @@ description: "为研究和生产优化的快速 tokenizer"
 - 需要高效地对大型语料库进行分词
 
 **性能**：
+
 - **速度**：CPU 上对 1GB 文本分词 &lt;20 秒
 - **实现**：Rust 核心，提供 Python/Node.js 绑定
 - **效率**：比纯 Python 实现快 10–100 倍
 
 **改用其他方案的情况**：
+
 - **SentencePiece**：语言无关，被 T5/ALBERT 使用
 - **tiktoken**：OpenAI 用于 GPT 模型的 BPE tokenizer
 - **transformers AutoTokenizer**：仅加载预训练模型时使用（内部使用本库）
@@ -132,6 +135,7 @@ for encoding in encodings:
 ### BPE（字节对编码）
 
 **工作原理**：
+
 1. 从字符级词表开始
 2. 找出最频繁的字符对
 3. 合并为新 token，加入词表
@@ -158,17 +162,20 @@ tokenizer.train(files=["data.txt"], trainer=trainer)
 ```
 
 **优点**：
+
 - 能较好地处理 OOV 词（拆分为子词）
 - 词表大小灵活
 - 适合形态丰富的语言
 
 **权衡**：
+
 - 分词结果依赖合并顺序
 - 可能意外拆分常见词
 
 ### WordPiece
 
 **工作原理**：
+
 1. 从字符词表开始
 2. 对合并对打分：`frequency(pair) / (frequency(first) × frequency(second))`
 3. 合并得分最高的对
@@ -197,16 +204,19 @@ tokenizer.train(files=["corpus.txt"], trainer=trainer)
 ```
 
 **优点**：
+
 - 优先进行有意义的合并（高分 = 语义相关）
 - 在 BERT 中取得了最优结果
 
 **权衡**：
+
 - 若无子词匹配，未知词变为 `[UNK]`
 - 保存词表而非合并规则（文件较大）
 
 ### Unigram
 
 **工作原理**：
+
 1. 从大词表（所有子串）开始
 2. 用当前词表计算语料损失
 3. 移除对损失影响最小的 token
@@ -231,11 +241,13 @@ tokenizer.train(files=["data.txt"], trainer=trainer)
 ```
 
 **优点**：
+
 - 概率化（找到最可能的分词方式）
 - 适合无词边界的语言
 - 能处理多样的语言学上下文
 
 **权衡**：
+
 - 训练计算开销较大
 - 需要调整的超参数更多
 
@@ -261,6 +273,7 @@ tokenizer.normalizer = Sequence([
 ```
 
 **常用归一化器**：
+
 - `NFD`, `NFC`, `NFKD`, `NFKC` — Unicode 归一化形式
 - `Lowercase()` — 转为小写
 - `StripAccents()` — 去除重音（é → e）
@@ -285,6 +298,7 @@ tokenizer.pre_tokenizer = Sequence([
 ```
 
 **常用预分词器**：
+
 - `Whitespace()` — 按空格、制表符、换行符拆分
 - `ByteLevel()` — GPT-2 风格的字节级拆分
 - `Punctuation()` — 隔离标点
@@ -310,6 +324,7 @@ tokenizer.post_processor = TemplateProcessing(
 ```
 
 **常见模式**：
+
 ```python
 # GPT-2：sentence <|endoftext|>
 TemplateProcessing(
@@ -345,6 +360,7 @@ for token, offset in zip(output.tokens, output.offsets):
 ```
 
 **使用场景**：
+
 - 命名实体识别（将预测结果映射回文本）
 - 问答（提取答案片段）
 - Token 分类（将标签对齐到原始位置）
@@ -500,36 +516,40 @@ with Pool(8) as pool:
 可通过 `from_pretrained()` 获取的预训练 tokenizer：
 
 **BERT 系列**：
+
 - `bert-base-uncased`, `bert-large-cased`
 - `distilbert-base-uncased`
 - `roberta-base`, `roberta-large`
 
 **GPT 系列**：
+
 - `gpt2`, `gpt2-medium`, `gpt2-large`
 - `distilgpt2`
 
 **T5 系列**：
+
 - `t5-small`, `t5-base`, `t5-large`
 - `google/flan-t5-xxl`
 
 **其他**：
+
 - `facebook/bart-base`, `facebook/mbart-large-cc25`
 - `albert-base-v2`, `albert-xlarge-v2`
 - `xlm-roberta-base`, `xlm-roberta-large`
 
-浏览全部：https://huggingface.co/models?library=tokenizers
+浏览全部：<https://huggingface.co/models?library=tokenizers>
 
 ## 参考资料
 
-- **[训练指南](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/training.md)** — 训练自定义 tokenizer、配置训练器、处理大型数据集
-- **[算法深度解析](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/algorithms.md)** — BPE、WordPiece、Unigram 详细说明
-- **[流水线组件](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/pipeline.md)** — 归一化器、预分词器、后处理器、解码器
-- **[Transformers 集成](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/integration.md)** — AutoTokenizer、PreTrainedTokenizerFast、特殊 token
+- **[训练指南](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/training.md)** — 训练自定义 tokenizer、配置训练器、处理大型数据集
+- **[算法深度解析](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/algorithms.md)** — BPE、WordPiece、Unigram 详细说明
+- **[流水线组件](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/pipeline.md)** — 归一化器、预分词器、后处理器、解码器
+- **[Transformers 集成](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/integration.md)** — AutoTokenizer、PreTrainedTokenizerFast、特殊 token
 
 ## 资源
 
-- **文档**：https://huggingface.co/docs/tokenizers
-- **GitHub**：https://github.com/huggingface/tokenizers ⭐ 9,000+
+- **文档**：<https://huggingface.co/docs/tokenizers>
+- **GitHub**：<https://github.com/huggingface/tokenizers> ⭐ 9,000+
 - **版本**：0.20.0+
-- **课程**：https://huggingface.co/learn/nlp-course/chapter6/1
+- **课程**：<https://huggingface.co/learn/nlp-course/chapter6/1>
 - **论文**：BPE（Sennrich et al., 2016）、WordPiece（Schuster & Nakajima, 2012）

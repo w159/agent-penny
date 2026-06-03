@@ -4,7 +4,7 @@ sidebar_label: "Distributed Llm Pretraining Torchtitan"
 description: "Provides PyTorch-native distributed LLM pretraining using torchtitan with 4D parallelism (FSDP2, TP, PP, CP)"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Distributed Llm Pretraining Torchtitan
 
@@ -36,6 +36,7 @@ The following is the complete skill definition that Hermes loads when this skill
 TorchTitan is PyTorch's official platform for large-scale LLM pretraining with composable 4D parallelism (FSDP2, TP, PP, CP), achieving 65%+ speedups over baselines on H100 GPUs.
 
 **Installation**:
+
 ```bash
 # From PyPI (stable)
 pip install torchtitan
@@ -47,12 +48,14 @@ pip install -r requirements.txt
 ```
 
 **Download tokenizer**:
+
 ```bash
 # Get HF token from https://huggingface.co/settings/tokens
 python scripts/download_hf_assets.py --repo_id meta-llama/Llama-3.1-8B --assets tokenizer --hf_token=...
 ```
 
 **Start training on 8 GPUs**:
+
 ```bash
 CONFIG_FILE="./torchtitan/models/llama3/train_configs/llama3_8b.toml" ./run_train.sh
 ```
@@ -137,6 +140,7 @@ torchrun --nproc_per_node=8 \
 **Step 4: Monitor and checkpoint**
 
 TensorBoard logs are saved to `./outputs/tb/`:
+
 ```bash
 tensorboard --logdir ./outputs/tb
 ```
@@ -154,6 +158,7 @@ Multi-Node Training:
 **Step 1: Configure parallelism for scale**
 
 For 70B model on 256 GPUs (32 nodes):
+
 ```toml
 [parallelism]
 data_parallel_shard_degree = 32  # FSDP across 32 ranks
@@ -210,6 +215,7 @@ USE_CPP=0 pip install git+https://github.com/pytorch/ao.git
 **Step 2: Configure Float8**
 
 Add to your TOML config:
+
 ```toml
 [model]
 converters = ["quantize.linear.float8"]
@@ -245,6 +251,7 @@ CONFIG_FILE="./llama3_8b.toml" ./run_train.sh \
 **Step 1: Create seed checkpoint**
 
 Required for consistent initialization across PP stages:
+
 ```bash
 NGPU=1 CONFIG_FILE=./llama3_405b.toml ./run_train.sh \
   --checkpoint.enable \
@@ -280,6 +287,7 @@ srun torchrun --nnodes=64 --nproc_per_node=8 \
 ## When to use vs alternatives
 
 **Use TorchTitan when:**
+
 - Pretraining LLMs from scratch (8B to 405B+)
 - Need PyTorch-native solution without third-party dependencies
 - Require composable 4D parallelism (FSDP2, TP, PP, CP)
@@ -287,6 +295,7 @@ srun torchrun --nnodes=64 --nproc_per_node=8 \
 - Want interoperable checkpoints with torchtune/HuggingFace
 
 **Use alternatives instead:**
+
 - **Megatron-LM**: Maximum performance for NVIDIA-only deployments
 - **DeepSpeed**: Broader ZeRO optimization ecosystem, inference support
 - **Axolotl/TRL**: Fine-tuning rather than pretraining
@@ -297,6 +306,7 @@ srun torchrun --nnodes=64 --nproc_per_node=8 \
 **Issue: Out of memory on large models**
 
 Enable activation checkpointing and reduce batch size:
+
 ```toml
 [activation_checkpoint]
 mode = "full"  # Instead of "selective"
@@ -306,6 +316,7 @@ local_batch_size = 1
 ```
 
 Or use gradient accumulation:
+
 ```toml
 [training]
 local_batch_size = 1
@@ -315,6 +326,7 @@ global_batch_size = 32  # Accumulates gradients
 **Issue: TP causes high memory with async collectives**
 
 Set environment variable:
+
 ```bash
 export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 ```
@@ -322,6 +334,7 @@ export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 **Issue: Float8 training not faster**
 
 Float8 only benefits large GEMMs. Filter small layers:
+
 ```toml
 [quantize.linear.float8]
 filter_fqns = ["attention.wk", "attention.wv", "output", "auto_filter_small_kn"]
@@ -330,6 +343,7 @@ filter_fqns = ["attention.wk", "attention.wv", "output", "auto_filter_small_kn"]
 **Issue: Checkpoint loading fails after parallelism change**
 
 Use DCP's resharding capability:
+
 ```bash
 # Convert sharded checkpoint to single file
 python -m torch.distributed.checkpoint.format_utils \
@@ -362,17 +376,17 @@ Create seed checkpoint first (see Workflow 4, Step 1).
 
 ## Advanced topics
 
-**FSDP2 configuration**: See [references/fsdp.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/torchtitan/references/fsdp.md) for detailed FSDP2 vs FSDP1 comparison and ZeRO equivalents.
+**FSDP2 configuration**: See [references/fsdp.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/torchtitan/references/fsdp.md) for detailed FSDP2 vs FSDP1 comparison and ZeRO equivalents.
 
-**Float8 training**: See [references/float8.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/torchtitan/references/float8.md) for tensorwise vs rowwise scaling recipes.
+**Float8 training**: See [references/float8.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/torchtitan/references/float8.md) for tensorwise vs rowwise scaling recipes.
 
-**Checkpointing**: See [references/checkpoint.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/torchtitan/references/checkpoint.md) for HuggingFace conversion and async checkpointing.
+**Checkpointing**: See [references/checkpoint.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/torchtitan/references/checkpoint.md) for HuggingFace conversion and async checkpointing.
 
-**Adding custom models**: See [references/custom-models.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/torchtitan/references/custom-models.md) for TrainSpec protocol.
+**Adding custom models**: See [references/custom-models.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/torchtitan/references/custom-models.md) for TrainSpec protocol.
 
 ## Resources
 
-- GitHub: https://github.com/pytorch/torchtitan
-- Paper: https://arxiv.org/abs/2410.06511
-- ICLR 2025: https://iclr.cc/virtual/2025/poster/29620
-- PyTorch Forum: https://discuss.pytorch.org/c/distributed/torchtitan/44
+- GitHub: <https://github.com/pytorch/torchtitan>
+- Paper: <https://arxiv.org/abs/2410.06511>
+- ICLR 2025: <https://iclr.cc/virtual/2025/poster/29620>
+- PyTorch Forum: <https://discuss.pytorch.org/c/distributed/torchtitan/44>

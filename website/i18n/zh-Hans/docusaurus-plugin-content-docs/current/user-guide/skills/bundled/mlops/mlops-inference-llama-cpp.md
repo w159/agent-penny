@@ -4,7 +4,7 @@ sidebar_label: "Llama Cpp"
 description: "llama"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Llama Cpp
 
@@ -248,20 +248,20 @@ Source URLs:
 
 ## 参考资料
 
-- **[hub-discovery.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/llama-cpp/references/hub-discovery.md)** — 纯 URL Hugging Face 工作流、搜索模式、GGUF 提取及命令重建
-- **[advanced-usage.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/llama-cpp/references/advanced-usage.md)** — 推测解码、批量推理、语法约束生成、LoRA、多 GPU、自定义构建、基准脚本
-- **[quantization.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/llama-cpp/references/quantization.md)** — 量化质量权衡、何时使用 Q4/Q5/Q6/IQ、模型大小缩放、imatrix
-- **[server.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/llama-cpp/references/server.md)** — 直接从 Hub 启动服务器、OpenAI API 端点、Docker 部署、NGINX 负载均衡、监控
-- **[optimization.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/llama-cpp/references/optimization.md)** — CPU 线程、BLAS、GPU 卸载启发式、批处理调优、基准测试
-- **[troubleshooting.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/llama-cpp/references/troubleshooting.md)** — 安装/转换/量化/推理/服务器问题、Apple Silicon、调试
+- **[hub-discovery.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/llama-cpp/references/hub-discovery.md)** — 纯 URL Hugging Face 工作流、搜索模式、GGUF 提取及命令重建
+- **[advanced-usage.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/llama-cpp/references/advanced-usage.md)** — 推测解码、批量推理、语法约束生成、LoRA、多 GPU、自定义构建、基准脚本
+- **[quantization.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/llama-cpp/references/quantization.md)** — 量化质量权衡、何时使用 Q4/Q5/Q6/IQ、模型大小缩放、imatrix
+- **[server.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/llama-cpp/references/server.md)** — 直接从 Hub 启动服务器、OpenAI API 端点、Docker 部署、NGINX 负载均衡、监控
+- **[optimization.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/llama-cpp/references/optimization.md)** — CPU 线程、BLAS、GPU 卸载启发式、批处理调优、基准测试
+- **[troubleshooting.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/llama-cpp/references/troubleshooting.md)** — 安装/转换/量化/推理/服务器问题、Apple Silicon、调试
 
 ## 资源
 
-- **GitHub**：https://github.com/ggml-org/llama.cpp
-- **Hugging Face GGUF + llama.cpp 文档**：https://huggingface.co/docs/hub/gguf-llamacpp
-- **Hugging Face 本地应用文档**：https://huggingface.co/docs/hub/main/local-apps
-- **Hugging Face 本地 Agent 文档**：https://huggingface.co/docs/hub/agents-local
-- **local-app 页面示例**：https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF?local-app=llama.cpp
-- **tree API 示例**：https://huggingface.co/api/models/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main?recursive=true
-- **llama.cpp 搜索示例**：https://huggingface.co/models?num_parameters=min:0,max:24B&apps=llama.cpp&sort=trending
+- **GitHub**：<https://github.com/ggml-org/llama.cpp>
+- **Hugging Face GGUF + llama.cpp 文档**：<https://huggingface.co/docs/hub/gguf-llamacpp>
+- **Hugging Face 本地应用文档**：<https://huggingface.co/docs/hub/main/local-apps>
+- **Hugging Face 本地 Agent 文档**：<https://huggingface.co/docs/hub/agents-local>
+- **local-app 页面示例**：<https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF?local-app=llama.cpp>
+- **tree API 示例**：<https://huggingface.co/api/models/unsloth/Qwen3.6-35B-A3B-GGUF/tree/main?recursive=true>
+- **llama.cpp 搜索示例**：<https://huggingface.co/models?num_parameters=min:0,max:24B&apps=llama.cpp&sort=trending>
 - **许可证**：MIT

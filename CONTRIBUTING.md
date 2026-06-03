@@ -22,14 +22,14 @@ We value contributions in this order:
 
 This is the most common question for new contributors. The answer is almost always **skill**.
 
-### Make it a Skill when:
+### Make it a Skill when
 
 - The capability can be expressed as instructions + shell commands + existing tools
 - It wraps an external CLI or API that the agent can call via `terminal` or `web_extract`
 - It doesn't need custom Python integration or API key management baked into the agent
 - Examples: arXiv search, git workflows, Docker management, PDF processing, email via CLI tools
 
-### Make it a Tool when:
+### Make it a Tool when
 
 - It requires end-to-end integration with API keys, auth flows, or multi-component configuration managed by the agent harness
 - It needs custom processing logic that must execute precisely every time (not "best effort" from LLM interpretation)
@@ -45,7 +45,7 @@ Bundled skills (in `skills/`) ship with every Hermes install. They should be **b
 
 If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `hermes skills browse` (labeled "official") and install it with `hermes skills install` (no third-party warning, built-in trust).
 
-If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in the [Nous Research Discord](https://discord.gg/NousResearch). Users can install it with `hermes skills install`.
+If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in the [w159 Discord](https://discord.gg/NousResearch). Users can install it with `hermes skills install`.
 
 ---
 
@@ -81,7 +81,7 @@ This isn't a quality bar — it's a coupling-and-maintenance decision. Memory pr
 ### Clone and install
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/w159/agent-penny.git
 cd hermes-agent
 
 # Create venv with Python 3.11
@@ -415,6 +415,7 @@ metadata:
 ```
 
 **Semantics:**
+
 - `fallback_for_*`: The skill is a backup. It is **hidden** when the listed tools/toolsets are available, and **shown** when they are unavailable. Use this for free alternatives to premium tools.
 - `requires_*`: The skill needs certain tools to function. It is **hidden** when the listed tools/toolsets are unavailable. Use this for skills that depend on specific capabilities (e.g., a skill that only makes sense with terminal access).
 - If both are specified, both conditions must be satisfied for the skill to appear.
@@ -466,10 +467,12 @@ prerequisites:
 Gateway and messaging sessions never collect secrets in-band; they instruct the user to run `hermes setup` or update `~/.hermes/.env` locally.
 
 **When to declare required environment variables:**
+
 - The skill uses an API key or token that should be collected securely at load time
 - The skill can still be useful if the user skips setup, but may degrade gracefully
 
 **When to declare command prerequisites:**
+
 - The skill relies on a CLI tool that may not be installed (e.g., `himalaya`, `openhue`, `ddgs`)
 - Treat command checks as guidance, not discovery-time hiding
 
@@ -480,6 +483,7 @@ See `skills/gifs/gif-search/` and `skills/email/himalaya/` for examples.
 Every new or modernized skill — bundled, optional, or contributed — must meet these standards before merge. Reviewers reject PRs that violate them.
 
 1. **`description` ≤ 60 characters, one sentence, ends with a period.** Long descriptions bloat the skill listing UI and dilute the model's attention when many skills are loaded. State the capability, not the implementation. No marketing words ("powerful", "comprehensive", "seamless", "advanced"). Don't repeat the skill name. Verify with:
+
    ```python
    import re, pathlib
    m = re.search(r'^description: (.*)$',
@@ -579,6 +583,7 @@ All fields are optional — missing values inherit from the default skin.
 Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`. Use the same schema as above but as a Python dict. Built-in skins ship with the package and are always available.
 
 **Activating:**
+
 - CLI: `/skin mytheme` or set `display.skin: mytheme` in config.yaml
 - Config: `display: { skin: mytheme }`
 
@@ -639,6 +644,7 @@ that touches the OS, assume *any* platform can hit your code path.
 
 3. **`termios` and `fcntl` are Unix-only.** Always catch both `ImportError`
    and `NotImplementedError`:
+
    ```python
    try:
        from simple_term_menu import TerminalMenu
@@ -653,12 +659,14 @@ that touches the OS, assume *any* platform can hit your code path.
 
 4. **File encoding.** Windows may save `.env` files in `cp1252`. Always
    handle encoding errors:
+
    ```python
    try:
        load_dotenv(env_path)
    except UnicodeDecodeError:
        load_dotenv(env_path, encoding="latin-1")
    ```
+
    Config files (`config.yaml`) may be saved with a UTF-8 BOM by Notepad and
    similar editors — use `encoding="utf-8-sig"` when reading files that
    could have been touched by a Windows GUI editor.
@@ -666,6 +674,7 @@ that touches the OS, assume *any* platform can hit your code path.
 5. **Process management.** `os.setsid()`, `os.killpg()`, `os.fork()`,
    `os.getuid()`, and POSIX signal handling differ on Windows. Guard with
    `platform.system()`, `sys.platform`, or `hasattr(os, "setsid")`:
+
    ```python
    if platform.system() != "Windows":
        kwargs["preexec_fn"] = os.setsid
@@ -675,6 +684,7 @@ that touches the OS, assume *any* platform can hit your code path.
 
    **Preferred:** for killing a process AND its children (what `os.killpg`
    does on POSIX), use `psutil` — it works on every platform:
+
    ```python
    import psutil
    try:
@@ -760,6 +770,7 @@ that touches the OS, assume *any* platform can hit your code path.
 ### Testing cross-platform
 
 Tests that use POSIX-only syscalls need a skip marker. Common ones:
+
 - Symlinks → `@pytest.mark.skipif(sys.platform == "win32", ...)`
 - `0o600` file modes → `@pytest.mark.skipif(sys.platform.startswith("win"), ...)`
 - `signal.SIGALRM` → Unix-only (see `tests/conftest.py::_enforce_test_timeout`)
@@ -814,11 +825,13 @@ After the [litellm supply chain compromise](https://github.com/BerriAI/litellm/i
 **Every new PyPI dependency in a PR must have a `<next_major` upper bound.** PRs adding unbounded `>=X.Y.Z` specs will be rejected by reviewers. The `supply-chain-audit.yml` CI workflow also flags dependency manifest changes for manual review.
 
 **How to determine the ceiling:**
+
 - If the package is at version `1.x.y`, use `<2`.
 - If the package is at version `0.x.y` (pre-1.0), use `<0.(current_minor + 2)` — e.g. if current is `0.29.x`, use `<0.32`. This gives ~2 minor versions of headroom while keeping the window small enough that a hostile takeover version is unlikely to land inside it.
 - Exception: packages with very stable APIs (e.g. `aiohttp-socks`) can use `<1` at reviewer discretion.
 
 **Examples:**
+
 ```toml
 # ✅ Correct — post-1.0
 "openai>=2.21.0,<3"
@@ -865,6 +878,7 @@ refactor/description   # Code restructuring
 ### PR description
 
 Include:
+
 - **What** changed and **why**
 - **How to test** it (reproduction steps for bugs, usage examples for features)
 - **What platforms** you tested on
@@ -890,6 +904,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 Scopes: `cli`, `gateway`, `tools`, `skills`, `agent`, `install`, `whatsapp`, `security`, etc.
 
 Examples:
+
 ```
 fix(cli): prevent crash in save_config_value when model is a string
 feat(gateway): add WhatsApp multi-user session isolation
@@ -901,7 +916,7 @@ test(tools): add unit tests for file_operations
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/NousResearch/hermes-agent/issues)
+- Use [GitHub Issues](https://github.com/w159/agent-penny/issues)
 - Include: OS, Python version, Hermes version (`hermes version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates

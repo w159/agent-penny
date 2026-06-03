@@ -4,7 +4,7 @@ sidebar_label: "Blackbox"
 description: "Delegate coding tasks to Blackbox AI CLI agent"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Blackbox
 
@@ -17,7 +17,7 @@ Delegate coding tasks to Blackbox AI CLI agent. Multi-model agent with built-in 
 | Source | Optional — install with `hermes skills install official/autonomous-ai-agents/blackbox` |
 | Path | `optional-skills/autonomous-ai-agents/blackbox` |
 | Version | `1.0.0` |
-| Author | Hermes Agent (Nous Research) |
+| Author | Hermes Agent (w159) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `Blackbox`, `Multi-Agent`, `Judge`, `Multi-Model` |
@@ -40,10 +40,12 @@ The CLI is [open-source](https://github.com/blackboxaicode/cli) (GPL-3.0, TypeSc
 - Node.js 20+ installed
 - Blackbox CLI installed: `npm install -g @blackboxai/cli`
 - Or install from source:
+
   ```
   git clone https://github.com/blackboxaicode/cli.git
   cd cli && npm install && npm install -g .
   ```
+
 - API key from [app.blackbox.ai/dashboard](https://app.blackbox.ai/dashboard)
 - Configured: run `blackbox configure` and enter your API key
 - Use `pty=true` in terminal calls — Blackbox CLI is an interactive terminal app
@@ -55,6 +57,7 @@ terminal(command="blackbox --prompt 'Add JWT authentication with refresh tokens 
 ```
 
 For quick scratch work:
+
 ```
 terminal(command="cd $(mktemp -d) && git init && blackbox --prompt 'Build a REST API for todos with SQLite'", pty=true)
 ```
@@ -138,6 +141,7 @@ Blackbox's unique feature is running the same task through multiple models and j
 ## Vision Support
 
 Blackbox automatically detects images in input and can switch to multimodal analysis. VLM modes:
+
 - `"once"` — Switch model for current query only
 - `"session"` — Switch for entire session
 - `"persist"` — Stay on current model (no switch)
@@ -145,6 +149,7 @@ Blackbox automatically detects images in input and can switch to multimodal anal
 ## Token Limits
 
 Control token usage via `.blackboxcli/settings.json`:
+
 ```json
 {
   "sessionTokenLimit": 32000

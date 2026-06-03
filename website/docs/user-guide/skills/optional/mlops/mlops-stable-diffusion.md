@@ -4,7 +4,7 @@ sidebar_label: "Stable Diffusion Image Generation"
 description: "State-of-the-art text-to-image generation with Stable Diffusion models via HuggingFace Diffusers"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Stable Diffusion Image Generation
 
@@ -36,6 +36,7 @@ Comprehensive guide to generating images with Stable Diffusion using the Hugging
 ## When to use Stable Diffusion
 
 **Use Stable Diffusion when:**
+
 - Generating images from text descriptions
 - Performing image-to-image translation (style transfer, enhancement)
 - Inpainting (filling in masked regions)
@@ -44,6 +45,7 @@ Comprehensive guide to generating images with Stable Diffusion using the Hugging
 - Building custom image generation workflows
 
 **Key features:**
+
 - **Text-to-Image**: Generate images from natural language prompts
 - **Image-to-Image**: Transform existing images with text guidance
 - **Inpainting**: Fill masked regions with context-aware content
@@ -52,6 +54,7 @@ Comprehensive guide to generating images with Stable Diffusion using the Hugging
 - **Multiple Models**: SD 1.5, SDXL, SD 3.0, Flux support
 
 **Use alternatives instead:**
+
 - **DALL-E 3**: For API-based generation without GPU
 - **Midjourney**: For artistic, stylized outputs
 - **Imagen**: For Google Cloud integration
@@ -499,6 +502,7 @@ image = pipe(
 ## Common issues
 
 **CUDA out of memory:**
+
 ```python
 # Enable memory optimizations
 pipe.enable_model_cpu_offload()
@@ -510,6 +514,7 @@ pipe = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
 ```
 
 **Black/noise images:**
+
 ```python
 # Check VAE configuration
 # Use safety checker bypass if needed
@@ -520,6 +525,7 @@ pipe = pipe.to(dtype=torch.float16)
 ```
 
 **Slow generation:**
+
 ```python
 # Use faster scheduler
 from diffusers import DPMSolverMultistepScheduler
@@ -531,12 +537,12 @@ image = pipe(prompt, num_inference_steps=20).images[0]
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/stable-diffusion/references/advanced-usage.md)** - Custom pipelines, fine-tuning, deployment
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/stable-diffusion/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/stable-diffusion/references/advanced-usage.md)** - Custom pipelines, fine-tuning, deployment
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/stable-diffusion/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 
-- **Documentation**: https://huggingface.co/docs/diffusers
-- **Repository**: https://github.com/huggingface/diffusers
-- **Model Hub**: https://huggingface.co/models?library=diffusers
-- **Discord**: https://discord.gg/diffusers
+- **Documentation**: <https://huggingface.co/docs/diffusers>
+- **Repository**: <https://github.com/huggingface/diffusers>
+- **Model Hub**: <https://huggingface.co/models?library=diffusers>
+- **Discord**: <https://discord.gg/diffusers>

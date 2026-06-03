@@ -4,7 +4,7 @@ sidebar_label: "Nemo Curator"
 description: "用于 LLM 训练的 GPU 加速数据整理工具"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Nemo Curator
 
@@ -36,6 +36,7 @@ NVIDIA 用于为 LLM 准备高质量训练数据的工具包。
 ## 何时使用 NeMo Curator
 
 **在以下情况下使用 NeMo Curator：**
+
 - 从网络抓取数据（Common Crawl）准备 LLM 训练数据
 - 需要快速去重（比 CPU 快 16×）
 - 整理多模态数据集（文本、图像、视频、音频）
@@ -43,11 +44,13 @@ NVIDIA 用于为 LLM 准备高质量训练数据的工具包。
 - 跨 GPU 集群扩展数据处理
 
 **性能**：
+
 - **16× 更快**的模糊去重（8TB RedPajama v2）
 - **降低 40% TCO**（总拥有成本），优于 CPU 方案
 - **近线性扩展**，跨 GPU 节点
 
 **以下情况请使用替代方案**：
+
 - **datatrove**：基于 CPU 的开源数据处理
 - **dolma**：Allen AI 的数据工具包
 - **Ray Data**：通用 ML 数据处理（无数据整理专项功能）
@@ -120,6 +123,7 @@ dataset = dataset.filter(UrlRatioFilter(max_url_ratio=0.2))
 ### 阶段 2：去重
 
 **精确去重**：
+
 ```python
 from nemo_curator.modules import ExactDuplicates
 
@@ -128,6 +132,7 @@ deduped = ExactDuplicates(id_field="id", text_field="text")(dataset)
 ```
 
 **模糊去重**（GPU 上速度提升 16×）：
+
 ```python
 from nemo_curator.modules import FuzzyDuplicates
 
@@ -144,6 +149,7 @@ deduped = fuzzy_dedup(dataset)
 ```
 
 **语义去重**：
+
 ```python
 from nemo_curator.modules import SemanticDuplicates
 
@@ -365,11 +371,13 @@ cluster.close()
 ## 成本对比
 
 **基于 CPU 的数据整理**（AWS c5.18xlarge × 10）：
+
 - 费用：$3.60/小时 × 10 = $36/小时
 - 处理 8TB 耗时：120 小时
 - **合计**：$4,320
 
 **基于 GPU 的数据整理**（AWS p4d.24xlarge × 2）：
+
 - 费用：$32.77/小时 × 2 = $65.54/小时
 - 处理 8TB 耗时：7.5 小时
 - **合计**：$491.55
@@ -385,17 +393,18 @@ cluster.close()
 ## 使用场景
 
 **生产部署**：
+
 - NVIDIA 使用 NeMo Curator 准备 Nemotron-4 训练数据
 - 已整理的开源数据集：RedPajama v2、The Pile
 
 ## 参考资料
 
-- **[过滤指南](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/nemo-curator/references/filtering.md)** - 30+ 质量过滤器与启发式规则
-- **[去重指南](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/nemo-curator/references/deduplication.md)** - 精确、模糊、语义去重方法
+- **[过滤指南](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/nemo-curator/references/filtering.md)** - 30+ 质量过滤器与启发式规则
+- **[去重指南](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/nemo-curator/references/deduplication.md)** - 精确、模糊、语义去重方法
 
 ## 资源
 
-- **GitHub**：https://github.com/NVIDIA/NeMo-Curator ⭐ 500+
-- **文档**：https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/
+- **GitHub**：<https://github.com/NVIDIA/NeMo-Curator> ⭐ 500+
+- **文档**：<https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/>
 - **版本**：0.4.0+
 - **许可证**：Apache 2.0

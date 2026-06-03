@@ -4,7 +4,7 @@ sidebar_label: "Excel Author"
 description: "使用 openpyxl 无头构建可审计的 Excel 工作簿——蓝/黑/绿单元格约定、公式优先于硬编码、命名范围、余额检查、敏感性表格。"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Excel Author
 
@@ -17,7 +17,7 @@ description: "使用 openpyxl 无头构建可审计的 Excel 工作簿——蓝/
 | 来源 | 可选——通过 `hermes skills install official/finance/excel-author` 安装 |
 | 路径 | `optional-skills/finance/excel-author` |
 | 版本 | `1.0.0` |
-| 作者 | Anthropic（由 Nous Research 改编） |
+| 作者 | Anthropic（由 w159 改编） |
 | 许可证 | Apache-2.0 |
 | 平台 | linux, macos, windows |
 | 标签 | `excel`, `openpyxl`, `finance`, `spreadsheet`, `modeling` |
@@ -50,6 +50,7 @@ pip install "openpyxl>=3.0"
 ## 核心约定（不可更改）
 
 ### 蓝/黑/绿单元格颜色
+
 - **蓝色**（`Font(color="0000FF")`）——人工输入的硬编码值。收入驱动因素、WACC 输入、终值增长率、市场数据。
 - **黑色**（默认）——公式。每个派生单元格均为实时 Excel 公式。
 - **绿色**（`Font(color="006100")`）——链接到另一张工作表或外部文件。
@@ -57,6 +58,7 @@ pip install "openpyxl>=3.0"
 审阅者可以扫描工作表，立即区分假设值与计算值。
 
 ### 公式优先于硬编码
+
 每个计算单元格必须是公式字符串，绝不能是在 Python 中计算后粘贴的数值。
 
 ```python
@@ -68,6 +70,7 @@ ws["D20"] = "=D19*(1+$B$8)"
 ```
 
 唯一允许硬编码的数字：
+
 1. 原始历史输入（实际收入、报告 EBITDA 等）
 2. 用户需要调整的假设驱动因素（增长率、WACC 输入、终值 g）
 3. 当前市场数据（股价、债务余额）——需在单元格注释中注明来源和日期
@@ -75,6 +78,7 @@ ws["D20"] = "=D19*(1+$B$8)"
 如果你发现自己在 Python 中计算值并写入结果，请停下来。
 
 ### 跨工作表引用使用命名范围
+
 对从另一张工作表、演示文稿或备忘录引用的任何数值，使用命名范围。
 
 ```python
@@ -85,13 +89,16 @@ calc["D30"] = "=D29/WACC"
 ```
 
 ### 余额检查标签页
+
 包含一个 `Checks` 标签页，汇总所有内容并显示 TRUE/FALSE：
+
 - 资产负债表平衡（资产 = 负债 + 权益）
 - 现金流与资产负债表上的期间现金变动一致
 - 分部加总与合并总计一致
 - 计算范围内无游离硬编码
 
 示例：
+
 ```python
 checks = wb.create_sheet("Checks")
 checks["A2"] = "BS balances"
@@ -100,6 +107,7 @@ checks["C2"] = "=ABS(B2)<0.01"  # TRUE/FALSE
 ```
 
 ### 每个硬编码输入均添加单元格注释
+
 在创建单元格时同步添加注释，不要事后补充。
 
 ```python
@@ -232,6 +240,7 @@ libreoffice --headless --calc --convert-to xlsx ./out/model.xlsx --outdir ./out/
 ## 模型布局规划
 
 在编写任何公式之前：
+
 1. 定义所有节的行位置
 2. 写入所有标题和标签
 3. 写入所有节分隔符和空行
@@ -244,6 +253,7 @@ libreoffice --headless --calc --convert-to xlsx ./out/model.xlsx --outdir ./out/
 对于大型模型（DCF、三表模型、LBO），在继续之前停下来向用户展示中间产物。在构建下游敏感性表格之前发现错误的利润率假设，可以节省一小时。
 
 检查点模式：
+
 - Inputs 区块完成后→展示原始输入，确认后再进行预测
 - 收入预测完成后→确认顶线收入和增长率
 - FCF 构建完成后→确认完整的计划表
@@ -259,4 +269,4 @@ libreoffice --headless --calc --convert-to xlsx ./out/model.xlsx --outdir ./out/
 
 ## 致谢
 
-蓝/黑/绿约定、公式优先于硬编码、命名范围、敏感性规则等约定，改编自 Anthropic 的 Claude for Financial Services 插件套件，采用 Apache-2.0 许可证。原始地址：https://github.com/anthropics/financial-services/tree/main/plugins/vertical-plugins/financial-analysis/skills/xlsx-author
+蓝/黑/绿约定、公式优先于硬编码、命名范围、敏感性规则等约定，改编自 Anthropic 的 Claude for Financial Services 插件套件，采用 Apache-2.0 许可证。原始地址：<https://github.com/anthropics/financial-services/tree/main/plugins/vertical-plugins/financial-analysis/skills/xlsx-author>

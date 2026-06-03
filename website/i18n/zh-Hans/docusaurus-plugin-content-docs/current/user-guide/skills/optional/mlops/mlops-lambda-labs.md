@@ -4,7 +4,7 @@ sidebar_label: "Lambda Labs Gpu Cloud"
 description: "用于 ML 训练和推理的预留及按需 GPU 云实例"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Lambda Labs Gpu Cloud
 
@@ -36,6 +36,7 @@ description: "用于 ML 训练和推理的预留及按需 GPU 云实例"
 ## 何时使用 Lambda Labs
 
 **在以下情况下使用 Lambda Labs：**
+
 - 需要具备完整 SSH 访问权限的专用 GPU 实例
 - 运行长时间训练任务（数小时至数天）
 - 希望简单定价且无出口费用
@@ -44,6 +45,7 @@ description: "用于 ML 训练和推理的预留及按需 GPU 云实例"
 - 希望使用预装 ML 栈（Lambda Stack，含 PyTorch、CUDA、NCCL）
 
 **主要特性：**
+
 - **GPU 种类**：B200、H100、GH200、A100、A10、A6000、V100
 - **Lambda Stack**：预装 PyTorch、TensorFlow、CUDA、cuDNN、NCCL
 - **持久化文件系统**：实例重启后数据保留
@@ -52,6 +54,7 @@ description: "用于 ML 训练和推理的预留及按需 GPU 云实例"
 - **全球区域**：全球 12+ 个区域
 
 **以下情况请使用替代方案：**
+
 - **Modal**：用于无服务器、自动扩缩容工作负载
 - **SkyPilot**：用于多云编排和成本优化
 - **RunPod**：用于更便宜的竞价实例和无服务器端点
@@ -61,14 +64,14 @@ description: "用于 ML 训练和推理的预留及按需 GPU 云实例"
 
 ### 账户设置
 
-1. 在 https://lambda.ai 创建账户
+1. 在 <https://lambda.ai> 创建账户
 2. 添加付款方式
 3. 从控制台生成 API 密钥
 4. 添加 SSH 密钥（启动实例前必须完成）
 
 ### 通过控制台启动
 
-1. 前往 https://cloud.lambda.ai/instances
+1. 前往 <https://cloud.lambda.ai/instances>
 2. 点击"Launch instance"
 3. 选择 GPU 类型和区域
 4. 选择 SSH 密钥
@@ -289,6 +292,7 @@ python train.py --checkpoint-dir /lambda/nfs/my-storage/checkpoints
 ### 挂载到实例
 
 文件系统必须在实例启动时挂载：
+
 - 通过控制台：启动时选择文件系统
 - 通过 API：在启动请求中包含 `file_system_names`
 
@@ -435,6 +439,7 @@ torch.save({
 ### 概述
 
 高性能 Slurm 集群，具备：
+
 - 16-512 个 NVIDIA H100 或 B200 GPU
 - NVIDIA Quantum-2 400 Gb/s InfiniBand
 - GPUDirect RDMA，速率 3200 Gb/s
@@ -556,13 +561,13 @@ python inference.py \
 
 ## 参考资料
 
-- **[高级用法](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/lambda-labs/references/advanced-usage.md)** — 多节点训练、API 自动化
-- **[故障排查](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/lambda-labs/references/troubleshooting.md)** — 常见问题及解决方案
+- **[高级用法](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/lambda-labs/references/advanced-usage.md)** — 多节点训练、API 自动化
+- **[故障排查](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/lambda-labs/references/troubleshooting.md)** — 常见问题及解决方案
 
 ## 资源
 
-- **文档**：https://docs.lambda.ai
-- **控制台**：https://cloud.lambda.ai
-- **定价**：https://lambda.ai/instances
-- **支持**：https://support.lambdalabs.com
-- **博客**：https://lambda.ai/blog
+- **文档**：<https://docs.lambda.ai>
+- **控制台**：<https://cloud.lambda.ai>
+- **定价**：<https://lambda.ai/instances>
+- **支持**：<https://support.lambdalabs.com>
+- **博客**：<https://lambda.ai/blog>

@@ -2,13 +2,13 @@
 name: openclaw-migration
 description: Migrate a user's OpenClaw customization footprint into Hermes Agent. Imports Hermes-compatible memories, SOUL.md, command allowlists, user skills, and selected workspace assets from ~/.openclaw, then reports exactly what could not be migrated and why.
 version: 1.0.0
-author: Hermes Agent (Nous Research)
+author: Hermes Agent (w159)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  hermes:
-    tags: [Migration, OpenClaw, Hermes, Memory, Persona, Import]
-    related_skills: [hermes-agent]
+    hermes:
+        tags: [Migration, OpenClaw, Hermes, Memory, Persona, Import]
+        related_skills: [hermes-agent]
 ---
 
 # OpenClaw -> Hermes Migration
@@ -78,9 +78,9 @@ With `--migrate-secrets`, it will also import a small allowlisted set of Hermes-
 6. Ask for a target workspace path only if the user wants the workspace instructions file brought over.
 7. Execute the migration with the matching preset and flags.
 8. Summarize the results, especially:
-   - what was migrated
-   - what was archived for manual review
-   - what was skipped and why
+    - what was migrated
+    - what was archived for manual review
+    - what was skipped and why
 
 ## User interaction protocol
 
@@ -125,34 +125,34 @@ In that case, you must ask about workspace instructions before execution. Do not
 Because of that limitation, use this simplified decision flow:
 
 1. For `SOUL.md` conflicts, use `clarify` with choices such as:
-   - `keep existing`
-   - `overwrite with backup`
-   - `review first`
+    - `keep existing`
+    - `overwrite with backup`
+    - `review first`
 2. If the dry run shows one or more `kind="skill"` items with `status="conflict"`, use `clarify` with choices such as:
-   - `keep existing skills`
-   - `overwrite conflicting skills with backup`
-   - `import conflicting skills under renamed folders`
+    - `keep existing skills`
+    - `overwrite conflicting skills with backup`
+    - `import conflicting skills under renamed folders`
 3. For workspace instructions, use `clarify` with choices such as:
-   - `skip workspace instructions`
-   - `copy to a workspace path`
-   - `decide later`
+    - `skip workspace instructions`
+    - `copy to a workspace path`
+    - `decide later`
 4. If the user chooses to copy workspace instructions, ask a follow-up open-ended `clarify` question requesting an **absolute path**.
 5. If the user chooses `skip workspace instructions` or `decide later`, proceed without `--workspace-target`.
-5. For migration mode, use `clarify` with these 3 choices:
-   - `user-data only`
-   - `full compatible migration`
-   - `cancel`
-6. `user-data only` means: migrate user data and compatible config, but do **not** import allowlisted secrets.
-7. `full compatible migration` means: migrate the same compatible user data plus the allowlisted secrets when present.
-8. If `clarify` is not available, ask the same question in normal text, but still constrain the answer to `user-data only`, `full compatible migration`, or `cancel`.
+6. For migration mode, use `clarify` with these 3 choices:
+    - `user-data only`
+    - `full compatible migration`
+    - `cancel`
+7. `user-data only` means: migrate user data and compatible config, but do **not** import allowlisted secrets.
+8. `full compatible migration` means: migrate the same compatible user data plus the allowlisted secrets when present.
+9. If `clarify` is not available, ask the same question in normal text, but still constrain the answer to `user-data only`, `full compatible migration`, or `cancel`.
 
 Execution gate:
 
 - Do not execute while a `workspace-agents` skip caused by `No workspace target was provided` remains unresolved.
 - The only valid ways to resolve it are:
-  - user explicitly chooses `skip workspace instructions`
-  - user explicitly chooses `decide later`
-  - user provides a workspace path after choosing `copy to a workspace path`
+    - user explicitly chooses `skip workspace instructions`
+    - user explicitly chooses `decide later`
+    - user provides a workspace path after choosing `copy to a workspace path`
 - Absence of a workspace target in the dry run is not itself permission to execute.
 - Do not execute while any required `clarify` decision remains unresolved.
 
@@ -235,7 +235,10 @@ python3 ~/.hermes/skills/migration/openclaw-migration/scripts/openclaw_to_hermes
 When using the terminal tool, prefer an absolute invocation pattern such as:
 
 ```json
-{"command":"python3 /home/USER/.hermes/skills/migration/openclaw-migration/scripts/openclaw_to_hermes.py","workdir":"/home/USER"}
+{
+    "command": "python3 /home/USER/.hermes/skills/migration/openclaw-migration/scripts/openclaw_to_hermes.py",
+    "workdir": "/home/USER"
+}
 ```
 
 Dry run with the user-data preset:

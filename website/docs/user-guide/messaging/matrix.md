@@ -101,7 +101,7 @@ If you run your own homeserver (Synapse, Conduit, Dendrite):
 register_new_matrix_user -c /etc/synapse/homeserver.yaml http://localhost:8008
 ```
 
-2. Choose a username like `hermes` — the full user ID will be `@hermes:your-server.org`.
+1. Choose a username like `hermes` — the full user ID will be `@hermes:your-server.org`.
 
 ### Option B: Use matrix.org or Another Public Homeserver
 
@@ -121,6 +121,7 @@ Hermes needs an access token to authenticate with the homeserver. You have two o
 The most reliable way to get a token:
 
 **Via Element:**
+
 1. Log in to [Element](https://app.element.io) with the bot account.
 2. Go to **Settings** → **Help & About**.
 3. Scroll down and expand **Advanced** — the access token is displayed there.
@@ -300,6 +301,7 @@ Hermes detects this condition on startup and refuses to enable E2EE, logging: `d
 **Manual recovery** (advanced — keeps the same device ID):
 
 1. Stop Synapse and delete the old device from its database:
+
    ```bash
    sudo systemctl stop matrix-synapse
    sudo sqlite3 /var/lib/matrix-synapse/homeserver.db "
@@ -310,14 +312,18 @@ Hermes detects this condition on startup and refuses to enable E2EE, logging: `d
    "
    sudo systemctl start matrix-synapse
    ```
+
    Or via the Synapse admin API (note the URL-encoded user ID):
+
    ```bash
    curl -X DELETE -H "Authorization: Bearer ADMIN_TOKEN" \
      'https://your-server/_synapse/admin/v2/users/%40hermes%3Ayour-server/devices/DEVICE_ID'
    ```
+
    Note: deleting a device via the admin API may also invalidate the associated access token. You may need to generate a new token afterward.
 
 2. Delete the local crypto store and restart Hermes:
+
    ```bash
    rm -f ~/.hermes/platforms/matrix/store/crypto.db*
    # restart hermes
@@ -374,7 +380,6 @@ Behavior:
 
 See also: [admin/user slash command split](../../reference/slash-commands.md#permissions-and-adminuser-split).
 
-
 :::tip
 To find a Room ID: in Element, go to the room → **Settings** → **Advanced** → the **Internal room ID** is shown there (starts with `!`).
 :::
@@ -412,7 +417,7 @@ such as `!important` remain normal chat messages.
 
 ### Bot joins rooms but silently drops every message (clock skew)
 
-**Cause**: The host's system clock is set ahead of real time. The Matrix adapter applies a 5-second startup-grace filter (`event_ts < startup_ts - 5`) to ignore events replayed from initial sync. When the wall clock is ahead, every incoming event looks "older than startup" and is dropped before reaching the message handler — the bot appears connected but never replies. See [#12614](https://github.com/NousResearch/hermes-agent/issues/12614).
+**Cause**: The host's system clock is set ahead of real time. The Matrix adapter applies a 5-second startup-grace filter (`event_ts < startup_ts - 5`) to ignore events replayed from initial sync. When the wall clock is ahead, every incoming event looks "older than startup" and is dropped before reaching the message handler — the bot appears connected but never replies. See [#12614](https://github.com/w159/agent-penny/issues/12614).
 
 **Symptom**: Gateway log shows `Matrix: dropped N live events as 'too old' more than 30s after startup`.
 
@@ -461,6 +466,7 @@ pip install 'hermes-agent[matrix]'
 **Cause**: Missing encryption keys, `libolm` not installed, or the bot's device isn't trusted.
 
 **Fix**:
+
 1. Verify `libolm` is installed on your system (see the E2EE section above).
 2. Make sure `MATRIX_ENCRYPTION=true` is set in your `.env`.
 3. In your Matrix client (Element), go to the bot's profile -> Sessions -> verify/trust the bot's device.
@@ -643,11 +649,13 @@ That's the entire container. No API keys for OpenRouter, Anthropic, or any infer
 ### Step 3: Start Both
 
 1. Start the host gateway first:
+
    ```bash
    hermes gateway
    ```
 
 2. Start the Docker container:
+
    ```bash
    docker compose up -d
    ```

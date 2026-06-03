@@ -4,7 +4,7 @@ sidebar_label: "Baoyu Comic"
 description: "知识漫画：教育、传记、教程"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Baoyu Comic
 
@@ -43,6 +43,7 @@ description: "知识漫画：教育、传记、教程"
 Hermes 的 `image_generate` 工具**仅接受 prompt（提示词）**——它接受文本 prompt 和宽高比，并返回图片 URL。它**不**接受参考图片。当用户提供参考图片时，将其用于**以文字提取特征**，并嵌入每页 prompt 中：
 
 **接收方式**：当用户提供文件路径时接受（或在对话中粘贴图片）。
+
 - 文件路径 → 复制到漫画输出目录下的 `refs/NN-ref-{slug}.{ext}`，用于溯源
 - 粘贴图片但无路径 → 通过 `clarify` 向用户询问路径，或以文字形式提取风格特征作为备选
 - 无参考图片 → 跳过此部分
@@ -89,7 +90,7 @@ references:
 | 仅图片 | 从现有 prompts 目录生成图片 |
 | 重新生成第 N 页 | 仅重新生成指定页面（如 `3` 或 `2,5,8`） |
 
-详情：[references/partial-workflows.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md)
+详情：[references/partial-workflows.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md)
 
 ### 艺术风格、基调与预设目录
 
@@ -107,15 +108,17 @@ references:
 
   完整规则见 `references/presets/<preset>.md`——选择预设时加载对应文件。
 
-- **兼容性矩阵**和**内容信号 → 预设**对照表见 [references/auto-selection.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md)。在步骤 2 推荐组合前请先阅读。
+- **兼容性矩阵**和**内容信号 → 预设**对照表见 [references/auto-selection.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/auto-selection.md)。在步骤 2 推荐组合前请先阅读。
 
 ## 文件结构
 
 输出目录：`comic/{topic-slug}/`
+
 - Slug：从主题中取 2-4 个词，使用 kebab-case（如 `alan-turing-bio`）
 - 冲突时：追加时间戳（如 `turing-story-20260118-143052`）
 
 **内容**：
+
 | 文件 | 说明 |
 |------|-------------|
 | `source-{slug}.md` | 保存的源内容（kebab-case slug 与输出目录一致） |
@@ -130,11 +133,13 @@ references:
 ## 语言处理
 
 **检测优先级**：
+
 1. 用户指定语言（显式选项）
 2. 用户对话语言
 3. 源内容语言
 
 **规则**：对所有交互使用用户的输入语言：
+
 - 分镜大纲和场景描述
 - 图片生成 prompt
 - 用户选择选项和确认信息
@@ -185,7 +190,7 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 
 ### 用户问题
 
-使用 `clarify` 工具确认选项。由于 `clarify` 每次只处理一个问题，请先提出最重要的问题，然后依次进行。完整的步骤 2 问题集见 [references/workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
+使用 `clarify` 工具确认选项。由于 `clarify` 每次只处理一个问题，请先提出最重要的问题，然后依次进行。完整的步骤 2 问题集见 [references/workflow.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
 
 **超时处理（关键）**：`clarify` 可能返回 `"The user did not provide a response within the time limit. Use your best judgement to make the choice and proceed."` ——这**不是**用户对所有选项使用默认值的同意。
 
@@ -208,6 +213,7 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 | `1:1` | `square` |
 
 **下载步骤** ——每次调用 `image_generate` 后：
+
 1. 从工具结果中读取 URL
 2. 使用**绝对**输出路径获取图片字节，例如：
    `curl -fsSL "<url>" -o /abs/path/to/comic/<slug>/NN-page-<slug>.png`
@@ -221,26 +227,29 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 
 **备份规则**：现有的 `prompts/…md` 和 `…png` 文件 → 在重新生成前，以 `-backup-YYYYMMDD-HHMMSS` 后缀重命名。
 
-完整的逐步工作流（分析、分镜、审阅节点、重新生成变体）：[references/workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
+完整的逐步工作流（分析、分镜、审阅节点、重新生成变体）：[references/workflow.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/workflow.md)。
 
 ## 参考资料
 
 **核心模板**：
-- [analysis-framework.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/analysis-framework.md) - 深度内容分析
-- [character-template.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/character-template.md) - 角色定义格式
-- [storyboard-template.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/storyboard-template.md) - 分镜结构
-- [ohmsha-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/ohmsha-guide.md) - Ohmsha manga 细节
+
+- [analysis-framework.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/analysis-framework.md) - 深度内容分析
+- [character-template.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/character-template.md) - 角色定义格式
+- [storyboard-template.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/storyboard-template.md) - 分镜结构
+- [ohmsha-guide.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/ohmsha-guide.md) - Ohmsha manga 细节
 
 **风格定义**：
+
 - `references/art-styles/` - 艺术风格（ligne-claire、manga、realistic、ink-brush、chalk、minimalist）
 - `references/tones/` - 基调（neutral、warm、dramatic、romantic、energetic、vintage、action）
 - `references/presets/` - 含特殊规则的预设（ohmsha、wuxia、shoujo、concept-story、four-panel）
 - `references/layouts/` - 版式（standard、cinematic、dense、splash、mixed、webtoon、four-panel）
 
 **工作流**：
-- [workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md) - 完整工作流详情
-- [auto-selection.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md) - 内容信号分析
-- [partial-workflows.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md) - 部分工作流选项
+
+- [workflow.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/workflow.md) - 完整工作流详情
+- [auto-selection.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/auto-selection.md) - 内容信号分析
+- [partial-workflows.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md) - 部分工作流选项
 
 ## 页面修改
 

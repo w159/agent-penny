@@ -140,7 +140,7 @@ tail -f ~/.hermes/logs/update.log
 hermes version
 ```
 
-与 [GitHub releases 页面](https://github.com/NousResearch/hermes-agent/releases) 上的最新版本进行比较。
+与 [GitHub releases 页面](https://github.com/w159/agent-penny/releases) 上的最新版本进行比较。
 
 ### 从消息平台更新
 
@@ -249,9 +249,11 @@ rm -rf ~/.hermes            # 可选 — 如计划重新安装则保留
 
 :::info
 如果你将 gateway 安装为系统服务，请先停止并禁用它：
+
 ```bash
 hermes gateway stop
 # Linux: systemctl --user disable hermes-gateway
 # macOS: launchctl remove ai.hermes.gateway
 ```
+
 :::

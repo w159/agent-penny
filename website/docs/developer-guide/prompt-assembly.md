@@ -35,6 +35,7 @@ The cached system prompt is assembled as three ordered tiers (see `agent/system_
 The final system prompt is then joined as: `stable` → `context` → `volatile`.
 
 This ordering matters for precedence discussions:
+
 - skills are part of the **stable** tier
 - memory/profile snapshots are part of the **volatile** tier
 - both are still in the cached system prompt (they are not injected as ad-hoc mid-turn overlays)
@@ -47,7 +48,7 @@ Here is a simplified view of what the final system prompt looks like when all la
 
 ```
 # Layer 1: Agent Identity (from ~/.hermes/SOUL.md)
-You are Hermes, an AI assistant created by Nous Research.
+You are Hermes, an AI assistant created by w159.
 You are an expert software engineer and researcher.
 You value correctness, clarity, and efficiency.
 ...
@@ -137,7 +138,7 @@ When `load_soul_md()` returns content, it replaces the hardcoded `DEFAULT_AGENT_
 If `SOUL.md` doesn't exist, the system falls back to:
 
 ```
-You are Hermes Agent, an intelligent AI assistant created by Nous Research.
+You are Hermes Agent, an intelligent AI assistant created by w159.
 You are helpful, knowledgeable, and direct. You assist users with a wide
 range of tasks including answering questions, writing and editing code,
 analyzing information, creative work, and executing actions via your tools.
@@ -194,6 +195,7 @@ def build_context_files_prompt(cwd=None, skip_soul=False):
 | 4 | `.cursorrules`, `.cursor/rules/*.mdc` | CWD only | Cursor compatibility |
 
 All context files are:
+
 - **Security scanned** — checked for prompt injection patterns (invisible unicode, "ignore previous instructions", credential exfiltration attempts)
 - **Truncated** — capped at 20,000 characters using 70/20 head/tail ratio with a truncation marker
 - **YAML frontmatter stripped** — `.hermes.md` frontmatter is removed (reserved for future config overrides)

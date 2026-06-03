@@ -4,7 +4,7 @@ sidebar_label: "Nemo Curator"
 description: "GPU-accelerated data curation for LLM training"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Nemo Curator
 
@@ -36,6 +36,7 @@ NVIDIA's toolkit for preparing high-quality training data for LLMs.
 ## When to use NeMo Curator
 
 **Use NeMo Curator when:**
+
 - Preparing LLM training data from web scrapes (Common Crawl)
 - Need fast deduplication (16× faster than CPU)
 - Curating multi-modal datasets (text, images, video, audio)
@@ -43,11 +44,13 @@ NVIDIA's toolkit for preparing high-quality training data for LLMs.
 - Scaling data processing across GPU cluster
 
 **Performance**:
+
 - **16× faster** fuzzy deduplication (8TB RedPajama v2)
 - **40% lower TCO** vs CPU alternatives
 - **Near-linear scaling** across GPU nodes
 
 **Use alternatives instead**:
+
 - **datatrove**: CPU-based, open-source data processing
 - **dolma**: Allen AI's data toolkit
 - **Ray Data**: General ML data processing (no curation focus)
@@ -120,6 +123,7 @@ dataset = dataset.filter(UrlRatioFilter(max_url_ratio=0.2))
 ### Stage 2: Deduplication
 
 **Exact deduplication**:
+
 ```python
 from nemo_curator.modules import ExactDuplicates
 
@@ -128,6 +132,7 @@ deduped = ExactDuplicates(id_field="id", text_field="text")(dataset)
 ```
 
 **Fuzzy deduplication** (16× faster on GPU):
+
 ```python
 from nemo_curator.modules import FuzzyDuplicates
 
@@ -144,6 +149,7 @@ deduped = fuzzy_dedup(dataset)
 ```
 
 **Semantic deduplication**:
+
 ```python
 from nemo_curator.modules import SemanticDuplicates
 
@@ -365,11 +371,13 @@ cluster.close()
 ## Cost comparison
 
 **CPU-based curation** (AWS c5.18xlarge × 10):
+
 - Cost: $3.60/hour × 10 = $36/hour
 - Time for 8TB: 120 hours
 - **Total**: $4,320
 
 **GPU-based curation** (AWS p4d.24xlarge × 2):
+
 - Cost: $32.77/hour × 2 = $65.54/hour
 - Time for 8TB: 7.5 hours
 - **Total**: $491.55
@@ -385,17 +393,18 @@ cluster.close()
 ## Use cases
 
 **Production deployments**:
+
 - NVIDIA used NeMo Curator to prepare Nemotron-4 training data
 - Open-source datasets curated: RedPajama v2, The Pile
 
 ## References
 
-- **[Filtering Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/nemo-curator/references/filtering.md)** - 30+ quality filters, heuristics
-- **[Deduplication Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/nemo-curator/references/deduplication.md)** - Exact, fuzzy, semantic methods
+- **[Filtering Guide](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/nemo-curator/references/filtering.md)** - 30+ quality filters, heuristics
+- **[Deduplication Guide](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/nemo-curator/references/deduplication.md)** - Exact, fuzzy, semantic methods
 
 ## Resources
 
-- **GitHub**: https://github.com/NVIDIA/NeMo-Curator ⭐ 500+
-- **Docs**: https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/
+- **GitHub**: <https://github.com/NVIDIA/NeMo-Curator> ⭐ 500+
+- **Docs**: <https://docs.nvidia.com/nemo-framework/user-guide/latest/datacuration/>
 - **Version**: 0.4.0+
 - **License**: Apache 2.0

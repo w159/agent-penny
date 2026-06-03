@@ -4,7 +4,7 @@ sidebar_label: "Peft Fine Tuning"
 description: "使用 LoRA、QLoRA 及 25+ 种方法对 LLM 进行参数高效微调"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Peft Fine Tuning
 
@@ -36,17 +36,20 @@ description: "使用 LoRA、QLoRA 及 25+ 种方法对 LLM 进行参数高效微
 ## 何时使用 PEFT
 
 **在以下情况使用 PEFT/LoRA：**
+
 - 在消费级 GPU（RTX 4090、A100）上微调 7B–70B 模型
 - 需要训练不足 1% 的参数（6MB 适配器 vs 14GB 完整模型）
 - 希望通过多个任务专属适配器快速迭代
 - 从单一基础模型部署多个微调变体
 
 **在以下情况使用 QLoRA（PEFT + 量化）：**
+
 - 在单张 24GB GPU 上微调 70B 模型
 - 显存是主要瓶颈
 - 可接受相比完整微调约 5% 的质量损失
 
 **在以下情况改用完整微调：**
+
 - 训练小型模型（参数量 < 1B）
 - 需要最高质量且有充足算力预算
 - 显著的领域偏移需要更新全部权重
@@ -440,13 +443,13 @@ TrainingArguments(learning_rate=1e-4)
 
 ## 参考资料
 
-- **[高级用法](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/peft/references/advanced-usage.md)** — DoRA、LoftQ、秩稳定化、自定义模块
-- **[故障排查](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/peft/references/troubleshooting.md)** — 常见错误、调试、优化
+- **[高级用法](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/peft/references/advanced-usage.md)** — DoRA、LoftQ、秩稳定化、自定义模块
+- **[故障排查](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/peft/references/troubleshooting.md)** — 常见错误、调试、优化
 
 ## 资源
 
-- **GitHub**：https://github.com/huggingface/peft
-- **文档**：https://huggingface.co/docs/peft
+- **GitHub**：<https://github.com/huggingface/peft>
+- **文档**：<https://huggingface.co/docs/peft>
 - **LoRA 论文**：arXiv:2106.09685
 - **QLoRA 论文**：arXiv:2305.14314
-- **模型**：https://huggingface.co/models?library=peft
+- **模型**：<https://huggingface.co/models?library=peft>

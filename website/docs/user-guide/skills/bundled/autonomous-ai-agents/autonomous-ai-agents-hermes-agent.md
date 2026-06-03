@@ -4,7 +4,7 @@ sidebar_label: "Hermes Agent"
 description: "Configure, extend, or contribute to Hermes Agent"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Hermes Agent
 
@@ -31,7 +31,7 @@ The following is the complete skill definition that Hermes loads when this skill
 
 # Hermes Agent
 
-Hermes Agent is an open-source AI agent framework by Nous Research that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Hermes works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
+Hermes Agent is an open-source AI agent framework by w159 that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Hermes works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
 
 What makes Hermes different:
 
@@ -46,13 +46,13 @@ People use Hermes for software development, research, system administration, dat
 
 **This skill helps you work with Hermes Agent effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
 
-**Docs:** https://hermes-agent.nousresearch.com/docs/
+**Docs:** <https://hermes-agent.nousresearch.com/docs/>
 
 ## Quick Start
 
 ```bash
 # Install
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 
 # Interactive chat (default)
 hermes
@@ -170,7 +170,7 @@ hermes gateway setup        Configure platforms
 
 Supported platforms: Telegram, Discord, Slack, WhatsApp, Signal, Email, SMS, Matrix, Mattermost, Home Assistant, DingTalk, Feishu, WeCom, BlueBubbles (iMessage), Weixin (WeChat), API Server, Webhooks. Open WebUI connects via the API Server adapter.
 
-Platform docs: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/
+Platform docs: <https://hermes-agent.nousresearch.com/docs/user-guide/messaging/>
 
 ### Sessions
 
@@ -254,6 +254,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 (autocomplete, Telegram menu, Slack mapping, `/help`) derives from it.
 
 ### Session Control
+
 ```
 /new (/reset)        Fresh session
 /clear               Clear screen + new session (CLI)
@@ -275,6 +276,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 ```
 
 ### Configuration
+
 ```
 /config              Show config (CLI)
 /model [name]        Show or change model
@@ -293,6 +295,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 ```
 
 ### Tools & Skills
+
 ```
 /tools               Manage tools (CLI)
 /toolsets            List toolsets (CLI)
@@ -308,6 +311,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 ```
 
 ### Gateway
+
 ```
 /approve             Approve a pending command (gateway)
 /deny                Deny a pending command (gateway)
@@ -319,6 +323,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 ```
 
 ### Utility
+
 ```
 /branch (/fork)      Branch the current session
 /fast                Toggle priority/fast processing
@@ -331,6 +336,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 ```
 
 ### Info
+
 ```
 /help                Show commands
 /commands [page]     Browse all commands (gateway)
@@ -343,6 +349,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 ```
 
 ### Exit
+
 ```
 /quit (/exit, /q)    Exit CLI
 ```
@@ -382,7 +389,7 @@ Edit with `hermes config edit` or `hermes config set section.key value`.
 | `delegation` | `model`, `provider`, `base_url`, `api_key`, `max_iterations` (50), `reasoning_effort` |
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
 
-Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+Full config reference: <https://hermes-agent.nousresearch.com/docs/user-guide/configuration>
 
 ### Providers
 
@@ -412,7 +419,7 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 | Custom endpoint | Config | `model.base_url` + `model.api_key` in config.yaml |
 | GitHub Copilot ACP | External | `COPILOT_CLI_PATH` or Copilot CLI |
 
-Full provider docs: https://hermes-agent.nousresearch.com/docs/integrations/providers
+Full provider docs: <https://hermes-agent.nousresearch.com/docs/integrations/providers>
 
 ### Toolsets
 
@@ -472,6 +479,7 @@ hermes config set security.redact_secrets true       # keep enabled globally
 **Restart required.** `security.redact_secrets` is snapshotted at import time — toggling it mid-session (e.g. via `export HERMES_REDACT_SECRETS=false` from a tool call) will NOT take effect for the running process. Tell the user to change it in config from a terminal, then start a new session. This is deliberate — it prevents an LLM from flipping the toggle on itself mid-task.
 
 Disable only when you deliberately need raw credential-like strings for debugging or redactor development:
+
 ```bash
 hermes config set security.redact_secrets false
 ```
@@ -499,6 +507,7 @@ hermes config set approvals.mode off         # bypass everything (not recommende
 ```
 
 Per-invocation bypass without changing config:
+
 - `hermes --yolo …`
 - `export HERMES_YOLO_MODE=1`
 
@@ -521,12 +530,14 @@ To keep the model away from network or media tools entirely, open `hermes tools`
 Voice messages from messaging platforms are auto-transcribed.
 
 Provider priority (auto-detected):
+
 1. **Local faster-whisper** — free, no API key: `pip install faster-whisper`
 2. **Groq Whisper** — free tier: set `GROQ_API_KEY`
 3. **OpenAI Whisper** — paid: set `VOICE_TOOLS_OPENAI_KEY`
 4. **Mistral Voxtral** — set `MISTRAL_API_KEY`
 
 Config:
+
 ```yaml
 stt:
   enabled: true
@@ -672,7 +683,7 @@ the `cronjob` tool, the `hermes cron` CLI (`list`, `add`, `edit`,
   header/footer instead of being mirrored into the target gateway
   session (keeps role alternation intact).
 
-User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/cron
+User docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/cron>
 
 ### Curator (skill lifecycle)
 
@@ -693,7 +704,7 @@ so nothing is lost.
 
 Config: `curator.*` (`enabled`, `interval_hours`, `min_idle_hours`,
 `stale_after_days`, `archive_after_days`, `backup.*`).
-User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/curator
+User docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/curator>
 
 ### Kanban (multi-agent work queue)
 
@@ -722,7 +733,7 @@ sessions still have zero `kanban_*` schema footprint unless configured.
   `HERMES_KANBAN_BOARD` pinned in env); tenant is a soft namespace
   within a board for workspace-path + memory-key isolation.
 
-User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
+User docs: <https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban>
 
 ---
 
@@ -795,6 +806,7 @@ Use `-n 0`, not `-n 4` — `pyproject.toml`'s default `addopts` already
 includes `-n`, and the wrapper's CI-parity guarantees don't apply off POSIX.
 
 **POSIX-only tests need skip guards.** Common markers already in the codebase:
+
 - Symlinks — elevated privileges on Windows
 - `0o600` file modes — POSIX mode bits not enforced on NTFS by default
 - `signal.SIGALRM` — Unix-only (see `tests/conftest.py::_enforce_test_timeout`)
@@ -819,49 +831,60 @@ and logs — avoids shell-escaping backslashes in bash.
 ## Troubleshooting
 
 ### Voice not working
+
 1. Check `stt.enabled: true` in config.yaml
 2. Verify provider: `pip install faster-whisper` or set API key
 3. In gateway: `/restart`. In CLI: exit and relaunch.
 
 ### Tool not available
+
 1. `hermes tools` — check if toolset is enabled for your platform
 2. Some tools need env vars (check `.env`)
 3. `/reset` after enabling tools
 
 ### Model/provider issues
+
 1. `hermes doctor` — check config and dependencies
 2. `hermes auth` — re-authenticate OAuth providers (or `hermes auth add <provider>`)
 3. Check `.env` has the right API key
 4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `hermes model` → GitHub Copilot.
 
 ### Changes not taking effect
+
 - **Tools/skills:** `/reset` starts a new session with updated toolset
 - **Config changes:** In gateway: `/restart`. In CLI: exit and relaunch.
 - **Code changes:** Restart the CLI or gateway process
 
 ### Skills not showing
+
 1. `hermes skills list` — verify installed
 2. `hermes skills config` — check platform enablement
 3. Load explicitly: `/skill name` or `hermes -s name`
 
 ### Gateway issues
+
 Check logs first:
+
 ```bash
 grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
 ```
 
 Common gateway problems:
+
 - **Gateway dies on SSH logout**: Enable linger: `sudo loginctl enable-linger $USER`
 - **Gateway dies on WSL2 close**: WSL2 requires `systemd=true` in `/etc/wsl.conf` for systemd services to work. Without it, gateway falls back to `nohup` (dies when session closes).
 - **Gateway crash loop**: Reset the failed state: `systemctl --user reset-failed hermes-gateway`
 
 ### Platform-specific issues
+
 - **Discord bot silent**: Must enable **Message Content Intent** in Bot → Privileged Gateway Intents.
 - **Slack bot only works in DMs**: Must subscribe to `message.channels` event. Without it, the bot ignores public channels.
 - **Windows-specific issues** (`Alt+Enter` newline, WinError 10106, UTF-8 BOM config, test suite, line endings): see the dedicated **Windows-Specific Quirks** section above.
 
 ### Auxiliary models not working
+
 If `auxiliary` tasks (vision, compression, session_search) fail silently, the `auto` provider can't find a backend. Either set `OPENROUTER_API_KEY` or `GOOGLE_API_KEY`, or explicitly configure each auxiliary task's provider:
+
 ```bash
 hermes config set auxiliary.vision.provider <your_provider>
 hermes config set auxiliary.vision.model <model_name>
@@ -893,7 +916,7 @@ hermes config set auxiliary.vision.model <model_name>
 
 ## Contributor Quick Reference
 
-For occasional contributors and PR authors. Full developer docs: https://hermes-agent.nousresearch.com/docs/developer-guide/
+For occasional contributors and PR authors. Full developer docs: <https://hermes-agent.nousresearch.com/docs/developer-guide/>
 
 ### Project Layout
 
@@ -925,6 +948,7 @@ Config: `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys).
 ### Adding a Tool (3 files)
 
 **1. Create `tools/your_tool.py`:**
+
 ```python
 import json, os
 from tools.registry import registry
@@ -993,6 +1017,7 @@ export PYTHONPATH="$(pwd)"
 Use `-n 0` (not `-n 4`) because `pyproject.toml`'s default `addopts` already includes `-n`, and the wrapper's CI-parity story doesn't apply off-POSIX.
 
 **Cross-platform test guards:** tests that use POSIX-only syscalls need a skip marker. Common ones already in the codebase:
+
 - Symlink creation → `@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks require elevated privileges on Windows")` (see `tests/cron/test_cron_script.py`)
 - POSIX file modes (0o600, etc.) → `@pytest.mark.skipif(sys.platform.startswith("win"), reason="POSIX mode bits not enforced on Windows")` (see `tests/hermes_cli/test_auth_toctou_file_modes.py`)
 - `signal.SIGALRM` → Unix-only (see `tests/conftest.py::_enforce_test_timeout`)

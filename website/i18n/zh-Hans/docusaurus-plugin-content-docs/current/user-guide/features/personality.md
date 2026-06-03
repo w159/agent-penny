@@ -47,6 +47,7 @@ $HERMES_HOME/SOUL.md
 如果 Hermes 从你启动它的任意目录加载 `SOUL.md`，你的个性可能会在不同项目之间意外改变。通过仅从 `HERMES_HOME` 加载，个性归属于 Hermes 实例本身。
 
 这也让用户更容易理解：
+
 - "编辑 `~/.hermes/SOUL.md` 来更改 Hermes 的默认个性。"
 
 ## 编辑位置
@@ -66,6 +67,7 @@ $HERMES_HOME/SOUL.md
 ## SOUL.md 应该写什么？
 
 用于持久的语气和个性指导，例如：
+
 - 语气
 - 沟通风格
 - 直接程度
@@ -74,6 +76,7 @@ $HERMES_HOME/SOUL.md
 - Hermes 应如何处理不确定性、分歧或模糊情况
 
 不适合写入的内容：
+
 - 一次性项目说明
 - 文件路径
 - 代码库规范
@@ -84,6 +87,7 @@ $HERMES_HOME/SOUL.md
 ## 优质 SOUL.md 内容
 
 一个好的 SOUL 文件应该：
+
 - 在不同上下文中保持稳定
 - 足够宽泛，适用于多种对话场景
 - 足够具体，能实质性地塑造语气
@@ -121,10 +125,11 @@ You optimize for truth, clarity, and usefulness over politeness theater.
 `SOUL.md` 的内容直接进入系统提示词的第 1 个槽位——即 Agent 身份位置。不会在其周围添加任何包装语言。
 
 内容会经过以下处理：
+
 - 提示词注入扫描
 - 内容过大时进行截断
 
-如果文件为空、仅含空白字符或无法读取，Hermes 将回退到内置默认身份（"You are Hermes Agent, an intelligent AI assistant created by Nous Research..."）。当 `skip_context_files` 被设置时（例如在子 Agent/委托上下文中），同样适用此回退。
+如果文件为空、仅含空白字符或无法读取，Hermes 将回退到内置默认身份（"You are Hermes Agent, an intelligent AI assistant created by w159..."）。当 `skip_context_files` 被设置时（例如在子 Agent/委托上下文中），同样适用此回退。
 
 ## 安全扫描
 
@@ -137,7 +142,9 @@ You optimize for truth, clarity, and usefulness over politeness theater.
 这是最重要的区别。
 
 ### SOUL.md
+
 用于：
+
 - 身份
 - 语气
 - 风格
@@ -145,7 +152,9 @@ You optimize for truth, clarity, and usefulness over politeness theater.
 - 个性层面的行为
 
 ### AGENTS.md
+
 用于：
+
 - 项目架构
 - 编码规范
 - 工具偏好
@@ -153,6 +162,7 @@ You optimize for truth, clarity, and usefulness over politeness theater.
 - 命令、端口、路径、部署说明
 
 一个实用的判断规则：
+
 - 如果它应该随你到处适用，属于 `SOUL.md`
 - 如果它属于某个项目，属于 `AGENTS.md`
 
@@ -163,10 +173,12 @@ You optimize for truth, clarity, and usefulness over politeness theater.
 `/personality` 是会话级覆盖层，用于更改或补充当前系统提示词。
 
 因此：
+
 - `SOUL.md` = 基础语气
 - `/personality` = 临时模式切换
 
 示例：
+
 - 保持务实的默认 SOUL，然后在辅导对话中使用 `/personality teacher`
 - 保持简洁的 SOUL，然后在头脑风暴时使用 `/personality creative`
 
@@ -236,6 +248,7 @@ agent:
 3. 仅在需要临时模式切换时使用 `/personality`
 
 这样你将获得：
+
 - 稳定的语气
 - 项目特定行为归属于正确位置
 - 需要时的临时控制
@@ -243,6 +256,7 @@ agent:
 ## 个性如何与完整提示词交互
 
 从高层次来看，提示词栈包含：
+
 1. **SOUL.md**（Agent 身份——如果 SOUL.md 不可用则使用内置回退）
 2. 工具感知行为指导
 3. 记忆/用户上下文

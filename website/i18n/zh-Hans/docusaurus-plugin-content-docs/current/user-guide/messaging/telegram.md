@@ -46,6 +46,7 @@ help - Show help information
 new - Start a new conversation
 sethome - Set this chat as the home channel
 ```
+
 :::
 
 ## 第三步：隐私模式（群组关键设置）
@@ -53,6 +54,7 @@ sethome - Set this chat as the home channel
 Telegram 机器人有一个**隐私模式**，**默认启用**。这是在群组中使用机器人时最常见的困惑来源。
 
 **隐私模式开启时**，机器人只能看到：
+
 - 以 `/` 命令开头的消息
 - 直接回复机器人自身消息的内容
 - 服务消息（成员加入/离开、置顶消息等）
@@ -207,7 +209,7 @@ TELEGRAM_WEBHOOK_SECRET="$(openssl rand -hex 32)"  # 必填
 | 变量 | 是否必填 | 说明 |
 |----------|----------|-------------|
 | `TELEGRAM_WEBHOOK_URL` | 是 | Telegram 发送更新的公开 HTTPS URL。URL 路径会自动提取（例如上例中的 `/telegram`）。 |
-| `TELEGRAM_WEBHOOK_SECRET` | **是**（设置 `TELEGRAM_WEBHOOK_URL` 时） | Telegram 在每个 webhook 请求中回显的密钥 token，用于验证。gateway 在没有该密钥时拒绝启动——参见 [GHSA-3vpc-7q5r-276h](https://github.com/NousResearch/hermes-agent/security/advisories/GHSA-3vpc-7q5r-276h)。使用 `openssl rand -hex 32` 生成。 |
+| `TELEGRAM_WEBHOOK_SECRET` | **是**（设置 `TELEGRAM_WEBHOOK_URL` 时） | Telegram 在每个 webhook 请求中回显的密钥 token，用于验证。gateway 在没有该密钥时拒绝启动——参见 [GHSA-3vpc-7q5r-276h](https://github.com/w159/agent-penny/security/advisories/GHSA-3vpc-7q5r-276h)。使用 `openssl rand -hex 32` 生成。 |
 | `TELEGRAM_WEBHOOK_PORT` | 否 | webhook 服务器监听的本地端口（默认：`8443`）。 |
 
 设置 `TELEGRAM_WEBHOOK_URL` 后，gateway 会启动 HTTP webhook 服务器而非轮询。未设置时使用轮询模式——与之前版本行为无变化。
@@ -221,7 +223,7 @@ fly secrets set TELEGRAM_WEBHOOK_URL=https://my-app.fly.dev/telegram
 fly secrets set TELEGRAM_WEBHOOK_SECRET=$(openssl rand -hex 32)
 ```
 
-2. 在 `fly.toml` 中暴露 webhook 端口：
+1. 在 `fly.toml` 中暴露 webhook 端口：
 
 ```toml
 [[services]]
@@ -233,7 +235,7 @@ fly secrets set TELEGRAM_WEBHOOK_SECRET=$(openssl rand -hex 32)
     port = 443
 ```
 
-3. 部署：
+1. 部署：
 
 ```bash
 fly deploy

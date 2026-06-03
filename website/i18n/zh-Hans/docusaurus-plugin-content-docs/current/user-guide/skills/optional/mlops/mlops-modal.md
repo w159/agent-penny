@@ -4,7 +4,7 @@ sidebar_label: "Modal Serverless Gpu"
 description: "用于运行 ML 工作负载的无服务器 GPU 云平台"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Modal Serverless Gpu
 
@@ -36,6 +36,7 @@ description: "用于运行 ML 工作负载的无服务器 GPU 云平台"
 ## 何时使用 Modal
 
 **在以下情况下使用 Modal：**
+
 - 运行 GPU 密集型 ML 工作负载而无需管理基础设施
 - 将 ML 模型部署为自动扩缩容 API
 - 运行批处理作业（训练、推理、数据处理）
@@ -44,6 +45,7 @@ description: "用于运行 ML 工作负载的无服务器 GPU 云平台"
 - 运行定时作业（类 cron 工作负载）
 
 **主要特性：**
+
 - **无服务器 GPU**：按需提供 T4、L4、A10G、L40S、A100、H100、H200、B200
 - **Python 原生**：用 Python 代码定义基础设施，无需 YAML
 - **自动扩缩容**：缩容至零，或瞬间扩容至 100+ 个 GPU
@@ -52,6 +54,7 @@ description: "用于运行 ML 工作负载的无服务器 GPU 云平台"
 - **Web 端点**：将函数部署为 REST API，支持零停机更新
 
 **以下情况请使用替代方案：**
+
 - **RunPod**：适用于需要持久状态的长时间运行 pod
 - **Lambda Labs**：适用于预留 GPU 实例
 - **SkyPilot**：适用于多云编排和成本优化
@@ -351,12 +354,12 @@ if __name__ == "__main__":
 
 ## 参考资料
 
-- **[高级用法](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/modal/references/advanced-usage.md)** - 多 GPU、分布式训练、成本优化
-- **[故障排查](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/modal/references/troubleshooting.md)** - 常见问题与解决方案
+- **[高级用法](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/modal/references/advanced-usage.md)** - 多 GPU、分布式训练、成本优化
+- **[故障排查](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/modal/references/troubleshooting.md)** - 常见问题与解决方案
 
 ## 资源
 
-- **文档**：https://modal.com/docs
-- **示例**：https://github.com/modal-labs/modal-examples
-- **定价**：https://modal.com/pricing
-- **Discord**：https://discord.gg/modal
+- **文档**：<https://modal.com/docs>
+- **示例**：<https://github.com/modal-labs/modal-examples>
+- **定价**：<https://modal.com/pricing>
+- **Discord**：<https://discord.gg/modal>

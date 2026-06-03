@@ -58,10 +58,9 @@ For the official API-key path, see the dedicated [Google Gemini guide](/guides/g
 In the `model:` config section, you can use either `default:` or `model:` as the key name for your model ID. Both `model: { default: my-model }` and `model: { model: my-model }` work identically.
 :::
 
-
 ### Nous Portal
 
-[Nous Portal](https://portal.nousresearch.com) is Nous Research's unified subscription gateway and **the recommended way to run Hermes Agent**. One OAuth login covers 300+ frontier agentic models (Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Grok, ...) plus the [Tool Gateway](/user-guide/features/tool-gateway) (web search, image generation, TTS, browser automation) plus [Nous Chat](https://chat.nousresearch.com) — billed against your Nous subscription instead of separate per-provider accounts.
+[Nous Portal](https://portal.nousresearch.com) is w159's unified subscription gateway and **the recommended way to run Hermes Agent**. One OAuth login covers 300+ frontier agentic models (Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Grok, ...) plus the [Tool Gateway](/user-guide/features/tool-gateway) (web search, image generation, TTS, browser automation) plus [Nous Chat](https://chat.nousresearch.com) — billed against your Nous subscription instead of separate per-provider accounts.
 
 ```bash
 hermes setup --portal     # fresh install — OAuth + provider + gateway in one command
@@ -76,7 +75,6 @@ Don't have a subscription yet? Get one at [portal.nousresearch.com/manage-subscr
 **Client identification.** Every Portal request from Hermes Agent carries a `client=hermes-client-v<version>` tag (e.g. `client=hermes-client-v0.13.0`) auto-aligned to your installed release. This is sent on all Portal pathways — main chat loop, auxiliary calls, compression summarizer, web extraction — and lets Portal-side telemetry distinguish Hermes traffic from other clients. No config required; the tag updates automatically when you `hermes update`.
 
 **JWT auth (automatic).** Hermes prefers scoped `inference:invoke` JWTs for Portal requests with the legacy opaque session-key path as a fallback. No configuration is required — credentials are managed by the OAuth flow and rotate transparently. Revoked refresh tokens are quarantined to avoid replay loops.
-
 
 :::info Codex Note
 The OpenAI Codex provider authenticates via device code (open a URL, enter a code). Hermes stores the resulting credentials in its own auth store under `~/.hermes/auth.json` and can import existing Codex CLI credentials from `~/.codex/auth.json` when present. No Codex CLI installation is required.
@@ -102,7 +100,6 @@ Hermes has **two** model commands that serve different purposes:
 | **`/model`** | Inside a Hermes chat session | Quick switch between **already-configured** providers and models |
 
 If you're trying to switch to a provider you haven't set up yet (e.g. you only have OpenRouter configured and want to use Anthropic), you need `hermes model`, not `/model`. Exit your session first (`Ctrl+C` or `/quit`), run `hermes model`, complete the provider setup, then start a new session.
-
 
 ### Anthropic (Native)
 
@@ -134,6 +131,7 @@ hermes chat --provider anthropic  # reads Claude Code credential files automatic
 When you choose Anthropic OAuth through `hermes model`, Hermes prefers Claude Code's own credential store over copying the token into `~/.hermes/.env`. That keeps refreshable Claude credentials refreshable.
 
 Or set it permanently:
+
 ```yaml
 model:
   provider: "anthropic"
@@ -197,6 +195,7 @@ hermes chat --provider copilot-acp --model copilot-acp
 ```
 
 **Permanent config:**
+
 ```yaml
 model:
   provider: "copilot"
@@ -261,6 +260,7 @@ hermes chat --provider gmi --model zai-org/GLM-5.1-FP8
 ```
 
 Or set the provider permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "gmi"
@@ -308,6 +308,7 @@ hermes chat --provider novita-ai --model deepseek/deepseek-v3-0324
 ```
 
 Or set it permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "novita"
@@ -329,6 +330,7 @@ hermes model
 ```
 
 Or `config.yaml` directly:
+
 ```yaml
 model:
   provider: "ollama-cloud"
@@ -354,6 +356,7 @@ AWS_PROFILE=myprofile AWS_REGION=us-east-1 hermes chat --provider bedrock --mode
 ```
 
 Or permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "bedrock"
@@ -387,6 +390,7 @@ hermes chat   # uses portal.qwen.ai/v1 endpoint
 ```
 
 Or configure `config.yaml`:
+
 ```yaml
 model:
   provider: "qwen-oauth"
@@ -431,6 +435,7 @@ hermes chat   # uses api.minimax.io/anthropic endpoint
 ```
 
 Or configure `config.yaml`:
+
 ```yaml
 model:
   provider: "minimax-oauth"
@@ -457,6 +462,7 @@ NVIDIA_BASE_URL=http://localhost:8000/v1 hermes chat --provider nvidia --model n
 ```
 
 Or set it permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "nvidia"
@@ -480,6 +486,7 @@ hermes chat --provider gmi --model deepseek-ai/DeepSeek-V3.2
 ```
 
 Or set it permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "gmi"
@@ -499,6 +506,7 @@ hermes chat --provider stepfun --model step-3-mini
 ```
 
 Or set it permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "stepfun"
@@ -521,6 +529,7 @@ hermes chat --provider hf --model deepseek-ai/DeepSeek-V3.2
 ```
 
 Or set it permanently in `config.yaml`:
+
 ```yaml
 model:
   provider: "huggingface"
@@ -556,6 +565,7 @@ OAuth clients are not confidential (PKCE provides the security). You do not
 need to install `gemini-cli` or register your own GCP OAuth client.
 
 **How auth works:**
+
 - PKCE Authorization Code flow against `accounts.google.com`
 - Browser callback at `http://127.0.0.1:8085/oauth2callback` (with ephemeral-port fallback if busy)
 - Tokens stored at `~/.hermes/auth/google_oauth.json` (chmod 0600, atomic write, cross-process `fcntl` lock)
@@ -565,6 +575,7 @@ need to install `gemini-cli` or register your own GCP OAuth client.
 - `invalid_grant` (revoked refresh) → credential file wiped, user prompted to re-login
 
 **How inference works:**
+
 - Traffic goes to `https://cloudcode-pa.googleapis.com/v1internal:generateContent`
   (or `:streamGenerateContent?alt=sse` for streaming), NOT the paid `v1beta/openai` endpoint
 - Request body wrapped `{project, model, user_prompt_id, request}`
@@ -627,6 +638,7 @@ Hermes Agent works with **any OpenAI-compatible API endpoint**. If a server impl
 Three ways to configure a custom endpoint:
 
 **Interactive setup (recommended):**
+
 ```bash
 hermes model
 # Select "Custom endpoint (self-hosted / VLLM / etc.)"
@@ -634,6 +646,7 @@ hermes model
 ```
 
 **Manual config (`config.yaml`):**
+
 ```yaml
 # In ~/.hermes/config.yaml
 model:
@@ -928,26 +941,31 @@ If your model server also runs inside WSL2 (common for vLLM, SGLang, and llama-s
 Available on **Windows 11 22H2+**, mirrored mode makes `localhost` work bidirectionally between Windows and WSL2 — the simplest fix.
 
 1. Create or edit `%USERPROFILE%\.wslconfig` (e.g., `C:\Users\YourName\.wslconfig`):
+
    ```ini
    [wsl2]
    networkingMode=mirrored
    ```
 
 2. Restart WSL from PowerShell:
+
    ```powershell
    wsl --shutdown
    ```
 
 3. Reopen your WSL2 terminal. `localhost` now reaches Windows services:
+
    ```bash
    curl http://localhost:11434/v1/models   # Ollama on Windows — works
    ```
 
 :::note Hyper-V Firewall
 On some Windows 11 builds, the Hyper-V firewall blocks mirrored connections by default. If `localhost` still doesn't work after enabling mirrored mode, run this in an **Admin PowerShell**:
+
 ```powershell
 Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
 ```
+
 :::
 
 #### Option 2: Use the Windows Host IP (Windows 10 / older builds)
@@ -971,6 +989,7 @@ model:
 
 :::tip Dynamic helper
 The host IP can change on WSL2 restart. You can grab it dynamically in your shell:
+
 ```bash
 export WSL_HOST=$(ip route show | grep -i default | awk '{ print $3 }')
 echo "Windows host at: $WSL_HOST"
@@ -978,10 +997,12 @@ curl http://$WSL_HOST:11434/v1/models   # Test Ollama
 ```
 
 Or use your machine's mDNS name (requires `libnss-mdns` in WSL2):
+
 ```bash
 sudo apt install libnss-mdns
 curl http://$(hostname).local:11434/v1/models
 ```
+
 :::
 
 #### Server Bind Address (Required for NAT Mode)
@@ -997,6 +1018,7 @@ If you're using **Option 2** (NAT mode with the host IP), the model server on Wi
 | **SGLang** | `127.0.0.1` | Add `--host 0.0.0.0` to the startup command |
 
 **Ollama on Windows (detailed):** Ollama runs as a Windows service. To set `OLLAMA_HOST`:
+
 1. Open **System Properties** → **Environment Variables**
 2. Add a new **System variable**: `OLLAMA_HOST` = `0.0.0.0`
 3. Restart the Ollama service (or reboot)
@@ -1083,6 +1105,7 @@ model:
 #### Responses get cut off mid-sentence
 
 **Possible causes:**
+
 1. **Low output cap (`max_tokens`) on the server** — SGLang defaults to 128 tokens per response. Set `--default-max-tokens` on the server or configure Hermes with `model.max_tokens` in config.yaml. Note: `max_tokens` controls response length only — it is unrelated to how long your conversation history can be (that is `context_length`).
 2. **Context exhaustion** — The model filled its context window. Increase `model.context_length` or enable [context compression](/user-guide/configuration#context-compression) in Hermes.
 
@@ -1104,6 +1127,7 @@ litellm --config litellm_config.yaml --port 4000
 Then configure Hermes with `hermes model` → Custom endpoint → `http://localhost:4000/v1`.
 
 Example `litellm_config.yaml` with fallback:
+
 ```yaml
 model_list:
   - model_name: "best"
@@ -1132,6 +1156,7 @@ npx @blockrun/clawrouter    # Starts on port 8402
 Then configure Hermes with `hermes model` → Custom endpoint → `http://localhost:8402/v1` → model name `blockrun/auto`.
 
 Routing profiles:
+
 | Profile | Strategy | Savings |
 |---------|----------|---------|
 | `blockrun/auto` | Balanced quality/cost | 74-100% |
@@ -1226,6 +1251,7 @@ custom_providers:
 `hermes model` will prompt for context length when configuring a custom endpoint. Leave it blank for auto-detection.
 
 :::tip When to set this manually
+
 - You're using Ollama with a custom `num_ctx` that's lower than the model's maximum
 - You want to limit context below the model's maximum (e.g., 8k on a 128k model to save VRAM)
 - You're running behind a proxy that doesn't expose `/v1/models`
@@ -1398,6 +1424,7 @@ model:
 ```
 
 :::tip Troubleshooting
+
 - `hermes doctor` should print no `Unknown provider` warnings for any of these names after the CLI validator fixes in #15083.
 - If a provider's `/v1/models` endpoint is unreachable (Perplexity is the common one), `hermes model` will persist the model with a warning rather than hard-reject — see #15136.
 - To skip `custom_providers:` entirely and use bare `provider: custom` with `CUSTOM_BASE_URL` env var, see #15103.
@@ -1447,6 +1474,7 @@ By default, Hermes uses the [Firecrawl cloud API](https://firecrawl.dev/) for we
 **Setup:**
 
 1. Clone and start the Firecrawl Docker stack (5 containers: API, Playwright, Redis, RabbitMQ, PostgreSQL — requires ~4-8 GB RAM):
+
    ```bash
    git clone https://github.com/firecrawl/firecrawl
    cd firecrawl
@@ -1455,6 +1483,7 @@ By default, Hermes uses the [Firecrawl cloud API](https://firecrawl.dev/) for we
    ```
 
 2. Point Hermes at your instance (no API key needed):
+
    ```bash
    hermes config set FIRECRAWL_API_URL http://localhost:3002
    ```

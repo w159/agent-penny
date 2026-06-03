@@ -13,6 +13,7 @@ description: "通过 Termux 在 Android 手机上直接运行 Hermes Agent"
 ## 已验证路径支持哪些功能？
 
 已验证的 Termux 安装包含：
+
 - Hermes CLI
 - cron 支持
 - PTY（伪终端）/后台终端支持
@@ -46,10 +47,11 @@ python -m pip install -e '.[termux]' -c constraints-termux.txt
 Hermes 现已内置 Termux 感知的安装路径：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 ```
 
 在 Termux 上，安装程序会自动：
+
 - 使用 `pkg` 安装系统包
 - 使用 `python -m venv` 创建虚拟环境
 - 优先尝试较大的 `.[termux-all]` 扩展，失败后回退到较小的 `.[termux]` 扩展（再次失败则进行基础安装）——curl 安装程序自动按此顺序执行
@@ -70,6 +72,7 @@ pkg install -y git python clang rust make pkg-config libffi openssl nodejs ripgr
 ```
 
 各包用途说明：
+
 - `python` — 运行时 + 虚拟环境支持
 - `git` — 克隆/更新仓库
 - `clang`、`rust`、`make`、`pkg-config`、`libffi`、`openssl` — 在 Android 上构建部分 Python 依赖所需
@@ -80,7 +83,7 @@ pkg install -y git python clang rust make pkg-config libffi openssl nodejs ripgr
 ### 2. 克隆 Hermes
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/w159/agent-penny.git
 cd hermes-agent
 ```
 
@@ -172,6 +175,7 @@ python -m pip install -e '.[termux]' -c constraints-termux.txt
 ```
 
 当前阻塞原因是 `voice` 扩展：
+
 - `voice` 依赖 `faster-whisper`
 - `faster-whisper` 依赖 `ctranslate2`
 - `ctranslate2` 未发布 Android wheel 包
@@ -229,6 +233,7 @@ python -m pip install -e '.[termux]' -c constraints-termux.txt
 - 部分可选扩展可能可用，但目前仅 `.[termux]` 和 `.[termux-all]` 被记录为已验证的 Android 安装包
 
 如果你遇到新的 Android 特定问题，请在 GitHub 上提交 issue，并附上：
+
 - 你的 Android 版本
 - `termux-info`
 - `python --version`

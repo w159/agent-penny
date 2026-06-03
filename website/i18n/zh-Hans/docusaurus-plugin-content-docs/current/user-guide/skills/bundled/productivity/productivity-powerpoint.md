@@ -4,7 +4,7 @@ sidebar_label: "Powerpoint"
 description: "创建、读取、编辑"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Powerpoint
 
@@ -36,8 +36,8 @@ description: "创建、读取、编辑"
 | 任务 | 指南 |
 |------|-------|
 | 读取/分析内容 | `python -m markitdown presentation.pptx` |
-| 基于模板编辑或创建 | 阅读 [editing.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/editing.md) |
-| 从零创建 | 阅读 [pptxgenjs.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/pptxgenjs.md) |
+| 基于模板编辑或创建 | 阅读 [editing.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/editing.md) |
+| 从零创建 | 阅读 [pptxgenjs.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/pptxgenjs.md) |
 
 ---
 
@@ -58,7 +58,7 @@ python scripts/office/unpack.py presentation.pptx unpacked/
 
 ## 编辑工作流
 
-**完整细节请阅读 [editing.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/editing.md)。**
+**完整细节请阅读 [editing.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/editing.md)。**
 
 1. 使用 `thumbnail.py` 分析模板
 2. 解包 → 操作幻灯片 → 编辑内容 → 清理 → 打包
@@ -67,7 +67,7 @@ python scripts/office/unpack.py presentation.pptx unpacked/
 
 ## 从零创建
 
-**完整细节请阅读 [pptxgenjs.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/pptxgenjs.md)。**
+**完整细节请阅读 [pptxgenjs.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/pptxgenjs.md)。**
 
 在没有模板或参考演示文稿时使用。
 
@@ -106,17 +106,20 @@ python scripts/office/unpack.py presentation.pptx unpacked/
 **每张幻灯片都需要视觉元素**——图片、图表、图标或形状。纯文字幻灯片令人印象全无。
 
 **布局选项：**
+
 - 双栏（左文字，右插图）
 - 图标 + 文字行（彩色圆圈内图标，粗体标题，下方描述）
 - 2x2 或 2x3 网格（一侧图片，另一侧内容块网格）
 - 半出血图片（左侧或右侧全满）配内容叠加
 
 **数据展示：**
+
 - 大数字标注（60-72pt 大号数字，下方小标签）
 - 对比列（前后对比、优缺点、并排选项）
 - 时间线或流程图（编号步骤、箭头）
 
 **视觉精修：**
+
 - 章节标题旁的小彩色圆圈内放图标
 - 关键数据或标语使用斜体强调文字
 

@@ -4,7 +4,7 @@ sidebar_label: "Pytorch Lightning"
 description: "基于 PyTorch 的高层框架，提供 Trainer 类、自动分布式训练（DDP/FSDP/DeepSpeed）、回调系统及极简样板代码"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Pytorch Lightning
 
@@ -36,6 +36,7 @@ description: "基于 PyTorch 的高层框架，提供 Trainer 类、自动分布
 PyTorch Lightning 对 PyTorch 代码进行组织，在保持灵活性的同时消除样板代码。
 
 **安装**：
+
 ```bash
 pip install lightning
 ```
@@ -78,6 +79,7 @@ trainer.fit(model, train_loader)
 ```
 
 **就这些！** Trainer 负责处理：
+
 - GPU/TPU/CPU 切换
 - 分布式训练（DDP、FSDP、DeepSpeed）
 - 混合精度（FP16、BF16）
@@ -91,6 +93,7 @@ trainer.fit(model, train_loader)
 ### 工作流 1：从 PyTorch 迁移到 Lightning
 
 **原始 PyTorch 代码**：
+
 ```python
 model = MyModel()
 optimizer = torch.optim.Adam(model.parameters())
@@ -106,6 +109,7 @@ for epoch in range(max_epochs):
 ```
 
 **Lightning 版本**：
+
 ```python
 class LitModel(L.LightningModule):
     def __init__(self):
@@ -167,6 +171,7 @@ trainer.test(model, test_loader)
 ```
 
 **自动功能**：
+
 - 默认每个 epoch 运行验证
 - 指标自动记录到 TensorBoard
 - 基于 val_loss 保存最优模型检查点
@@ -188,12 +193,14 @@ trainer.fit(model, train_loader)
 ```
 
 **启动**：
+
 ```bash
 # Single command, Lightning handles the rest
 python train.py
 ```
 
 **无需任何改动**：
+
 - 自动数据分发
 - 梯度同步
 - 多节点支持（只需设置 `num_nodes=2`）
@@ -229,6 +236,7 @@ trainer.fit(model, train_loader, val_loader)
 ```
 
 **效果**：
+
 - 自动保存最优的 3 个模型
 - 若 5 个 epoch 内无改善则提前停止
 - 将学习率记录到 TensorBoard
@@ -266,6 +274,7 @@ trainer.fit(model, train_loader)
 ## 何时使用与替代方案对比
 
 **适合使用 PyTorch Lightning 的场景**：
+
 - 希望代码整洁、结构清晰
 - 需要生产级训练循环
 - 在单 GPU、多 GPU、TPU 之间切换
@@ -273,6 +282,7 @@ trainer.fit(model, train_loader)
 - 团队协作（标准化结构）
 
 **核心优势**：
+
 - **有组织**：将研究代码与工程代码分离
 - **自动化**：一行代码启用 DDP、FSDP、DeepSpeed
 - **回调**：模块化训练扩展
@@ -280,6 +290,7 @@ trainer.fit(model, train_loader)
 - **经过验证**：每月下载量 100 万+，久经考验
 
 **改用其他方案的场景**：
+
 - **Accelerate**：对现有代码改动最小，灵活性更高
 - **Ray Train**：多节点编排、超参数调优
 - **原生 PyTorch**：最大控制权，适合学习目的
@@ -290,6 +301,7 @@ trainer.fit(model, train_loader)
 **问题：损失不下降**
 
 检查数据和模型设置：
+
 ```python
 # Add to training_step
 def training_step(self, batch, batch_idx):
@@ -303,6 +315,7 @@ def training_step(self, batch, batch_idx):
 **问题：内存不足**
 
 减小 batch size 或使用梯度累积：
+
 ```python
 trainer = L.Trainer(
     accumulate_grad_batches=4,  # Effective batch = batch_size × 4
@@ -313,6 +326,7 @@ trainer = L.Trainer(
 **问题：验证未运行**
 
 确保传入了 val_loader：
+
 ```python
 # WRONG
 trainer.fit(model, train_loader)
@@ -324,6 +338,7 @@ trainer.fit(model, train_loader, val_loader)
 **问题：DDP 意外启动多个进程**
 
 Lightning 会自动检测 GPU。请显式设置 devices：
+
 ```python
 # Test on CPU first
 trainer = L.Trainer(accelerator='cpu', devices=1)
@@ -334,11 +349,11 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 
 ## 进阶主题
 
-**回调**：参见 [references/callbacks.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/pytorch-lightning/references/callbacks.md)，了解 EarlyStopping、ModelCheckpoint、自定义回调及回调钩子（hook）。
+**回调**：参见 [references/callbacks.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/pytorch-lightning/references/callbacks.md)，了解 EarlyStopping、ModelCheckpoint、自定义回调及回调钩子（hook）。
 
-**分布式策略**：参见 [references/distributed.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/pytorch-lightning/references/distributed.md)，了解 DDP、FSDP、DeepSpeed ZeRO 集成及多节点配置。
+**分布式策略**：参见 [references/distributed.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/pytorch-lightning/references/distributed.md)，了解 DDP、FSDP、DeepSpeed ZeRO 集成及多节点配置。
 
-**超参数调优**：参见 [references/hyperparameter-tuning.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/pytorch-lightning/references/hyperparameter-tuning.md)，了解与 Optuna、Ray Tune 及 WandB sweeps 的集成。
+**超参数调优**：参见 [references/hyperparameter-tuning.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/pytorch-lightning/references/hyperparameter-tuning.md)，了解与 Optuna、Ray Tune 及 WandB sweeps 的集成。
 
 ## 硬件要求
 
@@ -350,6 +365,7 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 - **Apple MPS**：支持
 
 **精度选项**：
+
 - FP32（默认）
 - FP16（V100 及较旧 GPU）
 - BF16（A100/H100，推荐）
@@ -357,9 +373,9 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 
 ## 资源
 
-- 文档：https://lightning.ai/docs/pytorch/stable/
-- GitHub：https://github.com/Lightning-AI/pytorch-lightning ⭐ 29,000+
+- 文档：<https://lightning.ai/docs/pytorch/stable/>
+- GitHub：<https://github.com/Lightning-AI/pytorch-lightning> ⭐ 29,000+
 - 版本：2.5.5+
-- 示例：https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples
-- Discord：https://discord.gg/lightning-ai
+- 示例：<https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples>
+- Discord：<https://discord.gg/lightning-ai>
 - 使用者：Kaggle 获奖者、科研实验室、生产团队

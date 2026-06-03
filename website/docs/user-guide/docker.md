@@ -418,6 +418,7 @@ The official image is based on `debian:13.4` and includes:
 - **[`s6-overlay`](https://github.com/just-containers/s6-overlay) v3** as PID 1 (replaces the older `tini`) — supervises the dashboard and per-profile gateways with auto-restart on crash, reaps zombie subprocesses, and forwards signals.
 
 The container's `ENTRYPOINT` is s6-overlay's `/init`. On boot it:
+
 1. Runs `/etc/cont-init.d/01-hermes-setup` (= `docker/stage2-hook.sh`) as root: optional UID/GID remap, fixes volume ownership, seeds `.env` / `config.yaml` / `SOUL.md` on first boot, syncs bundled skills.
 2. Runs `/etc/cont-init.d/02-reconcile-profiles` (= `hermes_cli.container_boot`): walks `$HERMES_HOME/profiles/<name>/`, recreates the per-profile gateway s6 service slot under `/run/service/gateway-<profile>/`, and auto-starts only those whose last recorded state was `running` (see [Per-profile gateway supervision](#per-profile-gateway-supervision)).
 3. Starts the static `main-hermes` and `dashboard` s6-rc services.
@@ -565,7 +566,7 @@ From inside the Hermes container, the sidecar is reachable at `http://my-tool:<p
 
 ### Broadly useful tools — open an issue or pull request
 
-If a tool is likely to be useful to most Hermes Agent users, consider contributing it upstream rather than carrying it in a private derived image. Open an issue or pull request on the [hermes-agent repository](https://github.com/NousResearch/hermes-agent) describing the tool and its use case. Tools that get bundled into the official image benefit every user and avoid the maintenance overhead of a downstream fork.
+If a tool is likely to be useful to most Hermes Agent users, consider contributing it upstream rather than carrying it in a private derived image. Open an issue or pull request on the [hermes-agent repository](https://github.com/w159/agent-penny) describing the tool and its use case. Tools that get bundled into the official image benefit every user and avoid the maintenance overhead of a downstream fork.
 
 ## Connecting to local inference servers (vLLM, Ollama, etc.)
 
@@ -623,6 +624,7 @@ model:
 ```
 
 :::tip Key points
+
 - Use the **container name** (`vllm`) as the hostname — not `localhost` or `127.0.0.1`, which refer to the Hermes container itself.
 - The `model` value must match the `--served-model-name` you passed to vLLM.
 - Set `api_key` to any non-empty string (vLLM requires the header but doesn't validate it by default).
@@ -705,6 +707,7 @@ model:
 ### Container exits immediately
 
 Check logs: `docker logs hermes`. Common causes:
+
 - Missing or invalid `.env` file — run interactively first to complete setup
 - Port conflicts if running with exposed ports
 

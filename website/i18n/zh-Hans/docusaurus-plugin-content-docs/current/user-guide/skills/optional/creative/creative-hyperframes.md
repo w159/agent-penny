@@ -4,7 +4,7 @@ sidebar_label: "Hyperframes"
 description: "使用 HyperFrames 创建基于 HTML 的视频合成、动画标题卡、社交叠加层、带字幕的对话视频、音频响应视觉效果和着色器转场..."
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Hyperframes
 
@@ -47,6 +47,7 @@ HTML 是视频的唯一真实来源。合成（composition）是一个带有 `da
 - 任何需要确定性渲染为视频文件的 HTML/CSS/JS 动画
 
 **不适用**本技能的场景：
+
 - 纯数学/方程式动画（→ `manim-video`）
 - 图像生成或表情包（→ `meme-generation`，图像模型）
 - 实时视频会议或直播
@@ -64,7 +65,7 @@ npx hyperframes doctor                      # 诊断环境问题
 
 渲染参数：`--quality draft|standard|high` · `--fps 24|30|60` · `--format mp4|webm` · `--docker`（可复现）· `--strict`。
 
-完整 CLI 参考：[references/cli.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/cli.md)。
+完整 CLI 参考：[references/cli.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/cli.md)。
 
 ## 初始设置（一次性）
 
@@ -73,18 +74,20 @@ bash "$(dirname "$(find ~/.hermes/skills -path '*/hyperframes/SKILL.md' 2>/dev/n
 ```
 
 该脚本执行以下操作：
+
 1. 验证 Node.js >= 22 和 FFmpeg 已安装（若未安装则打印修复说明）。
 2. 全局安装 `hyperframes` CLI（`npm install -g hyperframes@>=0.4.2`）。
 3. 通过 Puppeteer 预缓存 `chrome-headless-shell` — **必需**，用于通过 Chrome 的 `HeadlessExperimental.beginFrame` 捕获路径实现最高质量渲染。
 4. 运行 `npx hyperframes doctor` 并报告结果。
 
-若设置失败，请参阅 [references/troubleshooting.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/troubleshooting.md)。
+若设置失败，请参阅 [references/troubleshooting.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/troubleshooting.md)。
 
 ## 操作流程
 
 ### 1. 编写 HTML 前先规划
 
 在接触代码之前，从高层次阐明：
+
 - **内容** — 叙事弧线、关键时刻、情感节拍
 - **结构** — 合成、轨道（视频/音频/叠加层）、时长
 - **视觉标识** — 颜色、字体、动态风格（爆炸感 / 电影感 / 流畅 / 技术感）
@@ -115,22 +118,24 @@ npx hyperframes init my-video --non-interactive
 
 只有在主帧看起来正确之后，才添加 `gsap.from()` 入场动画（**向** CSS 位置动画）和 `gsap.to()` 退场动画（**从** CSS 位置动画）。
 
-完整的 data 属性 schema 和合成规则见 [references/composition.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/composition.md)。
+完整的 data 属性 schema 和合成规则见 [references/composition.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/composition.md)。
 
 ### 4. 使用 GSAP 制作动画
 
 每个合成必须：
+
 - 注册其时间轴：`window.__timelines["<composition-id>"] = tl`
 - 初始暂停：`gsap.timeline({ paused: true })` — 播放器控制播放
 - 使用有限的 `repeat` 值（禁止 `repeat: -1` — 会破坏捕获引擎）。计算方式：`repeat: Math.ceil(duration / cycleDuration) - 1`。
 - 具有确定性 — 禁止 `Math.random()`、`Date.now()` 或挂钟逻辑。如需伪随机数，使用带种子的 PRNG。
 - 同步构建 — 时间轴构建过程中禁止 `async`/`await`、`setTimeout` 或 Promise。
 
-核心 GSAP API（tween、ease、stagger、timeline）见 [references/gsap.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/gsap.md)。
+核心 GSAP API（tween、ease、stagger、timeline）见 [references/gsap.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/gsap.md)。
 
 ### 5. 场景间转场
 
 多场景合成需要转场。规则：
+
 1. **场景间始终使用转场** — 禁止跳切。
 2. **每个场景元素始终使用入场动画**（`gsap.from(...)`）。
 3. **除最后一个场景外，禁止使用退场动画** — 转场本身就是退出。
@@ -162,11 +167,11 @@ npx hyperframes render --quality high --output final.mp4     # 最终交付
 
 ### 8. 网站转视频（若用户提供 URL）
 
-使用 [references/website-to-video.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/website-to-video.md) 中的 7 步捕获转视频工作流：捕获 → DESIGN.md → SCRIPT.md → 分镜 → 合成 → 渲染 → 交付。
+使用 [references/website-to-video.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/website-to-video.md) 中的 7 步捕获转视频工作流：捕获 → DESIGN.md → SCRIPT.md → 分镜 → 合成 → 渲染 → 交付。
 
 ## 常见陷阱
 
-- **`HeadlessExperimental.beginFrame' wasn't found`** — Chromium 147+ 移除了此协议。确保使用 `hyperframes@>=0.4.2`（自动检测并回退到截图模式）。应急方案：`export PRODUCER_FORCE_SCREENSHOT=true`。参见 [hyperframes#294](https://github.com/heygen-com/hyperframes/issues/294) 和 [references/troubleshooting.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/troubleshooting.md)。
+- **`HeadlessExperimental.beginFrame' wasn't found`** — Chromium 147+ 移除了此协议。确保使用 `hyperframes@>=0.4.2`（自动检测并回退到截图模式）。应急方案：`export PRODUCER_FORCE_SCREENSHOT=true`。参见 [hyperframes#294](https://github.com/heygen-com/hyperframes/issues/294) 和 [references/troubleshooting.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/troubleshooting.md)。
 - **系统 Chrome（非 `chrome-headless-shell`）** — 渲染会挂起 120 秒后超时。运行 `npx puppeteer browsers install chrome-headless-shell`（setup.sh 已处理此步骤）。`hyperframes doctor` 会报告将使用哪个二进制文件。
 - **任何地方出现 `repeat: -1`** — 会破坏捕获引擎。始终计算有限的 repeat 次数。
 - **在稍后入场的 clip 元素上使用 `gsap.set()`** — 页面加载时该元素不存在。改为在时间轴内使用 `tl.set(selector, vars, timePosition)`，位置在该 clip 的 `data-start` 处或之后。
@@ -183,10 +188,12 @@ npx hyperframes render --quality high --output final.mp4     # 最终交付
 
 1. **Lint + validate + inspect 通过：** `npx hyperframes lint --strict && npx hyperframes validate && npx hyperframes inspect`（lint 捕获结构问题，validate 捕获对比度问题，inspect 捕获视觉布局/溢出问题 — 若出现警告请参阅 troubleshooting.md）。
 2. **动画编排** — 对于新合成或重大动画变更，运行动画映射。`npx hyperframes init` 会将技能脚本复制到项目中，因此路径为项目本地路径：
+
    ```bash
    node skills/hyperframes/scripts/animation-map.mjs <composition-dir> \
      --out <composition-dir>/.hyperframes/anim-map
    ```
+
    输出单个 `animation-map.json`，包含每个 tween 的摘要、ASCII 甘特时间轴、stagger 检测、死区（超过 1 秒无动画）、元素生命周期和标记（`offscreen`、`collision`、`invisible`、`paced-fast` &lt;0.2s、`paced-slow` >2s）。扫描摘要和标记 — 逐一修复或说明原因。小幅编辑可跳过。
 3. **文件存在且非零：** `ls -lh final.mp4`。
 4. **时长与 `data-duration` 匹配：** `ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 final.mp4`。
@@ -197,9 +204,9 @@ npx hyperframes render --quality high --output final.mp4     # 最终交付
 
 ## 参考资料
 
-- [composition.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/composition.md) — data 属性、时间轴契约、不可违反的规则、排版/资源规则
-- [cli.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/cli.md) — 所有 CLI 命令（init、capture、lint、validate、inspect、preview、render、transcribe、tts、doctor、browser、info、upgrade、benchmark）
-- [gsap.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/gsap.md) — HyperFrames 的 GSAP 核心 API（tween、ease、stagger、timeline、matchMedia）
-- [features.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/features.md) — 字幕、TTS、音频响应、标记高亮、转场（按需加载）
-- [website-to-video.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/website-to-video.md) — 7 步捕获转视频工作流
-- [troubleshooting.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/creative/hyperframes/references/troubleshooting.md) — OpenClaw 修复、环境变量、常见渲染错误
+- [composition.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/composition.md) — data 属性、时间轴契约、不可违反的规则、排版/资源规则
+- [cli.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/cli.md) — 所有 CLI 命令（init、capture、lint、validate、inspect、preview、render、transcribe、tts、doctor、browser、info、upgrade、benchmark）
+- [gsap.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/gsap.md) — HyperFrames 的 GSAP 核心 API（tween、ease、stagger、timeline、matchMedia）
+- [features.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/features.md) — 字幕、TTS、音频响应、标记高亮、转场（按需加载）
+- [website-to-video.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/website-to-video.md) — 7 步捕获转视频工作流
+- [troubleshooting.md](https://github.com/w159/agent-penny/blob/main/optional-skills/creative/hyperframes/references/troubleshooting.md) — OpenClaw 修复、环境变量、常见渲染错误

@@ -4,7 +4,7 @@ sidebar_label: "Huggingface Tokenizers"
 description: "Fast tokenizers optimized for research and production"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Huggingface Tokenizers
 
@@ -36,6 +36,7 @@ Fast, production-ready tokenizers with Rust performance and Python ease-of-use.
 ## When to use HuggingFace Tokenizers
 
 **Use HuggingFace Tokenizers when:**
+
 - Need extremely fast tokenization (&lt;20s per GB of text)
 - Training custom tokenizers from scratch
 - Want alignment tracking (token → original text position)
@@ -43,11 +44,13 @@ Fast, production-ready tokenizers with Rust performance and Python ease-of-use.
 - Need to tokenize large corpora efficiently
 
 **Performance**:
+
 - **Speed**: &lt;20 seconds to tokenize 1GB on CPU
 - **Implementation**: Rust core with Python/Node.js bindings
 - **Efficiency**: 10-100× faster than pure Python implementations
 
 **Use alternatives instead**:
+
 - **SentencePiece**: Language-independent, used by T5/ALBERT
 - **tiktoken**: OpenAI's BPE tokenizer for GPT models
 - **transformers AutoTokenizer**: Loading pretrained only (uses this library internally)
@@ -132,6 +135,7 @@ for encoding in encodings:
 ### BPE (Byte-Pair Encoding)
 
 **How it works**:
+
 1. Start with character-level vocabulary
 2. Find most frequent character pair
 3. Merge into new token, add to vocabulary
@@ -158,17 +162,20 @@ tokenizer.train(files=["data.txt"], trainer=trainer)
 ```
 
 **Advantages**:
+
 - Handles OOV words well (breaks into subwords)
 - Flexible vocabulary size
 - Good for morphologically rich languages
 
 **Trade-offs**:
+
 - Tokenization depends on merge order
 - May split common words unexpectedly
 
 ### WordPiece
 
 **How it works**:
+
 1. Start with character vocabulary
 2. Score merge pairs: `frequency(pair) / (frequency(first) × frequency(second))`
 3. Merge highest scoring pair
@@ -197,16 +204,19 @@ tokenizer.train(files=["corpus.txt"], trainer=trainer)
 ```
 
 **Advantages**:
+
 - Prioritizes meaningful merges (high score = semantically related)
 - Used successfully in BERT (state-of-the-art results)
 
 **Trade-offs**:
+
 - Unknown words become `[UNK]` if no subword match
 - Saves vocabulary, not merge rules (larger files)
 
 ### Unigram
 
 **How it works**:
+
 1. Start with large vocabulary (all substrings)
 2. Compute loss for corpus with current vocabulary
 3. Remove tokens with minimal impact on loss
@@ -231,11 +241,13 @@ tokenizer.train(files=["data.txt"], trainer=trainer)
 ```
 
 **Advantages**:
+
 - Probabilistic (finds most likely tokenization)
 - Works well for languages without word boundaries
 - Handles diverse linguistic contexts
 
 **Trade-offs**:
+
 - Computationally expensive to train
 - More hyperparameters to tune
 
@@ -261,6 +273,7 @@ tokenizer.normalizer = Sequence([
 ```
 
 **Common normalizers**:
+
 - `NFD`, `NFC`, `NFKD`, `NFKC` - Unicode normalization forms
 - `Lowercase()` - Convert to lowercase
 - `StripAccents()` - Remove accents (é → e)
@@ -285,6 +298,7 @@ tokenizer.pre_tokenizer = Sequence([
 ```
 
 **Common pre-tokenizers**:
+
 - `Whitespace()` - Split on spaces, tabs, newlines
 - `ByteLevel()` - GPT-2 style byte-level splitting
 - `Punctuation()` - Isolate punctuation
@@ -310,6 +324,7 @@ tokenizer.post_processor = TemplateProcessing(
 ```
 
 **Common patterns**:
+
 ```python
 # GPT-2: sentence <|endoftext|>
 TemplateProcessing(
@@ -345,6 +360,7 @@ for token, offset in zip(output.tokens, output.offsets):
 ```
 
 **Use cases**:
+
 - Named entity recognition (map predictions back to text)
 - Question answering (extract answer spans)
 - Token classification (align labels to original positions)
@@ -500,36 +516,40 @@ with Pool(8) as pool:
 Pre-trained tokenizers available via `from_pretrained()`:
 
 **BERT family**:
+
 - `bert-base-uncased`, `bert-large-cased`
 - `distilbert-base-uncased`
 - `roberta-base`, `roberta-large`
 
 **GPT family**:
+
 - `gpt2`, `gpt2-medium`, `gpt2-large`
 - `distilgpt2`
 
 **T5 family**:
+
 - `t5-small`, `t5-base`, `t5-large`
 - `google/flan-t5-xxl`
 
 **Other**:
+
 - `facebook/bart-base`, `facebook/mbart-large-cc25`
 - `albert-base-v2`, `albert-xlarge-v2`
 - `xlm-roberta-base`, `xlm-roberta-large`
 
-Browse all: https://huggingface.co/models?library=tokenizers
+Browse all: <https://huggingface.co/models?library=tokenizers>
 
 ## References
 
-- **[Training Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/training.md)** - Train custom tokenizers, configure trainers, handle large datasets
-- **[Algorithms Deep Dive](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/algorithms.md)** - BPE, WordPiece, Unigram explained in detail
-- **[Pipeline Components](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/pipeline.md)** - Normalizers, pre-tokenizers, post-processors, decoders
-- **[Transformers Integration](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/huggingface-tokenizers/references/integration.md)** - AutoTokenizer, PreTrainedTokenizerFast, special tokens
+- **[Training Guide](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/training.md)** - Train custom tokenizers, configure trainers, handle large datasets
+- **[Algorithms Deep Dive](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/algorithms.md)** - BPE, WordPiece, Unigram explained in detail
+- **[Pipeline Components](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/pipeline.md)** - Normalizers, pre-tokenizers, post-processors, decoders
+- **[Transformers Integration](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/huggingface-tokenizers/references/integration.md)** - AutoTokenizer, PreTrainedTokenizerFast, special tokens
 
 ## Resources
 
-- **Docs**: https://huggingface.co/docs/tokenizers
-- **GitHub**: https://github.com/huggingface/tokenizers ⭐ 9,000+
+- **Docs**: <https://huggingface.co/docs/tokenizers>
+- **GitHub**: <https://github.com/huggingface/tokenizers> ⭐ 9,000+
 - **Version**: 0.20.0+
-- **Course**: https://huggingface.co/learn/nlp-course/chapter6/1
+- **Course**: <https://huggingface.co/learn/nlp-course/chapter6/1>
 - **Paper**: BPE (Sennrich et al., 2016), WordPiece (Schuster & Nakajima, 2012)

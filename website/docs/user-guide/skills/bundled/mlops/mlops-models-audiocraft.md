@@ -4,7 +4,7 @@ sidebar_label: "Audiocraft Audio Generation"
 description: "AudioCraft: MusicGen text-to-music, AudioGen text-to-sound"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Audiocraft Audio Generation
 
@@ -36,6 +36,7 @@ Comprehensive guide to using Meta's AudioCraft for text-to-music and text-to-aud
 ## When to use AudioCraft
 
 **Use AudioCraft when:**
+
 - Need to generate music from text descriptions
 - Creating sound effects and environmental audio
 - Building music generation applications
@@ -44,6 +45,7 @@ Comprehensive guide to using Meta's AudioCraft for text-to-music and text-to-aud
 - Require controllable music generation with style transfer
 
 **Key features:**
+
 - **MusicGen**: Text-to-music generation with melody conditioning
 - **AudioGen**: Text-to-sound effects generation
 - **EnCodec**: High-fidelity neural audio codec
@@ -52,6 +54,7 @@ Comprehensive guide to using Meta's AudioCraft for text-to-music and text-to-aud
 - **Style conditioning**: MusicGen-Style for reference-based generation
 
 **Use alternatives instead:**
+
 - **Stable Audio**: For longer commercial music generation
 - **Bark**: For text-to-speech with music/sound effects
 - **Riffusion**: For spectogram-based music generation
@@ -575,13 +578,13 @@ for desc in descriptions:
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/audiocraft/references/advanced-usage.md)** - Training, fine-tuning, deployment
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/audiocraft/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/audiocraft/references/advanced-usage.md)** - Training, fine-tuning, deployment
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/audiocraft/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 
-- **GitHub**: https://github.com/facebookresearch/audiocraft
-- **Paper (MusicGen)**: https://arxiv.org/abs/2306.05284
-- **Paper (AudioGen)**: https://arxiv.org/abs/2209.15352
-- **HuggingFace**: https://huggingface.co/facebook/musicgen-small
-- **Demo**: https://huggingface.co/spaces/facebook/MusicGen
+- **GitHub**: <https://github.com/facebookresearch/audiocraft>
+- **Paper (MusicGen)**: <https://arxiv.org/abs/2306.05284>
+- **Paper (AudioGen)**: <https://arxiv.org/abs/2209.15352>
+- **HuggingFace**: <https://huggingface.co/facebook/musicgen-small>
+- **Demo**: <https://huggingface.co/spaces/facebook/MusicGen>

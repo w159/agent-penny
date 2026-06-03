@@ -4,7 +4,7 @@
   "private": true,
   "version": "0.15.1",
   "description": "Native desktop shell for Hermes Agent.",
-  "author": "Nous Research",
+  "author": "w159",
   "type": "module",
   "main": "electron/main.cjs",
   "engines": {
@@ -217,7 +217,7 @@
     },
     "linux": {
       "category": "Development",
-      "maintainer": "Nous Research <support@nousresearch.com>",
+      "maintainer": "w159 <support@nousresearch.com>",
       "synopsis": "Native desktop shell for Hermes Agent.",
       "target": [
         "AppImage",

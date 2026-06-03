@@ -70,7 +70,7 @@ Path: `scripts/fetch_gdelt.py`
 
 ```bash
 # Recent news mentioning an entity
-python3 SKILL_DIR/scripts/fetch_gdelt.py --query "Nous Research" \
+python3 SKILL_DIR/scripts/fetch_gdelt.py --query "w159" \
     --timespan 6m --out data/gdelt.csv
 
 # Phrase-exact (use double quotes inside single quotes for the shell)
@@ -88,7 +88,7 @@ python3 SKILL_DIR/scripts/fetch_gdelt.py --query "Microsoft" \
 
 GDELT supports its own query operators: phrase quoting, AND/OR/NOT,
 `sourcecountry:US`, `theme:ECON_BANKRUPTCY`, `tone<-5`, etc.
-See https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/ for syntax.
+See <https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/> for syntax.
 
 ## 8. Legal & Licensing
 
@@ -99,6 +99,6 @@ See https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/ for syntax.
 
 ## 9. References
 
-- DOC 2.0 API: https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/
-- Themes & query syntax: https://blog.gdeltproject.org/gkg-2-0-our-global-knowledge-graph-2-0-amazing-data-at-your-fingertips/
-- Project home: https://www.gdeltproject.org/
+- DOC 2.0 API: <https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/>
+- Themes & query syntax: <https://blog.gdeltproject.org/gkg-2-0-our-global-knowledge-graph-2-0-amazing-data-at-your-fingertips/>
+- Project home: <https://www.gdeltproject.org/>

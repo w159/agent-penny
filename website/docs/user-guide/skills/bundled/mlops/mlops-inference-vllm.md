@@ -4,7 +4,7 @@ sidebar_label: "Serving Llms Vllm"
 description: "vLLM: high-throughput LLM serving, OpenAI API, quantization"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Serving Llms Vllm
 
@@ -40,11 +40,13 @@ Use when deploying production LLM APIs, optimizing inference latency/throughput,
 vLLM achieves 24x higher throughput than standard transformers through PagedAttention (block-based KV cache) and continuous batching (mixing prefill/decode requests).
 
 **Installation**:
+
 ```bash
 pip install vllm
 ```
 
 **Basic offline inference**:
+
 ```python
 from vllm import LLM, SamplingParams
 
@@ -56,6 +58,7 @@ print(outputs[0].outputs[0].text)
 ```
 
 **OpenAI-compatible server**:
+
 ```bash
 vllm serve meta-llama/Llama-3-8B-Instruct
 
@@ -136,6 +139,7 @@ curl http://localhost:9090/metrics | grep vllm
 ```
 
 Key metrics to monitor:
+
 - `vllm:time_to_first_token_seconds` - Latency
 - `vllm:num_requests_running` - Active requests
 - `vllm:gpu_cache_usage_perc` - KV cache utilization
@@ -156,6 +160,7 @@ docker run --gpus all -p 8000:8000 \
 **Step 5: Verify performance metrics**
 
 Check that deployment meets targets:
+
 - TTFT &lt; 500ms (for short prompts)
 - Throughput > target req/sec
 - GPU utilization > 80%
@@ -292,6 +297,7 @@ Test outputs match expected quality:
 ## When to use vs alternatives
 
 **Use vLLM when:**
+
 - Deploying production LLM APIs (100+ req/sec)
 - Serving OpenAI-compatible endpoints
 - Limited GPU memory but need large models
@@ -299,6 +305,7 @@ Test outputs match expected quality:
 - Need low latency with high throughput
 
 **Use alternatives instead:**
+
 - **llama.cpp**: CPU/edge inference, single-user
 - **HuggingFace transformers**: Research, prototyping, one-off generation
 - **TensorRT-LLM**: NVIDIA-only, need absolute maximum performance
@@ -309,6 +316,7 @@ Test outputs match expected quality:
 **Issue: Out of memory during model loading**
 
 Reduce memory usage:
+
 ```bash
 vllm serve MODEL \
   --gpu-memory-utilization 0.7 \
@@ -316,6 +324,7 @@ vllm serve MODEL \
 ```
 
 Or use quantization:
+
 ```bash
 vllm serve MODEL --quantization awq
 ```
@@ -323,11 +332,13 @@ vllm serve MODEL --quantization awq
 **Issue: Slow first token (TTFT > 1 second)**
 
 Enable prefix caching for repeated prompts:
+
 ```bash
 vllm serve MODEL --enable-prefix-caching
 ```
 
 For long prompts, enable chunked prefill:
+
 ```bash
 vllm serve MODEL --enable-chunked-prefill
 ```
@@ -335,6 +346,7 @@ vllm serve MODEL --enable-chunked-prefill
 **Issue: Model not found error**
 
 Use `--trust-remote-code` for custom models:
+
 ```bash
 vllm serve MODEL --trust-remote-code
 ```
@@ -342,6 +354,7 @@ vllm serve MODEL --trust-remote-code
 **Issue: Low throughput (&lt;50 req/sec)**
 
 Increase concurrent sequences:
+
 ```bash
 vllm serve MODEL --max-num-seqs 512
 ```
@@ -351,24 +364,26 @@ Check GPU utilization with `nvidia-smi` - should be >80%.
 **Issue: Inference slower than expected**
 
 Verify tensor parallelism uses power of 2 GPUs:
+
 ```bash
 vllm serve MODEL --tensor-parallel-size 4  # Not 3
 ```
 
 Enable speculative decoding for faster generation:
+
 ```bash
 vllm serve MODEL --speculative-model DRAFT_MODEL
 ```
 
 ## Advanced topics
 
-**Server deployment patterns**: See [references/server-deployment.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/server-deployment.md) for Docker, Kubernetes, and load balancing configurations.
+**Server deployment patterns**: See [references/server-deployment.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/server-deployment.md) for Docker, Kubernetes, and load balancing configurations.
 
-**Performance optimization**: See [references/optimization.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/optimization.md) for PagedAttention tuning, continuous batching details, and benchmark results.
+**Performance optimization**: See [references/optimization.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/optimization.md) for PagedAttention tuning, continuous batching details, and benchmark results.
 
-**Quantization guide**: See [references/quantization.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/quantization.md) for AWQ/GPTQ/FP8 setup, model preparation, and accuracy comparisons.
+**Quantization guide**: See [references/quantization.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/quantization.md) for AWQ/GPTQ/FP8 setup, model preparation, and accuracy comparisons.
 
-**Troubleshooting**: See [references/troubleshooting.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/troubleshooting.md) for detailed error messages, debugging steps, and performance diagnostics.
+**Troubleshooting**: See [references/troubleshooting.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/troubleshooting.md) for detailed error messages, debugging steps, and performance diagnostics.
 
 ## Hardware requirements
 
@@ -380,7 +395,7 @@ Supported platforms: NVIDIA (primary), AMD ROCm, Intel GPUs, TPUs
 
 ## Resources
 
-- Official docs: https://docs.vllm.ai
-- GitHub: https://github.com/vllm-project/vllm
+- Official docs: <https://docs.vllm.ai>
+- GitHub: <https://github.com/vllm-project/vllm>
 - Paper: "Efficient Memory Management for Large Language Model Serving with PagedAttention" (SOSP 2023)
-- Community: https://discuss.vllm.ai
+- Community: <https://discuss.vllm.ai>

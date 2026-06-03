@@ -44,14 +44,13 @@ export function ArtLines({ lines }: { lines: [string, string][] }) {
 // Terminals can't scale glyphs, so "responsive" means picking a layout that
 // fits the available columns. Thresholds are picked so each tier reads
 // comfortably without forcing wrap or truncation drift on box-drawing edges.
-const TAG_FULL = 'Nous Research · Messenger of the Digital Gods'
+const TAG_FULL = 'w159 · Messenger of the Digital Gods'
 const TAG_MID = 'Messenger of the Digital Gods'
-const TAG_TINY = 'Nous Research'
+const TAG_TINY = 'w159'
 const HIDE_BELOW = 34
 const COMPACT_FROM = 58
 
-const clip = (s: string, w: number) =>
-  w <= 0 ? '' : s.length > w ? `${s.slice(0, Math.max(0, w - 1))}…` : s
+const clip = (s: string, w: number) => (w <= 0 ? '' : s.length > w ? `${s.slice(0, Math.max(0, w - 1))}…` : s)
 
 const centerIn = (s: string, w: number) => {
   const f = clip(s, w)
@@ -75,7 +74,9 @@ function CompactBanner({ cols, t }: { cols: number; t: Theme }) {
 
   return (
     <Box flexDirection="column" height={3} marginBottom={1} opaque width={w}>
-      <Text bold color={t.color.primary}>{ruleIn(t.brand.name, w)}</Text>
+      <Text bold color={t.color.primary}>
+        {ruleIn(t.brand.name, w)}
+      </Text>
       <Text color={t.color.muted}>{centerIn(TAG_FULL, w)}</Text>
       <Text color={t.color.primary}>{'─'.repeat(w)}</Text>
     </Box>
@@ -113,8 +114,12 @@ export function Banner({ maxWidth, t }: { maxWidth?: number; t: Theme }) {
 
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <Text bold color={t.color.primary} wrap="truncate-end">{t.brand.icon} {name}</Text>
-      <Text color={t.color.muted} wrap="truncate-end">{t.brand.icon} {tag}</Text>
+      <Text bold color={t.color.primary} wrap="truncate-end">
+        {t.brand.icon} {name}
+      </Text>
+      <Text color={t.color.muted} wrap="truncate-end">
+        {t.brand.icon} {tag}
+      </Text>
     </Box>
   )
 }
@@ -142,12 +147,8 @@ function CollapseToggle({
       <Text bold color={t.color.accent}>
         {title}
       </Text>
-      {typeof count === 'number' ? (
-        <Text color={t.color.muted}> ({count})</Text>
-      ) : null}
-      {suffix ? (
-        <Text color={t.color.muted}> {suffix}</Text>
-      ) : null}
+      {typeof count === 'number' ? <Text color={t.color.muted}> ({count})</Text> : null}
+      {suffix ? <Text color={t.color.muted}> {suffix}</Text> : null}
     </Box>
   )
 }
@@ -212,9 +213,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
             <Text color={t.color.text}>{truncLine(strip(k) + ': ', vs)}</Text>
           </Text>
         ))}
-        {overflow > 0 && (
-          <Text color={t.color.muted}>(and {overflow} more categories…)</Text>
-        )}
+        {overflow > 0 && <Text color={t.color.muted}>(and {overflow} more categories…)</Text>}
       </>
     )
   }
@@ -235,9 +234,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
             <Text color={t.color.text}>{truncLine(strip(k) + ': ', vs)}</Text>
           </Text>
         ))}
-        {overflow > 0 && (
-          <Text color={t.color.muted}>(and {overflow} more toolsets…)</Text>
-        )}
+        {overflow > 0 && <Text color={t.color.muted}>(and {overflow} more toolsets…)</Text>}
       </>
     )
   }
@@ -270,11 +267,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
       return <Text color={t.color.muted}>No system prompt loaded.</Text>
     }
 
-    return (
-      <Text color={t.color.muted}>
-        {info.system_prompt}
-      </Text>
-    )
+    return <Text color={t.color.muted}>{info.system_prompt}</Text>
   }
 
   return (
@@ -286,7 +279,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
 
           <Text color={t.color.accent}>
             {info.model.split('/').pop()}
-            <Text color={t.color.muted}> · Nous Research</Text>
+            <Text color={t.color.muted}> · w159</Text>
           </Text>
 
           <Text color={t.color.muted} wrap="truncate-end">
@@ -317,7 +310,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
           <Box flexDirection="column" marginBottom={1}>
             <Text color={t.color.accent} wrap="truncate-end">
               {info.model.split('/').pop()}
-              <Text color={t.color.muted}> · Nous Research</Text>
+              <Text color={t.color.muted}> · w159</Text>
             </Text>
             <Text color={t.color.muted} wrap="truncate-end">
               {info.cwd || process.cwd()}
@@ -333,12 +326,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
 
         {/* ── Tools (expanded by default) ── */}
         <Box flexDirection="column" marginTop={1}>
-          <CollapseToggle
-            onToggle={() => setToolsOpen(v => !v)}
-            open={toolsOpen}
-            t={t}
-            title="Available Tools"
-          />
+          <CollapseToggle onToggle={() => setToolsOpen(v => !v)} open={toolsOpen} t={t} title="Available Tools" />
           {toolsOpen && toolsBody()}
         </Box>
 
@@ -348,7 +336,9 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
             count={skillsTotal}
             onToggle={() => setSkillsOpen(v => !v)}
             open={skillsOpen}
-            suffix={skillsCatCount > 0 ? `in ${skillsCatCount} categor${skillsCatCount === 1 ? 'y' : 'ies'}` : undefined}
+            suffix={
+              skillsCatCount > 0 ? `in ${skillsCatCount} categor${skillsCatCount === 1 ? 'y' : 'ies'}` : undefined
+            }
             t={t}
             title="Available Skills"
           />

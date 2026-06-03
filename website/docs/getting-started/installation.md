@@ -14,7 +14,7 @@ Get Hermes Agent up and running in under two minutes with the one-line installer
 
 Prefer a native installer?
 
-- **Desktop downloads:** [GitHub Releases](https://github.com/NousResearch/hermes-agent/releases/latest)
+- **Desktop downloads:** [GitHub Releases](https://github.com/w159/agent-penny/releases/latest)
 
 Desktop builds ship signed/notarized macOS artifacts and Windows installers with checksum files.
 
@@ -23,22 +23,23 @@ Desktop builds ship signed/notarized macOS artifacts and Windows installers with
 For a git-based install that tracks `main` and gives you the latest changes immediately:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 ```
 
 ### Windows (native, PowerShell)
 
-Native Windows runs Hermes without WSL — the CLI, gateway, TUI, and tools all work natively. (Both native and WSL2 installs coexist cleanly; see the feature note below for the one WSL2-only feature.) Found a bug? Please [file issues](https://github.com/NousResearch/hermes-agent/issues).
+Native Windows runs Hermes without WSL — the CLI, gateway, TUI, and tools all work natively. (Both native and WSL2 installs coexist cleanly; see the feature note below for the one WSL2-only feature.) Found a bug? Please [file issues](https://github.com/w159/agent-penny/issues).
 
 Open PowerShell and run:
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.ps1)
 ```
 
 The installer handles **everything**: `uv`, Python 3.11, Node.js 22, `ripgrep`, `ffmpeg`, **and a portable Git Bash** (PortableGit — a self-contained Git-for-Windows distribution that ships `bash.exe` and the full POSIX toolchain Hermes uses for shell commands; on 32-bit Windows the installer falls back to MinGit, which lacks bash and disables terminal-tool / agent-browser features).  It clones the repo under `%LOCALAPPDATA%\hermes\hermes-agent`, creates a virtualenv, and adds `hermes` to your **User PATH**.  Restart your terminal (or open a new PowerShell window) after the install so PATH picks up.
 
 **How Git is handled:**
+
 1. If `git` is already on your PATH, the installer uses your existing install.
 2. Otherwise it downloads portable **PortableGit** (~50MB, from the official `git-for-windows` GitHub release) and unpacks it to `%LOCALAPPDATA%\hermes\git`.  No admin rights required.  Completely isolated — it won't interfere with any system Git install, broken or otherwise.  (On 32-bit Windows it falls back to MinGit because PortableGit ships only 64-bit and ARM64 assets; bash-dependent Hermes features won't work on 32-bit hosts.)
 
@@ -55,10 +56,11 @@ If you prefer WSL2, the Linux installer above works inside it; both native and W
 Hermes now ships a Termux-aware installer path too:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 ```
 
 The installer detects Termux automatically and switches to a tested Android flow:
+
 - uses Termux `pkg` for system dependencies (`git`, `python`, `nodejs`, `ripgrep`, `ffmpeg`, build tools)
 - creates the virtualenv with `python -m venv`
 - exports `ANDROID_API_LEVEL` automatically for Android wheel builds
@@ -70,6 +72,7 @@ If you want the fully explicit path, follow the dedicated [Termux guide](./termu
 :::note Windows Feature Parity
 
 Everything except the browser-based dashboard chat terminal runs natively on Windows:
+
 - **CLI (`hermes chat`, `hermes setup`, `hermes gateway`, …)** — native, uses your default terminal
 - **Gateway (Telegram, Discord, Slack, …)** — native, runs as a background PowerShell process
 - **Cron scheduler** — native
@@ -162,22 +165,27 @@ Running Hermes as a dedicated unprivileged user (e.g. a `hermes` systemd service
 **Recommended split (Debian/Ubuntu):**
 
 1. **One time, as an admin user with sudo**, install the system libraries Chromium needs:
+
    ```bash
    sudo npx playwright install-deps chromium
    ```
+
    (You can run this from anywhere — `npx` will fetch Playwright on the fly.)
 
 2. **As the unprivileged service user**, run the regular installer. It will detect the missing sudo, skip `--with-deps`, and install Chromium into the user's local Playwright cache:
+
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
    ```
 
    If you want to skip the Playwright step entirely — for example because you're running headless and don't need browser automation — pass `--skip-browser`:
+
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --skip-browser
+   curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash -s -- --skip-browser
    ```
 
 3. **Make `hermes` available to the service user's shells.** The installer writes the launcher to `~/.local/bin/hermes`. System service accounts often have a minimal PATH that doesn't include `~/.local/bin`. Either add it to the user's environment, or symlink the launcher into a system location:
+
    ```bash
    # Option A — add to the service user's profile
    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc

@@ -4,7 +4,7 @@ sidebar_label: "Simpo Training"
 description: "Simple Preference Optimization for LLM alignment"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Simpo Training
 
@@ -36,6 +36,7 @@ The following is the complete skill definition that Hermes loads when this skill
 SimPO is a reference-free preference optimization method that outperforms DPO without needing a reference model.
 
 **Installation**:
+
 ```bash
 # Create environment
 conda create -n simpo python=3.10 && conda activate simpo
@@ -53,6 +54,7 @@ python -m pip install flash-attn --no-build-isolation
 ```
 
 **Training** (Mistral 7B):
+
 ```bash
 ACCELERATE_LOG_LEVEL=info accelerate launch \
   --config_file accelerate_configs/deepspeed_zero3.yaml \
@@ -65,6 +67,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
 ### Workflow 1: Train from base model (Mistral 7B)
 
 **Config** (`mistral-7b-base-simpo.yaml`):
+
 ```yaml
 # Model
 model_name_or_path: mistralai/Mistral-7B-v0.1
@@ -94,6 +97,7 @@ output_dir: ./outputs/mistral-7b-simpo
 ```
 
 **Launch training**:
+
 ```bash
 accelerate launch --config_file accelerate_configs/deepspeed_zero3.yaml \
   scripts/run_simpo.py training_configs/mistral-7b-base-simpo.yaml
@@ -102,6 +106,7 @@ accelerate launch --config_file accelerate_configs/deepspeed_zero3.yaml \
 ### Workflow 2: Fine-tune instruct model (Llama 3 8B)
 
 **Config** (`llama3-8b-instruct-simpo.yaml`):
+
 ```yaml
 model_name_or_path: meta-llama/Meta-Llama-3-8B-Instruct
 
@@ -120,6 +125,7 @@ output_dir: ./outputs/llama3-8b-simpo
 ```
 
 **Launch**:
+
 ```bash
 accelerate launch --config_file accelerate_configs/deepspeed_zero3.yaml \
   scripts/run_simpo.py training_configs/llama3-8b-instruct-simpo.yaml
@@ -128,6 +134,7 @@ accelerate launch --config_file accelerate_configs/deepspeed_zero3.yaml \
 ### Workflow 3: Reasoning-intensive tasks (lower LR)
 
 **For math/code tasks**:
+
 ```yaml
 model_name_or_path: deepseek-ai/deepseek-math-7b-base
 
@@ -147,6 +154,7 @@ gradient_accumulation_steps: 16
 ## When to use vs alternatives
 
 **Use SimPO when**:
+
 - Want simpler training than DPO (no reference model)
 - Have preference data (chosen/rejected pairs)
 - Need better performance than DPO
@@ -154,12 +162,14 @@ gradient_accumulation_steps: 16
 - Single-node training sufficient
 
 **Algorithm selection**:
+
 - **SimPO**: Simplest, best performance, no reference model
 - **DPO**: Need reference model baseline, more conservative
 - **PPO**: Maximum control, need reward model, complex setup
 - **GRPO**: Memory-efficient RL, no critic
 
 **Use alternatives instead**:
+
 - **OpenRLHF**: Multi-node distributed training, PPO/GRPO
 - **TRL**: Need multiple methods in one framework
 - **DPO**: Established baseline comparison
@@ -169,11 +179,13 @@ gradient_accumulation_steps: 16
 **Issue: Loss divergence**
 
 Reduce learning rate:
+
 ```yaml
 learning_rate: 3e-7  # Reduce from 5e-7
 ```
 
 Reduce beta:
+
 ```yaml
 beta: 1.0  # Reduce from 2.0
 ```
@@ -181,6 +193,7 @@ beta: 1.0  # Reduce from 2.0
 **Issue: Model forgets capabilities**
 
 Add SFT regularization:
+
 ```yaml
 sft_weight: 0.1  # Add SFT loss component
 ```
@@ -188,6 +201,7 @@ sft_weight: 0.1  # Add SFT loss component
 **Issue: Poor preference separation**
 
 Increase beta and margin:
+
 ```yaml
 beta: 5.0            # Increase from 2.0
 gamma_beta_ratio: 0.8  # Increase from 0.5
@@ -196,23 +210,25 @@ gamma_beta_ratio: 0.8  # Increase from 0.5
 **Issue: OOM during training**
 
 Reduce batch size:
+
 ```yaml
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 16  # Maintain effective batch
 ```
 
 Enable gradient checkpointing:
+
 ```yaml
 gradient_checkpointing: true
 ```
 
 ## Advanced topics
 
-**Loss functions**: See [references/loss-functions.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/simpo/references/loss-functions.md) for sigmoid vs hinge loss, mathematical formulations, and when to use each.
+**Loss functions**: See [references/loss-functions.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/simpo/references/loss-functions.md) for sigmoid vs hinge loss, mathematical formulations, and when to use each.
 
-**Hyperparameter tuning**: See [references/hyperparameters.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/simpo/references/hyperparameters.md) for beta, gamma, learning rate selection guide, and model-size-specific recommendations.
+**Hyperparameter tuning**: See [references/hyperparameters.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/simpo/references/hyperparameters.md) for beta, gamma, learning rate selection guide, and model-size-specific recommendations.
 
-**Dataset preparation**: See [references/datasets.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/simpo/references/datasets.md) for preference data formats, quality filtering, and custom dataset creation.
+**Dataset preparation**: See [references/datasets.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/simpo/references/datasets.md) for preference data formats, quality filtering, and custom dataset creation.
 
 ## Hardware requirements
 
@@ -225,13 +241,14 @@ gradient_checkpointing: true
 - **Mixed precision**: BF16 recommended
 
 **Memory optimization**:
+
 - DeepSpeed ZeRO-3 (default config)
 - Gradient checkpointing
 - Flash Attention 2
 
 ## Resources
 
-- Paper: https://arxiv.org/abs/2405.14734 (NeurIPS 2024)
-- GitHub: https://github.com/princeton-nlp/SimPO
-- Models: https://huggingface.co/princeton-nlp
-- Alignment Handbook: https://github.com/huggingface/alignment-handbook
+- Paper: <https://arxiv.org/abs/2405.14734> (NeurIPS 2024)
+- GitHub: <https://github.com/princeton-nlp/SimPO>
+- Models: <https://huggingface.co/princeton-nlp>
+- Alignment Handbook: <https://github.com/huggingface/alignment-handbook>

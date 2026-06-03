@@ -50,7 +50,7 @@ hermes chat
 <summary><strong>从本地克隆构建</strong></summary>
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/w159/agent-penny.git
 cd hermes-agent
 nix build
 ./result/bin/hermes setup
@@ -116,6 +116,7 @@ echo "OPENROUTER_API_KEY=sk-or-your-key" | sudo install -m 0600 -o hermes /dev/s
 ```nix
 services.hermes-agent.environmentFiles = [ "/var/lib/hermes/env" ];
 ```
+
 :::
 
 :::tip addToSystemPackages

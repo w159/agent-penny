@@ -83,7 +83,7 @@ You can set `providers.<id>.request_timeout_seconds` for a provider-wide request
 
 You can also set `providers.<id>.stale_timeout_seconds` for the non-streaming stale-call detector, plus `providers.<id>.models.<model>.stale_timeout_seconds` for a model-specific override. This wins over the legacy `HERMES_API_CALL_STALE_TIMEOUT` env var.
 
-Leaving these unset keeps the legacy defaults (`HERMES_API_TIMEOUT=1800`s, `HERMES_API_CALL_STALE_TIMEOUT=300`s, native Anthropic 900s). Not currently wired for AWS Bedrock (both `bedrock_converse` and AnthropicBedrock SDK paths use boto3 with its own timeout configuration). See the commented example in [`cli-config.yaml.example`](https://github.com/NousResearch/hermes-agent/blob/main/cli-config.yaml.example).
+Leaving these unset keeps the legacy defaults (`HERMES_API_TIMEOUT=1800`s, `HERMES_API_CALL_STALE_TIMEOUT=300`s, native Anthropic 900s). Not currently wired for AWS Bedrock (both `bedrock_converse` and AnthropicBedrock SDK paths use boto3 with its own timeout configuration). See the commented example in [`cli-config.yaml.example`](https://github.com/w159/agent-penny/blob/main/cli-config.yaml.example).
 
 ## Terminal Backend Configuration
 
@@ -201,6 +201,7 @@ Edge cases worth knowing:
 Parallel subagents spawned via `delegate_task(tasks=[...])` share this one container — concurrent `cd`, env mutations, and writes to the same path will collide. If a subagent needs an isolated sandbox, it must register a per-task image override via `register_task_env_overrides()`, which RL and benchmark environments (TerminalBench2, HermesSweEnv, etc.) do automatically for their per-task Docker images.
 
 **Security hardening:**
+
 - `--cap-drop ALL` with only `DAC_OVERRIDE`, `CHOWN`, `FOWNER` added back
 - `--security-opt no-new-privileges`
 - `--pids-limit 256`
@@ -361,6 +362,7 @@ terminal:
 ```
 
 This is useful for:
+
 - **Providing files** to the agent (datasets, configs, reference code)
 - **Receiving files** from the agent (generated code, reports, exports)
 - **Shared workspaces** where both you and the agent access the same files
@@ -428,6 +430,7 @@ terminal:
 ```
 
 When enabled:
+
 - if you launch Hermes from `~/projects/my-app`, that host directory is bind-mounted to `/workspace`
 - the Docker backend starts in `/workspace`
 - file tools and terminal commands both see the same mounted project
@@ -435,6 +438,7 @@ When enabled:
 When disabled, `/workspace` stays sandbox-owned unless you explicitly mount something via `docker_volumes`.
 
 Security tradeoff:
+
 - `false` preserves the sandbox boundary
 - `true` gives the sandbox direct access to the directory you launched Hermes from
 
@@ -458,6 +462,7 @@ hermes config set terminal.persistent_shell false
 ```
 
 **What persists across commands:**
+
 - Working directory (`cd /tmp` sticks for the next command)
 - Exported environment variables (`export FOO=bar`)
 - Shell variables (`MY_VAR=hello`)
@@ -657,29 +662,35 @@ As of recent releases, editing `model.context_length` or any `compression.*` key
 ### Common setups
 
 **Default (auto-detect) — no configuration needed:**
+
 ```yaml
 compression:
   enabled: true
   threshold: 0.50
 ```
+
 Uses your main provider and main model. Override per-task (e.g. `auxiliary.compression.provider: openrouter` + `model: google/gemini-2.5-flash`) if you want compression on a cheaper model than your main chat model.
 
 **Force a specific provider** (OAuth or API-key based):
+
 ```yaml
 auxiliary:
   compression:
     provider: nous
     model: gemini-3-flash
 ```
+
 Works with any provider: `nous`, `openrouter`, `codex`, `anthropic`, `main`, etc.
 
 **Custom endpoint** (self-hosted, Ollama, zai, DeepSeek, etc.):
+
 ```yaml
 auxiliary:
   compression:
     model: glm-4.7
     base_url: https://api.z.ai/api/coding/paas/v4
 ```
+
 Points at a custom OpenAI-compatible endpoint. Uses `OPENAI_API_KEY` for auth.
 
 ### How the three knobs interact
@@ -1003,6 +1014,7 @@ For GMI auxiliary routing, use the exact model ID returned by GMI's `/v1/models`
 ### Common Setups
 
 **Using a direct custom endpoint** (clearer than `provider: "main"` for local/self-hosted APIs):
+
 ```yaml
 auxiliary:
   vision:
@@ -1014,6 +1026,7 @@ auxiliary:
 `base_url` takes precedence over `provider`, so this is the most explicit way to route an auxiliary task to a specific endpoint. For direct endpoint overrides, Hermes uses the configured `api_key` or falls back to `OPENAI_API_KEY`; it does not reuse `OPENROUTER_API_KEY` for that custom endpoint.
 
 **Using OpenAI API key for vision:**
+
 ```yaml
 # In ~/.hermes/.env:
 # OPENAI_BASE_URL=https://api.openai.com/v1
@@ -1026,6 +1039,7 @@ auxiliary:
 ```
 
 **Using OpenRouter for vision** (route to any model):
+
 ```yaml
 auxiliary:
   vision:
@@ -1034,6 +1048,7 @@ auxiliary:
 ```
 
 **Using Codex OAuth** (ChatGPT Pro/Plus account — no API key needed):
+
 ```yaml
 auxiliary:
   vision:
@@ -1042,15 +1057,18 @@ auxiliary:
 ```
 
 **Using MiniMax OAuth** (browser login, no API key needed):
+
 ```yaml
 model:
   default: MiniMax-M2.7
   provider: minimax-oauth
   base_url: https://api.minimax.io/anthropic
 ```
+
 Run `hermes model` and select **MiniMax (OAuth)** to log in and set this automatically. For the China region, the base URL will be `https://api.minimaxi.com/anthropic`. See the [MiniMax OAuth guide](../guides/minimax-oauth.md) for the full walkthrough.
 
 **Using a local/self-hosted model:**
+
 ```yaml
 auxiliary:
   vision:
@@ -1140,7 +1158,7 @@ These are transparent to the user and only affect the system prompt. Models that
 
 ### When to turn it on
 
-If you're using a model not in the default auto list and notice it frequently describes what it *would* do instead of doing it, set `tool_use_enforcement: true` or add the model substring to the list:
+If you're using a model not in the default auto list and notice it frequently describes what it _would_ do instead of doing it, set `tool_use_enforcement: true` or add the model substring to the list:
 
 ```yaml
 agent:
@@ -1620,6 +1638,7 @@ security:
 When enabled, any URL matching a blocked domain pattern is rejected before the web or browser tool executes. This applies to `web_search`, `web_extract`, `browser_navigate`, and any tool that accesses URLs.
 
 Domain rules support:
+
 - Exact domains: `admin.example.com`
 - Wildcard subdomains: `*.internal.company.com` (blocks all subdomains)
 - TLD wildcards: `*.local`
@@ -1658,7 +1677,6 @@ checkpoints:
   enabled: false                 # Enable automatic checkpoints (also: hermes chat --checkpoints). Default: false (opt-in).
   max_snapshots: 20              # Max checkpoints to keep per directory (default: 20)
 ```
-
 
 ## Delegation
 
@@ -1718,6 +1736,7 @@ Hermes uses two different context scopes:
 - All loaded context files are capped at 20,000 characters with smart truncation.
 
 See also:
+
 - [Personality & SOUL.md](/user-guide/features/personality)
 - [Context Files](/user-guide/features/context-files)
 
@@ -1730,6 +1749,7 @@ See also:
 | **Docker / Singularity / Modal / SSH** | User's home directory inside the container or remote machine |
 
 Override the working directory:
+
 ```yaml
 # In ~/.hermes/config.yaml:
 terminal:

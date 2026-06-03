@@ -2,7 +2,7 @@
 
 Renders any content as colored ASCII character video. Audio, video, images, text, or pure math in, MP4/GIF/PNG sequence out. Full RGB color per character cell, 1080p 24fps default. No GPU.
 
-Built for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Usable in any coding agent. Canonical source lives here; synced to [`NousResearch/hermes-agent/skills/creative/ascii-video`](https://github.com/NousResearch/hermes-agent/tree/main/skills/creative/ascii-video) via PR.
+Built for [Hermes Agent](https://github.com/w159/agent-penny). Usable in any coding agent. Canonical source lives here; synced to [`NousResearch/hermes-agent/skills/creative/ascii-video`](https://github.com/w159/agent-penny/tree/main/skills/creative/ascii-video) via PR.
 
 ## What this is
 
@@ -57,22 +57,22 @@ Each sorted dark-to-bright, each a different visual texture. Validated against t
 
 | Family | Examples | Feel |
 |--------|----------|------|
-| Density ramps | ` .:-=+#@█` | Classic ASCII art gradient |
-| Block elements | ` ░▒▓█▄▀▐▌` | Chunky, digital |
-| Braille | ` ⠁⠂⠃...⠿` | Fine-grained pointillism |
-| Dots | ` ⋅∘∙●◉◎` | Smooth, organic |
-| Stars | ` ·✧✦✩✨★✶` | Sparkle, celestial |
-| Half-fills | ` ◔◑◕◐◒◓◖◗◙` | Directional fill progression |
-| Crosshatch | ` ▣▤▥▦▧▨▩` | Hatched density ramp |
-| Math | ` ·∘∙•°±×÷≈≠≡∞∫∑Ω` | Scientific, abstract |
-| Box drawing | ` ─│┌┐└┘├┤┬┴┼` | Structural, circuit-like |
-| Katakana | ` ·ｦｧｨｩｪｫｬｭ...` | Matrix rain |
-| Greek | ` αβγδεζηθ...ω` | Classical, academic |
-| Runes | ` ᚠᚢᚦᚱᚷᛁᛇᛒᛖᛚᛞᛟ` | Mystical, ancient |
-| Alchemical | ` ☉☽♀♂♃♄♅♆♇` | Esoteric |
-| Arrows | ` ←↑→↓↔↕↖↗↘↙` | Directional, kinetic |
-| Music | ` ♪♫♬♩♭♮♯○●` | Musical |
-| Project-specific | ` .·~=≈∞⚡☿✦★⊕◊◆▲▼●■` | Themed per project |
+| Density ramps | `.:-=+#@█` | Classic ASCII art gradient |
+| Block elements | `░▒▓█▄▀▐▌` | Chunky, digital |
+| Braille | `⠁⠂⠃...⠿` | Fine-grained pointillism |
+| Dots | `⋅∘∙●◉◎` | Smooth, organic |
+| Stars | `·✧✦✩✨★✶` | Sparkle, celestial |
+| Half-fills | `◔◑◕◐◒◓◖◗◙` | Directional fill progression |
+| Crosshatch | `▣▤▥▦▧▨▩` | Hatched density ramp |
+| Math | `·∘∙•°±×÷≈≠≡∞∫∑Ω` | Scientific, abstract |
+| Box drawing | `─│┌┐└┘├┤┬┴┼` | Structural, circuit-like |
+| Katakana | `·ｦｧｨｩｪｫｬｭ...` | Matrix rain |
+| Greek | `αβγδεζηθ...ω` | Classical, academic |
+| Runes | `ᚠᚢᚦᚱᚷᛁᛇᛒᛖᛚᛞᛟ` | Mystical, ancient |
+| Alchemical | `☉☽♀♂♃♄♅♆♇` | Esoteric |
+| Arrows | `←↑→↓↔↕↖↗↘↙` | Directional, kinetic |
+| Music | `♪♫♬♩♭♮♯○●` | Musical |
+| Project-specific | `.·~=≈∞⚡☿✦★⊕◊◆▲▼●■` | Themed per project |
 
 Custom palettes are built per project to match the content.
 

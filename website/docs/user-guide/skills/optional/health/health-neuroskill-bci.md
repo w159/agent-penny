@@ -4,7 +4,7 @@ sidebar_label: "Neuroskill Bci"
 description: "Connect to a running NeuroSkill instance and incorporate the user's real-time cognitive and emotional state (focus, relaxation, mood, cognitive load, drowsin..."
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Neuroskill Bci
 
@@ -17,7 +17,7 @@ Connect to a running NeuroSkill instance and incorporate the user's real-time co
 | Source | Optional — install with `hermes skills install official/health/neuroskill-bci` |
 | Path | `optional-skills/health/neuroskill-bci` |
 | Version | `1.0.0` |
-| Author | Hermes Agent + Nous Research |
+| Author | Hermes Agent + w159 |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `BCI`, `neurofeedback`, `health`, `focus`, `EEG`, `cognitive-state`, `biometrics`, `neuroskill` |
@@ -52,6 +52,7 @@ for intervention protocols, and `references/api.md` for the WebSocket/HTTP API.
 - `npx neuroskill status` returns data without errors
 
 ### Verify Setup
+
 ```bash
 node --version                    # Must be 20+
 npx neuroskill status             # Full system snapshot
@@ -59,6 +60,7 @@ npx neuroskill status --json      # Machine-parseable JSON
 ```
 
 If `npx neuroskill status` returns an error, tell the user:
+
 - Make sure the NeuroSkill desktop app is open
 - Ensure the BCI device is powered on and connected via Bluetooth
 - Check signal quality — green indicators in NeuroSkill (≥0.7 per electrode)
@@ -89,6 +91,7 @@ All commands support `--json` (raw JSON, pipe-safe) and `--full` (human summary 
 | `raw '{json}'` | Raw JSON passthrough to the server |
 
 ### Global Flags
+
 | Flag | Description |
 |------|-------------|
 | `--json` | Raw JSON output (no ANSI, pipe-safe) |
@@ -106,6 +109,7 @@ All commands support `--json` (raw JSON, pipe-safe) and `--full` (human summary 
 ## 1. Checking Current State
 
 ### Get Live Metrics
+
 ```bash
 npx neuroskill status --json
 ```
@@ -161,6 +165,7 @@ numbers alone — always give them meaning:
 > "Focus: 0.70, Relaxation: 0.40, HR: 68"
 
 Key interpretation thresholds (see `references/metrics.md` for the full guide):
+
 - **Focus > 0.70** → flow state territory, protect it
 - **Focus &lt; 0.40** → suggest a break or protocol
 - **Drowsiness > 0.60** → fatigue warning, micro-sleep risk
@@ -175,6 +180,7 @@ Key interpretation thresholds (see `references/metrics.md` for the full guide):
 ## 2. Session Analysis
 
 ### Single Session Breakdown
+
 ```bash
 npx neuroskill session --json         # most recent session
 npx neuroskill session 1 --json       # previous session
@@ -189,6 +195,7 @@ Use this to describe how a session evolved:
 > as you settled in."
 
 ### List All Sessions
+
 ```bash
 npx neuroskill sessions --json
 npx neuroskill sessions --trends      # show per-session metric trends
@@ -199,6 +206,7 @@ npx neuroskill sessions --trends      # show per-session metric trends
 ## 3. Historical Search
 
 ### Neural Similarity Search
+
 ```bash
 npx neuroskill search --json                    # auto: last session, k=5
 npx neuroskill search --k 10 --json             # 10 nearest neighbors
@@ -210,11 +218,13 @@ nearest-neighbor search over 128-D ZUNA embeddings. Returns distance statistics,
 temporal distribution (hour of day), and top matching days.
 
 Use this when the user asks:
+
 - "When was I last in a state like this?"
 - "Find my best focus sessions"
 - "When do I usually crash in the afternoon?"
 
 ### Semantic Label Search
+
 ```bash
 npx neuroskill search-labels "deep focus" --k 10 --json
 npx neuroskill search-labels "stress" --json | jq '[.results[].EXG_metrics.tbr]'
@@ -224,6 +234,7 @@ Searches label text using vector embeddings (Xenova/bge-small-en-v1.5). Returns
 matching labels with their associated EXG metrics at the time of labeling.
 
 ### Cross-Modal Graph Search
+
 ```bash
 npx neuroskill interactive "deep focus" --json
 npx neuroskill interactive "deep focus" --dot | dot -Tsvg > graph.svg
@@ -235,6 +246,7 @@ npx neuroskill interactive "deep focus" --dot | dot -Tsvg > graph.svg
 ---
 
 ## 4. Session Comparison
+
 ```bash
 npx neuroskill compare --json                   # auto: last 2 sessions
 npx neuroskill compare --a-start <UTC> --a-end <UTC> --b-start <UTC> --b-end <UTC> --json
@@ -258,6 +270,7 @@ npx neuroskill compare --json | jq '.insights.deltas | to_entries | sort_by(.val
 ---
 
 ## 5. Sleep Data
+
 ```bash
 npx neuroskill sleep --json                     # last 24 hours
 npx neuroskill sleep 0 --json                   # most recent sleep session
@@ -265,6 +278,7 @@ npx neuroskill sleep --start <UTC> --end <UTC> --json
 ```
 
 Returns epoch-by-epoch sleep staging (5-second windows) with analysis:
+
 - **Stage codes**: 0=Wake, 1=N1, 2=N2, 3=N3 (deep), 4=REM
 - **Analysis**: efficiency_pct, onset_latency_min, rem_latency_min, bout counts
 - **Healthy targets**: N3 15–25%, REM 20–25%, efficiency >85%, onset &lt;20 min
@@ -279,6 +293,7 @@ Use this when the user mentions sleep, tiredness, or recovery.
 ---
 
 ## 6. Labeling Moments
+
 ```bash
 npx neuroskill label "breakthrough"
 npx neuroskill label "studying algorithms"
@@ -287,6 +302,7 @@ npx neuroskill label --json "focus block start"   # returns label_id
 ```
 
 Auto-label moments when:
+
 - User reports a breakthrough or insight
 - User starts a new task type (e.g., "switching to code review")
 - User completes a significant protocol
@@ -299,6 +315,7 @@ and `interactive` commands.
 ---
 
 ## 7. Real-Time Streaming
+
 ```bash
 npx neuroskill listen --seconds 30 --json
 npx neuroskill listen --seconds 5 --json | jq '[.[] | select(.event == "scores")]'
@@ -313,6 +330,7 @@ during a protocol.
 ---
 
 ## 8. UMAP Visualization
+
 ```bash
 npx neuroskill umap --json                      # auto: last 2 sessions
 npx neuroskill umap --a-start <UTC> --a-end <UTC> --b-start <UTC> --b-end <UTC> --json
@@ -320,6 +338,7 @@ npx neuroskill umap --a-start <UTC> --a-end <UTC> --b-start <UTC> --b-end <UTC> 
 
 GPU-accelerated 3D UMAP projection of ZUNA embeddings. The `separation_score`
 indicates how neurally distinct two sessions are:
+
 - **> 1.5** → Sessions are neurally distinct (different brain states)
 - **&lt; 0.5** → Similar brain states across both sessions
 
@@ -328,8 +347,10 @@ indicates how neurally distinct two sessions are:
 ## 9. Proactive State Awareness
 
 ### Session Start Check
+
 At the beginning of a session, optionally run a status check if the user mentions
 they're wearing their device or asks about their state:
+
 ```bash
 npx neuroskill status --json
 ```
@@ -341,6 +362,7 @@ Inject a brief state summary:
 ### When to Proactively Mention State
 
 Mention cognitive state **only** when:
+
 - User explicitly asks ("How am I doing?", "Check my focus")
 - User reports difficulty concentrating, stress, or fatigue
 - A critical threshold is crossed (drowsiness > 0.70, focus &lt; 0.30 sustained)
@@ -362,6 +384,7 @@ Always ask before starting — never interrupt flow state:
 > counting and breath to suppress theta and lift beta."
 
 Key triggers:
+
 - **Focus &lt; 0.40, TBR > 1.5** → Theta-Beta Neurofeedback Anchor or Box Breathing
 - **Relaxation &lt; 0.30, stress_index high** → Cardiac Coherence or 4-7-8 Breathing
 - **Cognitive Load > 0.70 sustained** → Cognitive Load Offload (mind dump)
@@ -376,29 +399,36 @@ Key triggers:
 ## 11. Additional Tools
 
 ### Focus Timer
+
 ```bash
 npx neuroskill timer --json
 ```
+
 Launches the Focus Timer window with Pomodoro (25/5), Deep Work (50/10), or
 Short Focus (15/5) presets.
 
 ### Calibration
+
 ```bash
 npx neuroskill calibrate
 npx neuroskill calibrate --profile "Eyes Open"
 ```
+
 Opens the calibration window. Useful when signal quality is poor or the user
 wants to establish a personalized baseline.
 
 ### OS Notifications
+
 ```bash
 npx neuroskill notify "Break Time" "Your focus has been declining for 20 minutes"
 ```
 
 ### Raw JSON Passthrough
+
 ```bash
 npx neuroskill raw '{"command":"status"}' --json
 ```
+
 For any server command not yet mapped to a CLI subcommand.
 
 ---
@@ -419,45 +449,57 @@ For any server command not yet mapped to a CLI subcommand.
 ## Example Interactions
 
 **"How am I doing right now?"**
+
 ```bash
 npx neuroskill status --json
 ```
+
 → Interpret scores naturally, mentioning focus, relaxation, mood, and any notable
   ratios (FAA, TBR). Suggest an action only if metrics indicate a need.
 
 **"I can't concentrate"**
+
 ```bash
 npx neuroskill status --json
 ```
+
 → Check if metrics confirm it (high theta, low beta, rising TBR, high drowsiness).
 → If confirmed, suggest an appropriate protocol from `references/protocols.md`.
 → If metrics look fine, the issue may be motivational rather than neurological.
 
 **"Compare my focus today vs yesterday"**
+
 ```bash
 npx neuroskill compare --json
 ```
+
 → Interpret trends, not just numbers. Mention what improved, what declined, and
   possible causes.
 
 **"When was I last in a flow state?"**
+
 ```bash
 npx neuroskill search-labels "flow" --json
 npx neuroskill search --json
 ```
+
 → Report timestamps, associated metrics, and what the user was doing (from labels).
 
 **"How did I sleep?"**
+
 ```bash
 npx neuroskill sleep --json
 ```
+
 → Report sleep architecture (N3%, REM%, efficiency), compare to healthy targets,
   and note any issues (high wake epochs, low REM).
 
 **"Mark this moment — I just had a breakthrough"**
+
 ```bash
 npx neuroskill label "breakthrough"
 ```
+
 → Confirm label saved. Optionally note the current metrics to remember the state.
 
 ---

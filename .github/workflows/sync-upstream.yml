@@ -1,0 +1,92 @@
+name: sync-upstream
+
+# Runs weekly plus on manual dispatch. Brings the latest
+# NousResearch/hermes-agent main onto a mirror branch so the rebrand
+# can be rebased on top of it.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Upstream ref (branch or tag) to sync to"
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.WRITE_TOKEN }}
+
+      - name: Ensure clean tree
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "::error::Working tree is dirty; refusing to sync."
+            exit 1
+          fi
+
+      - name: Configure git
+        run: |
+          git config user.name "agent-penny bot"
+          git config user.email "bot@users.noreply.github.com"
+
+      - name: Ensure upstream remote
+        run: |
+          if ! git remote get-url upstream >/dev/null 2>&1; then
+            git remote add upstream https://github.com/NousResearch/hermes-agent.git
+          fi
+          git remote set-url --push upstream no-pushing
+          git fetch --prune --tags upstream
+
+      - name: Dry-run sync
+        env:
+          UPSTREAM_REF: ${{ github.event.inputs.ref || 'main' }}
+        run: |
+          chmod +x scripts/sync-upstream.sh
+          if ! scripts/sync-upstream.sh --check "$UPSTREAM_REF"; then
+            echo "::error::Dry run reported a problem."
+            exit 1
+          fi
+
+      - name: Detect change
+        id: changed
+        env:
+          UPSTREAM_REF: ${{ github.event.inputs.ref || 'main' }}
+        run: |
+          BEFORE=$(git rev-parse main)
+          if [[ "$UPSTREAM_REF" == "main" ]]; then
+            UPSTREAM_SHA=$(git rev-parse upstream/main)
+          else
+            UPSTREAM_SHA=$(git rev-parse "refs/tags/$UPSTREAM_REF" 2>/dev/null \
+              || git rev-parse "upstream/$UPSTREAM_REF")
+          fi
+          BEHIND=$(git rev-list --count main.."$UPSTREAM_SHA")
+          if [[ "$BEHIND" -gt 0 ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Upstream is $BEHIND commit(s) ahead of main; sync needed."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Already in sync; no action needed."
+          fi
+
+      - name: Run sync
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          UPSTREAM_REF: ${{ github.event.inputs.ref || 'main' }}
+        run: |
+          chmod +x scripts/sync-upstream.sh
+          if ! PUSH=1 scripts/sync-upstream.sh "$UPSTREAM_REF"; then
+            echo "::error::Sync failed. Manual resolution required."
+            echo "Run scripts/sync-upstream.sh locally to resolve the conflict."
+            exit 2
+          fi

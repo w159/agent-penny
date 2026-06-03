@@ -4,7 +4,7 @@ sidebar_label: "Segment Anything Model"
 description: "SAM: zero-shot image segmentation via points, boxes, masks"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Segment Anything Model
 
@@ -36,6 +36,7 @@ Comprehensive guide to using Meta AI's Segment Anything Model for zero-shot imag
 ## When to use SAM
 
 **Use SAM when:**
+
 - Need to segment any object in images without task-specific training
 - Building interactive annotation tools with point/box prompts
 - Generating training data for other vision models
@@ -44,6 +45,7 @@ Comprehensive guide to using Meta AI's Segment Anything Model for zero-shot imag
 - Processing medical, satellite, or domain-specific images
 
 **Key features:**
+
 - **Zero-shot segmentation**: Works on any image domain without fine-tuning
 - **Flexible prompts**: Points, bounding boxes, or previous masks
 - **Automatic segmentation**: Generate all object masks automatically
@@ -52,6 +54,7 @@ Comprehensive guide to using Meta AI's Segment Anything Model for zero-shot imag
 - **ONNX export**: Deploy in browsers and edge devices
 
 **Use alternatives instead:**
+
 - **YOLO/Detectron2**: For real-time object detection with classes
 - **Mask2Former**: For semantic/panoptic segmentation with categories
 - **GroundingDINO + SAM**: For text-prompted segmentation
@@ -92,7 +95,7 @@ import numpy as np
 from segment_anything import sam_model_registry, SamPredictor
 
 # Load model
-sam = sam_model_registry["vit_h"](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_h_4b8939.pth")
+sam = sam_model_registry["vit_h"](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_h_4b8939.pth")
 sam.to(device="cuda")
 
 # Create predictor
@@ -478,7 +481,7 @@ decoded_mask = mask_utils.decode(rle)
 
 ```python
 # Use smaller model for limited VRAM
-sam = sam_model_registry["vit_b"](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_b_01ec64.pth")
+sam = sam_model_registry["vit_b"](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_b_01ec64.pth")
 
 # Process images in batches
 # Clear CUDA cache between large batches
@@ -513,13 +516,13 @@ mask_generator = SamAutomaticMaskGenerator(
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/references/advanced-usage.md)** - Batching, fine-tuning, integration
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/references/advanced-usage.md)** - Batching, fine-tuning, integration
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 
-- **GitHub**: https://github.com/facebookresearch/segment-anything
-- **Paper**: https://arxiv.org/abs/2304.02643
-- **Demo**: https://segment-anything.com
-- **SAM 2 (Video)**: https://github.com/facebookresearch/segment-anything-2
-- **HuggingFace**: https://huggingface.co/facebook/sam-vit-huge
+- **GitHub**: <https://github.com/facebookresearch/segment-anything>
+- **Paper**: <https://arxiv.org/abs/2304.02643>
+- **Demo**: <https://segment-anything.com>
+- **SAM 2 (Video)**: <https://github.com/facebookresearch/segment-anything-2>
+- **HuggingFace**: <https://huggingface.co/facebook/sam-vit-huge>

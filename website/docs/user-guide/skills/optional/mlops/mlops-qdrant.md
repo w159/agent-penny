@@ -4,7 +4,7 @@ sidebar_label: "Qdrant Vector Search"
 description: "High-performance vector similarity search engine for RAG and semantic search"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Qdrant Vector Search
 
@@ -36,6 +36,7 @@ High-performance vector database written in Rust for production RAG and semantic
 ## When to use Qdrant
 
 **Use Qdrant when:**
+
 - Building production RAG systems requiring low latency
 - Need hybrid search (vectors + metadata filtering)
 - Require horizontal scaling with sharding/replication
@@ -44,6 +45,7 @@ High-performance vector database written in Rust for production RAG and semantic
 - Building real-time recommendation systems
 
 **Key features:**
+
 - **Rust-powered**: Memory-safe, high performance
 - **Rich filtering**: Filter by any payload field during search
 - **Multiple vectors**: Dense, sparse, multi-dense per point
@@ -52,6 +54,7 @@ High-performance vector database written in Rust for production RAG and semantic
 - **REST + gRPC**: Both APIs with full feature parity
 
 **Use alternatives instead:**
+
 - **Chroma**: Simpler setup, embedded use cases
 - **FAISS**: Maximum raw speed, research/batch processing
 - **Pinecone**: Fully managed, zero ops preferred
@@ -468,6 +471,7 @@ client.update_collection(
 ## Common issues
 
 **Slow search with filters:**
+
 ```python
 # Create payload index for filtered fields
 client.create_payload_index(
@@ -478,6 +482,7 @@ client.create_payload_index(
 ```
 
 **Out of memory:**
+
 ```python
 # Enable quantization and on-disk storage
 client.create_collection(
@@ -489,6 +494,7 @@ client.create_collection(
 ```
 
 **Connection issues:**
+
 ```python
 # Use timeout and retry
 client = QdrantClient(
@@ -501,14 +507,14 @@ client = QdrantClient(
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/qdrant/references/advanced-usage.md)** - Distributed mode, hybrid search, recommendations
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/qdrant/references/troubleshooting.md)** - Common issues, debugging, performance tuning
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/qdrant/references/advanced-usage.md)** - Distributed mode, hybrid search, recommendations
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/qdrant/references/troubleshooting.md)** - Common issues, debugging, performance tuning
 
 ## Resources
 
-- **GitHub**: https://github.com/qdrant/qdrant (22k+ stars)
-- **Docs**: https://qdrant.tech/documentation/
-- **Python Client**: https://github.com/qdrant/qdrant-client
-- **Cloud**: https://cloud.qdrant.io
+- **GitHub**: <https://github.com/qdrant/qdrant> (22k+ stars)
+- **Docs**: <https://qdrant.tech/documentation/>
+- **Python Client**: <https://github.com/qdrant/qdrant-client>
+- **Cloud**: <https://cloud.qdrant.io>
 - **Version**: 1.12.0+
 - **License**: Apache 2.0

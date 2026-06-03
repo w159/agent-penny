@@ -17,7 +17,7 @@ description: "Hermes Agent 常见问题解答及常见问题解决方案"
 Hermes Agent 可与任何兼容 OpenAI 的 API 配合使用。支持的提供商包括：
 
 - **[OpenRouter](https://openrouter.ai/)** — 通过一个 API key 访问数百个模型（推荐，灵活性强）
-- **Nous Portal** — Nous Research 自有推理端点
+- **Nous Portal** — w159 自有推理端点
 - **OpenAI** — GPT-5.4、GPT-5-codex、GPT-4.1、GPT-4o 等
 - **Anthropic** — Claude 模型（直接 API、通过 `hermes auth add anthropic` 进行 OAuth、OpenRouter 或任何兼容代理）
 - **Google** — Gemini 模型（通过 `gemini` 提供商直接调用 API、`google-gemini-cli` OAuth 提供商、OpenRouter 或兼容代理）
@@ -33,7 +33,7 @@ Hermes Agent 可与任何兼容 OpenAI 的 API 配合使用。支持的提供商
 **原生不支持。** Hermes Agent 需要类 Unix 环境。在 Windows 上，请安装 [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) 并在其中运行 Hermes。标准安装命令在 WSL2 中可完美运行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 ```
 
 ### 我在 WSL2 中运行 Hermes，如何控制 Windows 上的普通 Chrome？
@@ -61,7 +61,7 @@ curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scri
 快速安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 ```
 
 完整的手动步骤、支持的扩展及当前限制，请参阅 [Termux 指南](../getting-started/termux.md)。
@@ -145,6 +145,7 @@ response = agent.chat("Explain quantum computing briefly")
 **原因：** Shell 未重新加载更新后的 PATH。
 
 **解决方案：**
+
 ```bash
 # 重新加载 shell 配置文件
 source ~/.bashrc    # bash
@@ -154,6 +155,7 @@ source ~/.zshrc     # zsh
 ```
 
 如果仍然无效，请验证安装位置：
+
 ```bash
 which hermes
 ls ~/.local/bin/hermes
@@ -168,6 +170,7 @@ ls ~/.local/bin/hermes
 **原因：** Hermes 需要 Python 3.11 或更新版本。
 
 **解决方案：**
+
 ```bash
 python3 --version   # 检查当前版本
 
@@ -210,6 +213,7 @@ terminal:
 **原因：** `uv` 包管理器未安装或不在 PATH 中。
 
 **解决方案：**
+
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
@@ -220,12 +224,13 @@ source ~/.bashrc
 **原因：** 对安装目录的写入权限不足。
 
 **解决方案：**
+
 ```bash
 # 不要对安装程序使用 sudo — 它安装到 ~/.local/bin
 # 如果之前使用 sudo 安装，请先清理：
 sudo rm /usr/local/bin/hermes
 # 然后重新运行标准安装程序
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 ```
 
 ---
@@ -250,6 +255,7 @@ hermes model
 通过 `hermes model` 添加新提供商后，启动新的聊天会话 — `/model` 将显示所有已配置的提供商。
 
 :::tip 快速参考
+
 | 目标 | 使用方式 |
 |-----------|-----|
 | 添加新提供商 | `hermes model`（从终端） |
@@ -263,6 +269,7 @@ hermes model
 **原因：** key 缺失、已过期、设置错误或属于错误的提供商。
 
 **解决方案：**
+
 ```bash
 # 检查您的配置
 hermes config show
@@ -283,6 +290,7 @@ hermes config set OPENROUTER_API_KEY sk-or-v1-xxxxxxxxxxxx
 **原因：** 模型标识符不正确，或该模型在您的提供商上不可用。
 
 **解决方案：**
+
 ```bash
 # 列出您的提供商可用的模型
 hermes model
@@ -299,6 +307,7 @@ hermes chat --model openrouter/meta-llama/llama-3.1-70b-instruct
 **原因：** 您已超出提供商的速率限制。
 
 **解决方案：** 稍等片刻后重试。对于持续使用，请考虑：
+
 - 升级您的提供商套餐
 - 切换到其他模型或提供商
 - 使用 `hermes chat --provider <alternative>` 路由到其他后端
@@ -308,6 +317,7 @@ hermes chat --model openrouter/meta-llama/llama-3.1-70b-instruct
 **原因：** 对话内容超出模型的上下文窗口，或 Hermes 检测到的模型上下文长度有误。
 
 **解决方案：**
+
 ```bash
 # 压缩当前会话
 /compress
@@ -354,6 +364,7 @@ custom_providers:
 **原因：** Hermes 检测到潜在的破坏性命令（例如 `rm -rf`、`DROP TABLE`）。这是一项安全功能。
 
 **解决方案：** 出现提示时，检查命令并输入 `y` 批准执行。您也可以：
+
 - 要求智能体使用更安全的替代方案
 - 在[安全文档](../user-guide/security.md)中查看完整的危险模式列表
 
@@ -366,6 +377,7 @@ custom_providers:
 **原因：** 消息网关在没有交互式终端的情况下运行，因此 `sudo` 无法提示输入密码。
 
 **解决方案：**
+
 - 在消息中避免使用 `sudo` — 请智能体寻找替代方案
 - 如果必须使用 `sudo`，在 `/etc/sudoers` 中为特定命令配置免密 sudo
 - 或切换到终端界面执行管理任务：`hermes chat`
@@ -375,6 +387,7 @@ custom_providers:
 **原因：** Docker 守护进程未运行，或用户缺少相应权限。
 
 **解决方案：**
+
 ```bash
 # 检查 Docker 是否在运行
 docker info
@@ -396,6 +409,7 @@ docker run hello-world
 **原因：** Bot 未运行、未授权，或您的用户不在白名单中。
 
 **解决方案：**
+
 ```bash
 # 检查网关是否在运行
 hermes gateway status
@@ -412,6 +426,7 @@ cat ~/.hermes/logs/gateway.log | tail -50
 **原因：** 网络问题、bot token 已过期，或平台 webhook 配置错误。
 
 **解决方案：**
+
 - 使用 `hermes gateway setup` 验证您的 bot token 是否有效
 - 检查网关日志：`cat ~/.hermes/logs/gateway.log | tail -50`
 - 对于基于 webhook 的平台（Slack、WhatsApp），确保您的服务器可公开访问
@@ -435,6 +450,7 @@ cat ~/.hermes/logs/gateway.log | tail -50
 **原因：** 缺少依赖项、端口冲突或 token 配置错误。
 
 **解决方案：**
+
 ```bash
 # 安装核心消息网关依赖项
 pip install "hermes-agent[messaging]"  # Telegram、Discord、Slack 及共享网关依赖
@@ -468,16 +484,19 @@ nohup hermes gateway run > ~/.hermes/logs/gateway.log 2>&1 &
 
 1. 打开 `/etc/wsl.conf`（不存在则创建）
 2. 添加：
+
    ```ini
    [boot]
    systemd=true
    ```
+
 3. 在 PowerShell 中执行：`wsl --shutdown`
 4. 重新打开 WSL 终端
 5. 验证：`systemctl is-system-running` 应显示 "running" 或 "degraded"
 
 :::tip Windows 开机自启
 如需可靠的自启动，使用 Windows 任务计划程序在登录时启动 WSL + 网关：
+
 1. 创建一个任务，运行 `wsl -d Ubuntu -- bash -lc 'hermes gateway run'`
 2. 设置在用户登录时触发
 :::
@@ -494,6 +513,7 @@ hermes gateway start      # 检测到更新的 plist 并重新加载
 ```
 
 您可以验证 plist 中的 PATH 是否正确：
+
 ```bash
 /usr/libexec/PlistBuddy -c "Print :EnvironmentVariables:PATH" \
   ~/Library/LaunchAgents/ai.hermes.gateway.plist
@@ -508,6 +528,7 @@ hermes gateway start      # 检测到更新的 plist 并重新加载
 **原因：** 模型较大、API 服务器距离较远，或系统 prompt（提示词）包含过多工具。
 
 **解决方案：**
+
 - 尝试更快/更小的模型：`hermes chat --model openrouter/meta-llama/llama-3.1-8b-instruct`
 - 减少激活的工具集：`hermes chat -t "terminal"`
 - 检查到提供商的网络延迟
@@ -518,6 +539,7 @@ hermes gateway start      # 检测到更新的 plist 并重新加载
 **原因：** 对话过长、系统 prompt 冗长，或大量工具调用积累了上下文。
 
 **解决方案：**
+
 ```bash
 # 压缩对话以减少 token
 /compress
@@ -535,6 +557,7 @@ hermes gateway start      # 检测到更新的 plist 并重新加载
 **原因：** 长时间对话积累了大量消息和工具输出，接近上下文限制。
 
 **解决方案：**
+
 ```bash
 # 压缩当前会话（保留关键上下文）
 /compress
@@ -555,6 +578,7 @@ hermes chat --continue
 **原因：** 找不到服务器二进制文件、命令路径错误或缺少运行时。
 
 **解决方案：**
+
 ```bash
 # 确保 MCP 依赖项已安装（标准安装中已包含）
 cd ~/.hermes/hermes-agent && uv pip install -e ".[mcp]"
@@ -568,6 +592,7 @@ npx -y @modelcontextprotocol/server-filesystem /tmp
 ```
 
 验证您的 `~/.hermes/config.yaml` 中的 MCP 配置：
+
 ```yaml
 mcp_servers:
   filesystem:
@@ -580,6 +605,7 @@ mcp_servers:
 **原因：** 服务器已启动但工具发现失败、工具被配置过滤掉，或服务器不支持您期望的 MCP 能力。
 
 **解决方案：**
+
 - 检查网关/智能体日志中的 MCP 连接错误
 - 确保服务器响应 `tools/list` RPC 方法
 - 检查该服务器下的 `tools.include`、`tools.exclude`、`tools.resources`、`tools.prompts` 或 `enabled` 设置
@@ -595,6 +621,7 @@ hermes chat
 ```
 
 另请参阅：
+
 - [MCP（模型上下文协议）](/user-guide/features/mcp)
 - [在 Hermes 中使用 MCP](/guides/use-mcp-with-hermes)
 - [MCP 配置参考](/reference/mcp-config-reference)
@@ -604,6 +631,7 @@ hermes chat
 **原因：** MCP 服务器响应时间过长，或在执行过程中崩溃。
 
 **解决方案：**
+
 - 如果 MCP 服务器配置支持，增加超时时间
 - 检查 MCP 服务器进程是否仍在运行
 - 对于远程 HTTP MCP 服务器，检查网络连接
@@ -749,17 +777,21 @@ skills:
 **解决方案：**
 
 1. 在新机器上安装 Hermes Agent：
+
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
    ```
 
 2. 在**源机器**上创建完整备份：
+
    ```bash
    hermes backup
    ```
+
    这会将您整个 `~/.hermes/` 目录（配置、API key、记忆、技能、会话和 profiles）打包为 zip 文件，保存到主目录 `~/hermes-backup-<timestamp>.zip`。
 
 3. 将 zip 文件复制到新机器并导入：
+
    ```bash
    # 在源机器上
    scp ~/hermes-backup-<timestamp>.zip newmachine:~/
@@ -795,6 +827,7 @@ hermes profile import ./work-backup.tar.gz work
 | **格式** | `.zip` | `.tar.gz` |
 
 **手动备选方案（rsync）：** 如果您倾向于直接复制文件，请排除代码仓库：
+
 ```bash
 rsync -av --exclude='hermes-agent' ~/.hermes/ newmachine:~/.hermes/
 ```
@@ -810,6 +843,7 @@ rsync -av --exclude='hermes-agent' ~/.hermes/ newmachine:~/.hermes/
 **原因：** 这通常发生在 `~/.zshrc`（或 `~/.bashrc`）文件权限不正确，或安装程序无法干净写入时。这不是 Hermes 特有的问题 — 而是 shell 配置权限问题。
 
 **解决方案：**
+
 ```bash
 # 检查权限
 ls -la ~/.zshrc
@@ -824,6 +858,7 @@ source ~/.zshrc
 ```
 
 如果安装程序已添加 PATH 行但权限有误，您可以手动添加：
+
 ```bash
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 ```
@@ -835,6 +870,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 **原因：** 通常是模型名称不匹配 — 配置的模型在您的提供商上不存在，或 API key 没有访问该模型的权限。
 
 **解决方案：**
+
 ```bash
 # 检查已配置的模型和提供商
 hermes config show | head -20
@@ -854,6 +890,6 @@ hermes chat -q "hello" --model anthropic/claude-opus-4.7
 
 如果您的问题未在此处涵盖：
 
-1. **搜索现有 issue：** [GitHub Issues](https://github.com/NousResearch/hermes-agent/issues)
-2. **向社区提问：** [Nous Research Discord](https://discord.gg/nousresearch)
+1. **搜索现有 issue：** [GitHub Issues](https://github.com/w159/agent-penny/issues)
+2. **向社区提问：** [w159 Discord](https://discord.gg/nousresearch)
 3. **提交 bug 报告：** 请包含您的操作系统、Python 版本（`python3 --version`）、Hermes 版本（`hermes --version`）以及完整的错误信息

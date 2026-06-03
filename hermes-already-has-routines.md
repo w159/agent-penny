@@ -14,6 +14,7 @@ Claude Code Routines offers three ways to trigger an automation:
 > "Every night at 2am: pull the top bug from Linear, attempt a fix, and open a draft PR."
 
 Hermes equivalent — works today:
+
 ```bash
 hermes cron create "0 2 * * *" \
   "Pull the top bug from the issue tracker, attempt a fix, and open a draft PR." \
@@ -25,6 +26,7 @@ hermes cron create "0 2 * * *" \
 > "Flag PRs that touch the /auth-provider module and post to #auth-changes."
 
 Hermes equivalent — works today:
+
 ```bash
 hermes webhook subscribe auth-watch \
   --events "pull_request" \
@@ -36,6 +38,7 @@ hermes webhook subscribe auth-watch \
 > "Read the alert payload, find the owning service, post a triage summary to #oncall."
 
 Hermes equivalent — works today:
+
 ```bash
 hermes webhook subscribe alert-triage \
   --prompt "Alert: {alert.name} — Severity: {alert.severity}. Find the owning service, investigate, and post a triage summary with proposed first steps." \
@@ -132,6 +135,7 @@ hermes setup
 ```
 
 Set up a scheduled task in 30 seconds:
+
 ```bash
 hermes cron create "0 9 * * 1" \
   "Generate a weekly AI news digest. Search the web for major announcements, trending repos, and notable papers. Keep it under 500 words with links." \
@@ -140,6 +144,7 @@ hermes cron create "0 9 * * 1" \
 ```
 
 Set up a GitHub webhook in 60 seconds:
+
 ```bash
 hermes gateway setup    # enable webhooks
 hermes webhook subscribe pr-review \
@@ -153,8 +158,8 @@ Full automation templates gallery: [hermes-agent.nousresearch.com/docs/guides/au
 
 Documentation: [hermes-agent.nousresearch.com](https://hermes-agent.nousresearch.com)
 
-GitHub: [github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
+GitHub: [github.com/w159/agent-penny](https://github.com/w159/agent-penny)
 
 ---
 
-*Hermes Agent is built by [Nous Research](https://nousresearch.com). Open source, model-agnostic, runs on your infrastructure.*
+*Hermes Agent is built by [w159](https://nousresearch.com). Open source, model-agnostic, runs on your infrastructure.*

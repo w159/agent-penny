@@ -4,7 +4,7 @@ sidebar_label: "Audiocraft 音频生成"
 description: "AudioCraft：MusicGen 文本转音乐，AudioGen 文本转声音"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Audiocraft 音频生成
 
@@ -36,6 +36,7 @@ AudioCraft：MusicGen 文本转音乐，AudioGen 文本转声音。
 ## 何时使用 AudioCraft
 
 **在以下情况下使用 AudioCraft：**
+
 - 需要从文本描述生成音乐
 - 创建音效和环境音频
 - 构建音乐生成应用
@@ -44,6 +45,7 @@ AudioCraft：MusicGen 文本转音乐，AudioGen 文本转声音。
 - 需要可控的风格迁移音乐生成
 
 **核心功能：**
+
 - **MusicGen**：支持旋律条件化的文本转音乐生成
 - **AudioGen**：文本转音效生成
 - **EnCodec**：高保真神经音频编解码器
@@ -52,6 +54,7 @@ AudioCraft：MusicGen 文本转音乐，AudioGen 文本转声音。
 - **风格条件化**：MusicGen-Style 支持基于参考的生成
 
 **以下情况请使用替代方案：**
+
 - **Stable Audio**：用于较长的商业音乐生成
 - **Bark**：用于带音乐/音效的文本转语音
 - **Riffusion**：用于基于频谱图的音乐生成
@@ -575,13 +578,13 @@ for desc in descriptions:
 
 ## 参考资料
 
-- **[高级用法](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/audiocraft/references/advanced-usage.md)** - 训练、微调、部署
-- **[故障排查](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/audiocraft/references/troubleshooting.md)** - 常见问题与解决方案
+- **[高级用法](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/audiocraft/references/advanced-usage.md)** - 训练、微调、部署
+- **[故障排查](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/audiocraft/references/troubleshooting.md)** - 常见问题与解决方案
 
 ## 资源
 
-- **GitHub**：https://github.com/facebookresearch/audiocraft
-- **论文（MusicGen）**：https://arxiv.org/abs/2306.05284
-- **论文（AudioGen）**：https://arxiv.org/abs/2209.15352
-- **HuggingFace**：https://huggingface.co/facebook/musicgen-small
-- **演示**：https://huggingface.co/spaces/facebook/MusicGen
+- **GitHub**：<https://github.com/facebookresearch/audiocraft>
+- **论文（MusicGen）**：<https://arxiv.org/abs/2306.05284>
+- **论文（AudioGen）**：<https://arxiv.org/abs/2209.15352>
+- **HuggingFace**：<https://huggingface.co/facebook/musicgen-small>
+- **演示**：<https://huggingface.co/spaces/facebook/MusicGen>

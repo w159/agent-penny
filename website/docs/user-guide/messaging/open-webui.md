@@ -125,7 +125,7 @@ First launch takes 15–30 seconds: Open WebUI downloads sentence-transformer em
 
 ### 5. Open the UI
 
-Go to **http://localhost:3000**. Create your admin account (the first user becomes admin). You should see your agent in the model dropdown (named after your profile, or **hermes-agent** for the default profile). Start chatting!
+Go to **<http://localhost:3000>**. Create your admin account (the first user becomes admin). You should see your agent in the model dropdown (named after your profile, or **hermes-agent** for the default profile). Start chatting!
 
 ## Docker Compose Setup
 
@@ -161,7 +161,7 @@ docker compose up -d
 
 If you prefer to configure the connection through the UI instead of environment variables:
 
-1. Log in to Open WebUI at **http://localhost:3000**
+1. Log in to Open WebUI at **<http://localhost:3000>**
 2. Click your **profile avatar** → **Admin Settings**
 3. Go to **Connections**
 4. Under **OpenAI API**, click the **wrench icon** (Manage)
@@ -219,7 +219,7 @@ When you send a message in Open WebUI:
 
 Your agent has access to the same tools and capabilities as that API-server Hermes instance. If the API server is remote, those tools are remote too.
 
-If you need tools to run against your **local** workspace today, run Hermes locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for "remote brain, local hands" is being tracked in [#18715](https://github.com/NousResearch/hermes-agent/issues/18715); it is not the behavior of the current API server.
+If you need tools to run against your **local** workspace today, run Hermes locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for "remote brain, local hands" is being tracked in [#18715](https://github.com/w159/agent-penny/issues/18715); it is not the behavior of the current API server.
 
 :::tip Tool Progress
 With streaming enabled (the default), you'll see brief inline indicators as tools run — the tool emoji and its key argument. These appear in the response stream before the agent's final answer, giving you visibility into what's happening behind the scenes.
@@ -313,9 +313,11 @@ The model dropdown will show `alice` and `bob` as distinct models. You can assig
 
 :::tip Custom Model Names
 The model name defaults to the profile name. To override it, set `API_SERVER_MODEL_NAME` in the profile's `.env`:
+
 ```bash
 hermes -p alice config set API_SERVER_MODEL_NAME "Alice's Agent"
 ```
+
 :::
 
 ## Linux Docker (no Docker Desktop)

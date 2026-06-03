@@ -46,15 +46,17 @@ Use `hermes computer-use status` to verify the install.
 
 After installing, regardless of which path you took:
 
-3. Grant macOS permissions when prompted:
+1. Grant macOS permissions when prompted:
    - **System Settings → Privacy & Security → Accessibility** → allow the
      terminal (or Hermes app).
    - **System Settings → Privacy & Security → Screen Recording** → allow
      the same.
-4. Start a session with the toolset enabled:
+2. Start a session with the toolset enabled:
+
    ```
    hermes -t computer_use chat
    ```
+
    or add `computer_use` to your enabled toolsets in `~/.hermes/config.yaml`.
 
 ## Keeping cua-driver up to date
@@ -191,6 +193,6 @@ reconsider.
 
 ## See also
 
-- [Universal skill: `macos-computer-use`](https://github.com/NousResearch/hermes-agent/blob/main/skills/apple/macos-computer-use/SKILL.md)
+- [Universal skill: `macos-computer-use`](https://github.com/w159/agent-penny/blob/main/skills/apple/macos-computer-use/SKILL.md)
 - [cua-driver source (trycua/cua)](https://github.com/trycua/cua)
 - [Browser automation](./browser.md) for cross-platform web tasks.

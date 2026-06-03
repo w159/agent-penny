@@ -4,7 +4,7 @@ sidebar_label: "Serving Llms Vllm"
 description: "vLLM：高吞吐量 LLM 服务、OpenAI API、量化"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Serving Llms Vllm
 
@@ -40,11 +40,13 @@ vLLM：高吞吐量 LLM 服务、OpenAI API、量化。
 vLLM 通过 PagedAttention（基于块的 KV 缓存）和 continuous batching（混合 prefill/decode 请求）实现比标准 transformers 高 24 倍的吞吐量。
 
 **安装**：
+
 ```bash
 pip install vllm
 ```
 
 **基础离线推理**：
+
 ```python
 from vllm import LLM, SamplingParams
 
@@ -56,6 +58,7 @@ print(outputs[0].outputs[0].text)
 ```
 
 **OpenAI 兼容服务器**：
+
 ```bash
 vllm serve meta-llama/Llama-3-8B-Instruct
 
@@ -136,6 +139,7 @@ curl http://localhost:9090/metrics | grep vllm
 ```
 
 需监控的关键指标：
+
 - `vllm:time_to_first_token_seconds` - 延迟
 - `vllm:num_requests_running` - 活跃请求数
 - `vllm:gpu_cache_usage_perc` - KV 缓存利用率
@@ -156,6 +160,7 @@ docker run --gpus all -p 8000:8000 \
 **步骤 5：验证性能指标**
 
 检查部署是否达到目标：
+
 - TTFT &lt; 500ms（短 prompt 情况下）
 - 吞吐量 > 目标 req/sec
 - GPU 利用率 > 80%
@@ -292,6 +297,7 @@ vllm serve TheBloke/Llama-2-70B-AWQ \
 ## 与替代方案的对比
 
 **使用 vLLM 的场景：**
+
 - 部署生产级 LLM API（100+ req/sec）
 - 提供 OpenAI 兼容端点
 - GPU 显存有限但需要运行大型模型
@@ -299,6 +305,7 @@ vllm serve TheBloke/Llama-2-70B-AWQ \
 - 需要低延迟与高吞吐量并存
 
 **改用替代方案的场景：**
+
 - **llama.cpp**：CPU/边缘推理，单用户场景
 - **HuggingFace transformers**：研究、原型开发、一次性生成
 - **TensorRT-LLM**：仅限 NVIDIA，追求绝对最高性能
@@ -309,6 +316,7 @@ vllm serve TheBloke/Llama-2-70B-AWQ \
 **问题：模型加载时内存不足**
 
 减少内存使用：
+
 ```bash
 vllm serve MODEL \
   --gpu-memory-utilization 0.7 \
@@ -316,6 +324,7 @@ vllm serve MODEL \
 ```
 
 或使用量化：
+
 ```bash
 vllm serve MODEL --quantization awq
 ```
@@ -323,11 +332,13 @@ vllm serve MODEL --quantization awq
 **问题：首 token 速度慢（TTFT > 1 秒）**
 
 对重复 prompt 启用前缀缓存：
+
 ```bash
 vllm serve MODEL --enable-prefix-caching
 ```
 
 对长 prompt，启用分块 prefill：
+
 ```bash
 vllm serve MODEL --enable-chunked-prefill
 ```
@@ -335,6 +346,7 @@ vllm serve MODEL --enable-chunked-prefill
 **问题：模型未找到错误**
 
 对自定义模型使用 `--trust-remote-code`：
+
 ```bash
 vllm serve MODEL --trust-remote-code
 ```
@@ -342,6 +354,7 @@ vllm serve MODEL --trust-remote-code
 **问题：吞吐量低（&lt;50 req/sec）**
 
 增加并发序列数：
+
 ```bash
 vllm serve MODEL --max-num-seqs 512
 ```
@@ -351,24 +364,26 @@ vllm serve MODEL --max-num-seqs 512
 **问题：推理速度低于预期**
 
 验证张量并行使用的 GPU 数量为 2 的幂次：
+
 ```bash
 vllm serve MODEL --tensor-parallel-size 4  # Not 3
 ```
 
 启用推测解码以加速生成：
+
 ```bash
 vllm serve MODEL --speculative-model DRAFT_MODEL
 ```
 
 ## 高级主题
 
-**服务器部署模式**：参见 [references/server-deployment.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/server-deployment.md)，了解 Docker、Kubernetes 和负载均衡配置。
+**服务器部署模式**：参见 [references/server-deployment.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/server-deployment.md)，了解 Docker、Kubernetes 和负载均衡配置。
 
-**性能优化**：参见 [references/optimization.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/optimization.md)，了解 PagedAttention 调优、continuous batching 详情及基准测试结果。
+**性能优化**：参见 [references/optimization.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/optimization.md)，了解 PagedAttention 调优、continuous batching 详情及基准测试结果。
 
-**量化指南**：参见 [references/quantization.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/quantization.md)，了解 AWQ/GPTQ/FP8 配置、模型准备及精度对比。
+**量化指南**：参见 [references/quantization.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/quantization.md)，了解 AWQ/GPTQ/FP8 配置、模型准备及精度对比。
 
-**故障排查**：参见 [references/troubleshooting.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/inference/vllm/references/troubleshooting.md)，了解详细错误信息、调试步骤及性能诊断。
+**故障排查**：参见 [references/troubleshooting.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/inference/vllm/references/troubleshooting.md)，了解详细错误信息、调试步骤及性能诊断。
 
 ## 硬件要求
 
@@ -380,7 +395,7 @@ vllm serve MODEL --speculative-model DRAFT_MODEL
 
 ## 资源
 
-- 官方文档：https://docs.vllm.ai
-- GitHub：https://github.com/vllm-project/vllm
+- 官方文档：<https://docs.vllm.ai>
+- GitHub：<https://github.com/vllm-project/vllm>
 - 论文："Efficient Memory Management for Large Language Model Serving with PagedAttention"（SOSP 2023）
-- 社区：https://discuss.vllm.ai
+- 社区：<https://discuss.vllm.ai>

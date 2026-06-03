@@ -4,7 +4,7 @@ sidebar_label: "Huggingface Accelerate"
 description: "最简分布式训练 API"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Huggingface Accelerate
 
@@ -36,11 +36,13 @@ description: "最简分布式训练 API"
 Accelerate 将分布式训练简化为 4 行代码。
 
 **安装**：
+
 ```bash
 pip install accelerate
 ```
 
 **转换 PyTorch 脚本**（4 行）：
+
 ```python
 import torch
 + from accelerate import Accelerator
@@ -62,6 +64,7 @@ import torch
 ```
 
 **运行**（单条命令）：
+
 ```bash
 accelerate launch train.py
 ```
@@ -71,6 +74,7 @@ accelerate launch train.py
 ### 工作流 1：从单 GPU 到多 GPU
 
 **原始脚本**：
+
 ```python
 # train.py
 import torch
@@ -89,6 +93,7 @@ for epoch in range(10):
 ```
 
 **使用 Accelerate**（新增 4 行）：
+
 ```python
 # train.py
 import torch
@@ -112,17 +117,20 @@ for epoch in range(10):
 ```
 
 **配置**（交互式）：
+
 ```bash
 accelerate config
 ```
 
 **问题**：
+
 - 使用哪种机器？（单/多 GPU/TPU/CPU）
 - 机器数量？（1）
 - 混合精度？（no/fp16/bf16/fp8）
 - DeepSpeed？（no/yes）
 
 **启动**（适用于任意配置）：
+
 ```bash
 # 单 GPU
 accelerate launch train.py
@@ -140,6 +148,7 @@ accelerate launch --multi_gpu --num_processes 16 \
 ### 工作流 2：混合精度训练
 
 **启用 FP16/BF16**：
+
 ```python
 from accelerate import Accelerator
 
@@ -164,6 +173,7 @@ for batch in dataloader:
 ### 工作流 3：DeepSpeed ZeRO 集成
 
 **启用 DeepSpeed ZeRO-2**：
+
 ```python
 from accelerate import Accelerator
 
@@ -181,12 +191,14 @@ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
 ```
 
 **或通过配置**：
+
 ```bash
 accelerate config
 # 选择：DeepSpeed → ZeRO-2
 ```
 
 **deepspeed_config.json**：
+
 ```json
 {
     "fp16": {"enabled": false},
@@ -201,6 +213,7 @@ accelerate config
 ```
 
 **启动**：
+
 ```bash
 accelerate launch --config_file deepspeed_config.json train.py
 ```
@@ -208,6 +221,7 @@ accelerate launch --config_file deepspeed_config.json train.py
 ### 工作流 4：FSDP（全分片数据并行）
 
 **启用 FSDP**：
+
 ```python
 from accelerate import Accelerator, FullyShardedDataParallelPlugin
 
@@ -226,6 +240,7 @@ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
 ```
 
 **或通过配置**：
+
 ```bash
 accelerate config
 # 选择：FSDP → Full Shard → No CPU Offload
@@ -234,6 +249,7 @@ accelerate config
 ### 工作流 5：梯度累积
 
 **累积梯度**：
+
 ```python
 from accelerate import Accelerator
 
@@ -254,6 +270,7 @@ for batch in dataloader:
 ## 与替代方案的对比
 
 **适合使用 Accelerate 的场景**：
+
 - 需要最简单的分布式训练方式
 - 需要单脚本适配任意硬件
 - 使用 HuggingFace 生态系统
@@ -261,6 +278,7 @@ for batch in dataloader:
 - 需要快速原型开发
 
 **核心优势**：
+
 - **4 行代码**：代码改动极少
 - **统一 API**：同一套代码适用于 DDP、DeepSpeed、FSDP、Megatron
 - **自动化**：设备放置、混合精度、分片均自动处理
@@ -268,6 +286,7 @@ for batch in dataloader:
 - **单条启动命令**：适用于所有环境
 
 **适合使用替代方案的场景**：
+
 - **PyTorch Lightning**：需要回调机制、高层抽象
 - **Ray Train**：多节点编排、超参数调优
 - **DeepSpeed**：直接 API 控制、高级特性
@@ -278,6 +297,7 @@ for batch in dataloader:
 **问题：设备放置错误**
 
 不要手动移动到设备：
+
 ```python
 # 错误
 batch = batch.to('cuda')
@@ -289,6 +309,7 @@ batch = batch.to('cuda')
 **问题：梯度累积不生效**
 
 使用上下文管理器：
+
 ```python
 # 正确
 with accelerator.accumulate(model):
@@ -300,6 +321,7 @@ with accelerator.accumulate(model):
 **问题：分布式环境下的检查点保存**
 
 使用 accelerator 方法：
+
 ```python
 # 仅在主进程保存
 if accelerator.is_main_process:
@@ -312,6 +334,7 @@ accelerator.load_state('checkpoint/')
 **问题：FSDP 结果不一致**
 
 确保使用相同的随机种子：
+
 ```python
 from accelerate.utils import set_seed
 set_seed(42)
@@ -319,11 +342,11 @@ set_seed(42)
 
 ## 高级主题
 
-**Megatron 集成**：张量并行、流水线并行和序列并行的配置，请参阅 [references/megatron-integration.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/accelerate/references/megatron-integration.md)。
+**Megatron 集成**：张量并行、流水线并行和序列并行的配置，请参阅 [references/megatron-integration.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/accelerate/references/megatron-integration.md)。
 
-**自定义插件**：创建自定义分布式插件及高级配置，请参阅 [references/custom-plugins.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/accelerate/references/custom-plugins.md)。
+**自定义插件**：创建自定义分布式插件及高级配置，请参阅 [references/custom-plugins.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/accelerate/references/custom-plugins.md)。
 
-**性能调优**：性能分析、内存优化及最佳实践，请参阅 [references/performance.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/accelerate/references/performance.md)。
+**性能调优**：性能分析、内存优化及最佳实践，请参阅 [references/performance.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/accelerate/references/performance.md)。
 
 ## 硬件要求
 
@@ -335,6 +358,7 @@ set_seed(42)
 - **Apple MPS**：支持
 
 **启动器要求**：
+
 - **DDP**：`torch.distributed.run`（内置）
 - **DeepSpeed**：`deepspeed`（pip install deepspeed）
 - **FSDP**：PyTorch 1.12+（内置）
@@ -342,9 +366,9 @@ set_seed(42)
 
 ## 资源
 
-- 文档：https://huggingface.co/docs/accelerate
-- GitHub：https://github.com/huggingface/accelerate
+- 文档：<https://huggingface.co/docs/accelerate>
+- GitHub：<https://github.com/huggingface/accelerate>
 - 版本：1.11.0+
 - 教程："Accelerate your scripts"
-- 示例：https://github.com/huggingface/accelerate/tree/main/examples
+- 示例：<https://github.com/huggingface/accelerate/tree/main/examples>
 - 使用方：HuggingFace Transformers、TRL、PEFT 及所有 HF 库

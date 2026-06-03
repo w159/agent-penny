@@ -4,7 +4,7 @@ sidebar_label: "Dcf Model"
 description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、FCF 构建、WACC、终值、熊/基/牛情景、5x5 敏感性表格。与 excel-author 配合使用。适用于内在价值股权分析。"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # DCF 模型
 
@@ -17,7 +17,7 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 | 来源 | 可选——通过 `hermes skills install official/finance/dcf-model` 安装 |
 | 路径 | `optional-skills/finance/dcf-model` |
 | 版本 | `1.0.0` |
-| 作者 | Anthropic（由 Nous Research 改编） |
+| 作者 | Anthropic（由 w159 改编） |
 | 许可证 | Apache-2.0 |
 | 平台 | linux, macos, windows |
 | 标签 | `finance`, `valuation`, `dcf`, `excel`, `openpyxl`, `modeling`, `investment-banking` |
@@ -50,12 +50,14 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 以下约束适用于所有 DCF 模型构建过程。开始前请仔细阅读：
 
 **公式优先于硬编码（不可协商）：**
+
 - 每个预测值、利润率、折现因子、现值和敏感性单元格都必须是实时 Excel 公式——绝不能是在 Python 中计算后写入的数值
 - 使用 openpyxl 时：`ws["D20"] = "=D19*(1+$B$8)"` 是正确的；`ws["D20"] = calculated_revenue` 是错误的
 - 唯一允许硬编码的数字是：(1) 原始历史输入，(2) 假设驱动因子（增长率、WACC 输入、终端 g），(3) 当前市场数据（股价、债务余额）
 - 如果你发现自己在 Python 中计算某个值并将结果写入——停止。模型必须在用户更改假设时能够动态调整。
 
 **逐步与用户确认（不要端到端构建）：**
+
 - 数据获取后→向用户展示原始输入块（收入、利润率、股份数、净债务）并在预测前确认
 - 收入预测后→展示预测的顶线和增长率，在构建利润率之前确认
 - FCF 构建后→展示完整的 FCF 计划，在计算 WACC 前确认逻辑
@@ -64,6 +66,7 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 - 在每个阶段捕捉错误——在敏感性表格构建完成后才发现错误的利润率假设意味着需要重建所有下游内容
 
 **敏感性表格：**
+
 - **使用奇数行和列**（标准：5×5，有时 7×7）——这保证了一个真正的中心单元格
 - **中心单元格 = 基准情景。** 构建轴值时，使中间行标题和中间列标题恰好等于模型的实际假设（例如，如果基准 WACC = 9.0%，则中间行为 9.0%；如果终端 g = 3.0%，则中间列为 3.0%）。中心单元格的输出因此必须等于模型的实际隐含每股价格——这是验证表格构建正确的合理性检验。
 - **高亮中心单元格**，使用中蓝色填充（`#BDD7EE`）+ 粗体字体，使基准情景立即可见。
@@ -73,12 +76,14 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 - 每个单元格必须针对该假设组合重新计算完整的 DCF
 
 **单元格注释：**
+
 - 在创建每个硬编码值时添加单元格注释
 - 格式："Source: [System/Document], [Date], [Reference], [URL if applicable]"
 - 每个蓝色输入在进入下一节之前必须有注释
 - 不要推迟到最后或写"TODO: add source"
 
 **模型布局规划：**
+
 - 在写任何公式之前定义所有节的行位置
 - 先写所有标题和标签
 - 其次写所有节分隔符和空行
@@ -86,11 +91,13 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 - 创建后立即测试公式
 
 **公式重新计算：**
+
 - 交付前运行 `python recalc.py model.xlsx 30`
 - 修复所有错误直到状态为"success"
 - 要求零公式错误（#REF!、#DIV/0!、#VALUE! 等）
 
 **情景块：**
+
 - 为熊/基/牛情景创建独立块
 - 在每个块内横向展示各预测年份的假设
 - 使用 IF 公式：`=IF($B$6=1,[Bear cell],IF($B$6=2,[Base cell],[Bull cell]))`
@@ -103,11 +110,13 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 从 MCP 服务器、用户提供的数据和网络获取数据。
 
 **数据来源优先级：**
+
 1. **MCP 服务器**（如已配置）——来自 Daloopa 等提供商的结构化财务数据
 2. **用户提供的数据**——来自其研究的历史财务数据
 3. **网络搜索/抓取**——需要时获取当前价格、beta、债务和现金
 
 **验证清单：**
+
 - 验证净债务与净现金（对估值至关重要）
 - 确认稀释后流通股数（检查近期回购/发行）
 - 验证历史利润率与商业模式一致
@@ -117,6 +126,7 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 ### 第 2 步：历史分析（3-5 年）
 
 分析并记录：
+
 - **收入增长趋势**：计算 CAGR，识别驱动因素
 - **利润率进展**：跟踪毛利率、EBIT 利润率、FCF 利润率
 - **资本密集度**：D&A 和资本支出占收入的百分比
@@ -124,6 +134,7 @@ description: "在 Excel 中构建机构级 DCF 估值模型——收入预测、
 - **回报指标**：ROIC、ROE 趋势
 
 创建汇总表格，显示：
+
 ```
 Historical Metrics (LTM):
 Revenue: $X million
@@ -138,20 +149,24 @@ FCF margin: X%
 ### 第 3 步：构建收入预测
 
 **方法论：**
+
 1. 从最新实际收入（LTM 或最近财年）开始
 2. 对每个预测年份应用增长率
 3. 同时显示美元金额和计算的增长百分比
 
 **增长率框架：**
+
 - 第 1-2 年：较高增长，反映近期可见性
 - 第 3-4 年：逐步向行业平均水平收敛
 - 第 5 年及以后：接近终端增长率
 
 **公式结构：**
+
 - 收入（第 N 年）= 收入（第 N-1 年）×（1 + 增长率）
 - 增长%（第 N 年）= 收入（第 N 年）/ 收入（第 N-1 年）- 1
 
 **三情景方法：**
+
 ```
 Bear Case: Conservative growth (e.g., 8-12%)
 Base Case: Most likely scenario (e.g., 12-16%)
@@ -163,17 +178,20 @@ Bull Case: Optimistic growth (e.g., 16-20%)
 **固定/可变成本分析：**
 
 运营费用应模拟真实的运营杠杆：
+
 - **销售与营销**：通常占收入的 15-40%，取决于商业模式
 - **研究与开发**：科技公司通常占 10-30%
 - **一般与行政**：通常占收入的 8-15%，随公司规模扩大显示杠杆效应
 
 **关键原则：**
+
 - 所有百分比基于收入，而非毛利润
 - 模拟运营杠杆：随收入增长，百分比应下降
 - 保持 S&M、R&D、G&A 的独立行项目
 - 计算 EBIT = 毛利润 - 总运营费用
 
 **利润率扩张框架：**
+
 ```
 Current State → Target State (Year 5)
 Gross Margin: X% → Y% (justify based on scale, efficiency)
@@ -195,12 +213,14 @@ EBIT
 ```
 
 **营运资金建模：**
+
 - 计算为收入变化的百分比（收入增量）
 - 典型范围：收入变化的 -2% 至 +2%
 - 负数 = 现金来源（营运资金释放）
 - 正数 = 现金使用（营运资金积累）
 
 **维护性与增长性资本支出：**
+
 - 维护性资本支出：维持当前运营（约占收入 2-3%）
 - 增长性资本支出：支持扩张（额外占收入 2-5%）
 - 总资本支出应与公司增长战略一致
@@ -243,12 +263,14 @@ WACC = (Cost of Equity × Equity Weight) + (After-Tax Cost of Debt × Debt Weigh
 ```
 
 **特殊情况：**
+
 - **净现金头寸**：如果现金 > 债务，净债务为负
   - 债务权重可能为负
   - WACC 计算相应调整
 - **无债务**：WACC = 股权成本
 
 **典型 WACC 范围：**
+
 - 大盘、稳定型：7-9%
 - 成长型公司：9-12%
 - 高增长/高风险：12-15%
@@ -256,11 +278,13 @@ WACC = (Cost of Equity × Equity Weight) + (After-Tax Cost of Debt × Debt Weigh
 ### 第 7 步：折现率应用（5-10 年预测）
 
 **年中惯例：**
+
 - 假设现金流发生在年中
 - 折现期：0.5、1.5、2.5、3.5、4.5 等
 - 折现因子 = 1 / (1 + WACC)^期间
 
 **现值计算：**
+
 ```
 For each projection year:
 PV of FCF = Unlevered FCF × Discount Factor
@@ -274,6 +298,7 @@ PV = $1,000 × 0.9535 = $954
 ```
 
 **预测期选择：**
+
 - **5 年**：大多数分析的标准
 - **7-10 年**：具有较长跑道的高增长公司
 - **3 年**：成熟、稳定的企业
@@ -290,6 +315,7 @@ Critical Constraint: Terminal Growth < WACC (otherwise infinite value)
 ```
 
 **终端增长率选择：**
+
 - 保守型：2.0-2.5%（GDP 增长率）
 - 适中型：2.5-3.5%
 - 激进型：3.5-5.0%（仅适用于市场领导者）
@@ -297,6 +323,7 @@ Critical Constraint: Terminal Growth < WACC (otherwise infinite value)
 **不得超过**：无风险利率或长期 GDP 增长率
 
 **退出倍数法（替代方案）：**
+
 ```
 Terminal Value = Final Year EBITDA × Exit Multiple
 
@@ -307,6 +334,7 @@ Where Exit Multiple comes from:
 ```
 
 **终值现值：**
+
 ```
 PV of Terminal Value = Terminal Value / (1 + WACC)^Final Period
 
@@ -315,6 +343,7 @@ Where Final Period accounts for timing:
 ```
 
 **终值合理性检验：**
+
 - 应占企业价值的 50-70%
 - 如果 >75%，模型可能过度依赖终端假设
 - 如果 &lt;40%，检查终端假设是否过于保守
@@ -339,6 +368,7 @@ Implied Return = (Implied Price / Current Price) - 1 = XX%
 ```
 
 **关键调整：**
+
 - **净债务 = 总债务 - 现金及等价物**
   - 如果为正：从 EV 中减去（降低股权价值）
   - 如果为负（净现金）：加到 EV 上（增加股权价值）
@@ -349,6 +379,7 @@ Implied Return = (Implied Price / Current Price) - 1 = XX%
   - 经营租赁义务
 
 **估值输出格式：**
+
 ```csv
 Valuation Component,Amount ($M)
 PV Explicit FCFs,X.X
@@ -403,6 +434,7 @@ EBIT Margin (%),50%,51%,52%,53%,54%
 **每个情景块必须有一个列标题行**，在节标题正下方显示预测年份（FY2025E、FY2026E 等）。没有这一行，用户无法判断哪个假设值对应哪一年。
 
 **如何引用假设——创建合并列：**
+
 1. 情景选择单元格（例如 B6）包含 1=熊、2=基、3=牛
 2. 使用 INDEX 或 OFFSET 公式创建合并列，从正确的情景块中提取数据
 3. 预测公式引用合并列（干净的单元格引用）
@@ -427,6 +459,7 @@ EBIT Margin (%),50%,51%,52%,53%,54%
 `Revenue Year 1: =D29*(1+$E$10)`
 
 其中：
+
 - D29 = 上一年收入
 - $E$10 = FY1 增长的合并列单元格（包含 INDEX 公式）
 - $B$6 = 情景选择器（1=熊、2=基、3=牛）
@@ -438,6 +471,7 @@ EBIT Margin (%),50%,51%,52%,53%,54%
 **使用带有 INDEX 公式的合并列，然后在 FCF 计算中引用它们：**
 
 **合并列方法：**
+
 ```csv
 Item,Formula,Reference
 D&A,=E29*$E$21,$E$21 = consolidation column for D&A %
@@ -457,6 +491,7 @@ Unlevered FCF,=E57+E58-E60-E62,E57=NOPAT E58=D&A E60=CapEx E62=Δ NWC
 "Source: [System/Document], [Date], [Reference], [URL if applicable]"
 
 **示例：**
+
 ```csv
 Item,Source Comment
 Stock price,Source: Market data script 2025-10-12 Close price
@@ -475,6 +510,7 @@ Consensus estimates,Source: Management guidance Q3 2024 earnings call
 3. **数据行**，包含假设值
 
 **结构：**
+
 ```csv
 BEAR CASE ASSUMPTIONS (section header - merge across columns A:G)
 Assumption,FY1,FY2,FY3,FY4,FY5
@@ -505,6 +541,7 @@ WACC,X%,,,,
 ### 正确的行规划流程
 
 **1. 首先写所有标题和标签：**
+
 ```csv
 Row,Content
 1,[Company Name] DCF Model
@@ -523,10 +560,12 @@ Row,Content
 **4. 创建后立即测试公式**
 
 **把它想象成建筑施工：**
+
 - 好的做法：先浇地基，再建墙（结构稳固）
 - 坏的做法：先建墙，再浇地基（墙会倒塌）
 
 **Excel 版本：**
+
 - 好的做法：先添加标题，再写公式（公式稳定）
 - 坏的做法：先写公式，再添加标题（公式会断裂）
 
@@ -562,6 +601,7 @@ WACC vs Terminal Growth,  2.0%,  2.5%,  3.0%,  3.5%,  4.0%
 **公式模式——单元格 B88（WACC=8.0%，终端增长=2.0%）：**
 
 B88 中的公式应使用以下内容重新计算隐含价格：
+
 - 来自行标题的 WACC：`$A88`（8.0%）
 - 来自列标题的终端增长：`B$87`（2.0%）
 
@@ -573,6 +613,7 @@ B88 中的公式应使用以下内容重新计算隐含价格：
 **关键——为 5x5 网格中的每个单元格写公式（每张表 25 个单元格，共 75 个单元格）。** 使用 openpyxl 在循环中以编程方式写入这些公式。不要跳过此步骤或留下占位文本。
 
 **Python 实现模式：**
+
 ```python
 # Pseudocode for populating sensitivity table
 for row_idx, wacc_value in enumerate(wacc_range):
@@ -603,6 +644,7 @@ B105: =B88/(1+(E48-0.07))      // Doesn't recalculate full DCF
 ```
 
 **不要留下占位文本：**
+
 ```
 // WRONG - Placeholder note
 "Note: Use Excel Data Table feature (Data → What-If Analysis → Data Table) to populate sensitivity tables."
@@ -612,10 +654,12 @@ B105: =B88/(1+(E48-0.07))      // Doesn't recalculate full DCF
 ```
 
 **不要混淆术语：**
+
 - ❌ "敏感性表格需要 Excel 的数据表功能"（错误——那是一个我们无法使用的特定 Excel 工具）
 - ✅ "敏感性表格是每个单元格中包含公式的简单网格"（正确——这就是我们构建的内容）
 
 **这些捷径为何错误：**
+
 - 线性近似公式实际上并不重新计算 DCF——它们只是应用简单的数学调整
 - 这些关系不是线性的，因此结果将不准确
 - 占位文本需要用户手动干预
@@ -633,12 +677,14 @@ B105: =B88/(1+(E48-0.07))      // Doesn't recalculate full DCF
 ### 错误：缺少单元格注释
 
 **不要这样做：**
+
 - 创建所有硬编码输入而不添加注释
 - 认为"我稍后会添加"
 - 写"TODO: add source"
 - 留下没有文档的蓝色输入
 
 **为何错误：**
+
 - 无法验证数据来源
 - 不符合 xlsx skill 要求
 - 不适合审计
@@ -654,6 +700,7 @@ FCF 部分引用了错误的假设行：
 `CapEx: =E29*$E$41   // Should be $E$22, but row shifted`
 
 **发生原因：**
+
 1. 先写公式
 2. 然后插入标题
 3. 所有行引用偏移
@@ -664,19 +711,23 @@ FCF 部分引用了错误的假设行：
 ### 错误：每个情景中每个假设使用单行
 
 **不要这样构建假设：**
+
 ```csv
 Assumption,Bear,Base,Bull
 Revenue Growth FY1,10%,13%,16%
 Revenue Growth FY2,9%,12%,15%
 ```
+
 这种垂直布局使得难以看到每个情景内各年份的进展。
 
 **为何错误：**
+
 - 难以看到每个情景内假设跨年份的演变
 - 难以比较整个预测期内各情景的假设
 - 对于审查情景逻辑不够直观
 
 **正确做法：**
+
 - 为每个情景（熊、基、牛）创建独立块
 - 在每个块内，横向展示跨预测年份的假设
 - 这使每个情景的假设作为一个整体更易于审查
@@ -684,11 +735,13 @@ Revenue Growth FY2,9%,12%,15%
 ### 错误：无边框
 
 **不要交付没有边框的模型：**
+
 - 无节分隔
 - 所有单元格混在一起
 - 难以阅读且不专业
 
 **为何错误：**
+
 - 不适合客户
 - 难以导航
 - 看起来业余
@@ -698,11 +751,13 @@ Revenue Growth FY2,9%,12%,15%
 ### 错误：错误的字体颜色或无字体颜色区分
 
 **不要这样做：**
+
 - 所有文本为黑色
 - 只使用填充颜色（不更改字体颜色）
 - 混淆哪些单元格是蓝色还是黑色
 
 **为何错误：**
+
 - 无法区分输入和公式
 - 审计变得不可能
 - 违反 xlsx skill 要求
@@ -715,6 +770,7 @@ Revenue Growth FY2,9%,12%,15%
 `S&M: =E33*0.15    // E33 = Gross Profit (WRONG)`
 
 **为何错误：**
+
 - 运营费用随收入而非毛利润扩展
 - 产生不切实际的利润率进展
 - 不是企业实际运营方式
@@ -733,6 +789,7 @@ Revenue Growth FY2,9%,12%,15%
 此外，请注意以下错误：
 
 ### WACC 计算错误
+
 - 在资本结构中混用账面价值和市场价值
 - 错误地使用股权 beta 而非资产/去杠杆 beta
 - 对债务成本应用错误的税率
@@ -740,6 +797,7 @@ Revenue Growth FY2,9%,12%,15%
 - 未针对净债务与净现金头寸进行调整
 
 ### 增长假设缺陷
+
 - 终端增长 > WACC（产生无限价值）
 - 预测增长率与历史表现不一致
 - 忽视行业增长约束
@@ -747,12 +805,14 @@ Revenue Growth FY2,9%,12%,15%
 - 利润率扩张缺乏运营依据
 
 ### 终值错误
+
 - 使用错误的增长方法（永续增长法 vs 退出倍数法）
 - 终值 >80% 的企业价值（表明过度依赖终端假设）
 - 终端利润率与稳态假设不一致
 - 终值的折现期错误
 
 ### 现金流预测错误
+
 - 运营费用基于毛利润而非收入
 - D&A/资本支出百分比与商业模式不一致
 - 营运资金变化计算不正确
@@ -766,6 +826,7 @@ Revenue Growth FY2,9%,12%,15%
 ## Excel 文件创建
 
 **本 skill 使用 `xlsx` skill 进行所有电子表格操作。** xlsx skill 提供：
+
 - 标准化公式构建规则
 - 数字格式约定
 - 通过 `recalc.py` 脚本自动重新计算公式
@@ -776,6 +837,7 @@ Revenue Growth FY2,9%,12%,15%
 ## 质量评估标准
 
 每个 DCF 模型必须在以下方面最大化：
+
 1. **基于历史表现的真实收入和利润率假设**
 2. **使用正确 CAPM 方法论的适当资本成本计算**
 3. **显示估值范围的全面敏感性分析**
@@ -786,6 +848,7 @@ Revenue Growth FY2,9%,12%,15%
 ## 输入要求
 
 ### 最低必需输入
+
 1. **公司标识符**：股票代码或公司名称
 2. **增长假设**：预测期的收入增长率（或"使用共识预测"）
 3. **可选参数**：
@@ -814,16 +877,19 @@ python recalc.py [path_to_excel_file] [timeout_seconds]
 ```
 
 示例：
+
 ```bash
 python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 ```
 
 该脚本将：
+
 - 使用 LibreOffice 重新计算所有工作表中的所有公式
 - 扫描所有单元格中的 Excel 错误（#REF!、#DIV/0!、#VALUE!、#NAME?、#NULL!、#NUM!、#N/A）
 - 返回包含错误位置和计数的详细 JSON
 
 **预期输出格式：**
+
 ```json
 {
   "status": "success",           // or "errors_found"
@@ -834,6 +900,7 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 ```
 
 **如果发现错误**，输出将包含详细信息：
+
 ```json
 {
   "status": "errors_found",
@@ -857,11 +924,13 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 **配色方案——两层：**
 
 **第 1 层：字体颜色（xlsx skill 的必要要求）**
+
 - **蓝色文本（RGB: 0,0,255）**：所有硬编码输入（股价、股份数、历史数据、假设）
 - **黑色文本（RGB: 0,0,0）**：所有公式和计算
 - **绿色文本（RGB: 0,128,0）**：链接到其他工作表（WACC 工作表引用）
 
 **第 2 层：填充颜色——专业蓝/灰调色板（除非用户另有指定，否则为默认值）**
+
 - **保持简洁**——仅使用蓝色和灰色填充。不要引入绿色、黄色、橙色或多种强调色。颜色过多的模型看起来业余。
 - **默认填充调色板：**
   - **节标题**：深蓝色（RGB: 31,78,121 / `#1F4E79`）背景，白色粗体文本
@@ -873,6 +942,7 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 - 用户提供的模板或明确的颜色偏好始终覆盖这些默认值。
 
 **两层如何协同工作：**
+
 - 输入单元格：蓝色字体 + 浅灰色填充 = "硬编码输入"
 - 公式单元格：黑色字体 + 白色背景 = "计算值"
 - 工作表链接：绿色字体 + 白色背景 = "来自另一工作表的引用"
@@ -883,6 +953,7 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 ### 边框标准（专业外观的必要要求）
 
 **粗边框**（1.5pt）围绕主要节：
+
 - 关键输入节
 - 预测假设节
 - 5 年现金流预测节
@@ -891,10 +962,12 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 - 每张敏感性分析表
 
 **中等边框**（1pt）在子节之间：
+
 - 公司详情 vs 历史表现
 - 增长假设 vs EBIT 利润率 vs FCF 参数
 
 **细边框**（0.5pt）围绕数据表：
+
 - 情景假设表（熊 | 基 | 牛 | 已选）
 - 历史 vs 预测财务矩阵
 
@@ -903,6 +976,7 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 **边框为必要要求**——没有专业边框的模型不适合客户。
 
 **数字格式**（遵循 xlsx skill 标准）：
+
 - **年份**：格式化为文本字符串（例如"2024"而非"2,024"）
 - **百分比**：`0.0%`（一位小数）
 - **货币**：百万单位用 `$#,##0`；每股用 `$#,##0.00`——始终在标题中指定单位（"Revenue ($mm)"）
@@ -919,6 +993,7 @@ python recalc.py AAPL_DCF_Model_2025-10-12.xlsx 30
 ### DCF 工作表详细结构
 
 **第 1 节：标题**
+
 ```csv
 Row,Content
 1,[Company Name] DCF Model
@@ -929,6 +1004,7 @@ Row,Content
 ```
 
 **第 2 节：市场数据（不依赖情景）**
+
 ```csv
 Item,Value
 Current Stock Price,$XX.XX
@@ -969,6 +1045,7 @@ NOPAT,XXX,XXX,XXX,XXX,[=E41-E43],[=F41-F43],[=G41-G43]
 ```
 
 **关键公式模式**：
+
 - 收入增长：`=E29*(1+$E$10)`，其中 $E$10 是第 1 年增长的合并列
 - 不要：`=E29*(1+IF($B$6=1,$B$10,IF($B$6=2,$C$10,$D$10)))`
 
@@ -992,6 +1069,7 @@ Unlevered FCF,XXX,XXX,XXX,XXX,[=E57+E58-E60-E62],[=F57+F58-F60-F62],[=G57+G58-G6
 ```
 
 **行引用示例**（基于布局规划）：
+
 - $E$21 = D&A % 假设（合并列，第 21 行）
 - $E$22 = 资本支出 % 假设（合并列，第 22 行）
 - $E$23 = NWC % 假设（合并列，第 23 行）
@@ -1001,6 +1079,7 @@ Unlevered FCF,XXX,XXX,XXX,XXX,[=E57+E58-E60-E62],[=F57+F58-F60-F62],[=G57+G58-G6
 **写公式前**：确认这些行号与实际布局匹配。测试一列，然后横向复制。
 
 **第 6 节：折现与估值**
+
 ```csv
 DCF Valuation,2024E,2025E,2026E,2027E,2028E,Terminal
 Unlevered FCF ($M),XXX,XXX,XXX,XXX,XXX,
@@ -1059,6 +1138,7 @@ WEIGHTED AVERAGE COST OF CAPITAL,X.XX%,[Green output]
 ```
 
 **关键 WACC 公式：**
+
 ```
 Market Cap = Price × Shares
 Net Debt = Total Debt - Cash
@@ -1085,6 +1165,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 **关键**：所有敏感性表格单元格必须使用 openpyxl 以编程方式填充公式。不要使用线性近似捷径。不要留下占位文本或关于手动步骤的注释。不要因为"太复杂"而合理化留空单元格——使用 Python 循环生成公式。
 
 **表格设置：**
+
 1. 创建带有行/列标题（要测试的假设值）的表格结构
 2. 用公式填充每个数据单元格，该公式：
    - 使用行标题值（例如 WACC = 9.0%）
@@ -1103,6 +1184,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 **三情景框架：**
 
 ### 熊市情景
+
 - 保守的收入增长（历史范围的低端）
 - 利润率压缩或无扩张
 - 较高的 WACC（风险溢价增加）
@@ -1110,6 +1192,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 - 较高的资本支出假设
 
 ### 基准情景
+
 - 共识或管理层指引的收入增长
 - 基于运营杠杆的适度利润率扩张
 - 当前市场隐含的 WACC
@@ -1117,6 +1200,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 - 标准资本支出假设
 
 ### 牛市情景
+
 - 乐观的收入增长（预测的高端）
 - 显著的利润率扩张
 - 较低的 WACC（降低风险溢价）
@@ -1140,6 +1224,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 **文件命名**：`[Ticker]_DCF_Model_[Date].xlsx`
 
 **两个工作表**：
+
 1. **DCF** - 完整模型，包含熊/基/牛情景 + 底部三张敏感性表格（WACC vs 终端增长、收入增长 vs EBIT 利润率、Beta vs 无风险利率）
 2. **WACC** - 资本成本计算
 
@@ -1148,6 +1233,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 ## 最佳实践
 
 ### 模型构建
+
 1. **增量构建**：完成每个节后再进入下一节
 2. **边构建边测试**：输入样本数字以验证公式
 3. **使用一致的结构**：类似的计算遵循类似的模式
@@ -1155,12 +1241,14 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 5. **内置检查**：在适用的地方添加求和检查和平衡检查
 
 ### 文档
+
 1. **记录所有假设**：解释关键输入背后的依据
 2. **引用数据来源**：注明每个数据点的来源
 3. **解释方法论**：描述任何非标准方法
 4. **标记不确定性**：突出显示可见度有限的领域
 
 ### 质量控制
+
 1. **交叉核对计算**：以多种方式验证数学
 2. **压力测试假设**：运行敏感性以确保模型稳健
 3. **同行评审**：让他人检查公式
@@ -1169,6 +1257,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 ## 常见变体
 
 ### 高增长科技公司
+
 - 较长的预测期（7-10 年）
 - 较高的初始增长率（20-30%）
 - 随时间显著的利润率扩张
@@ -1176,6 +1265,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 - 建模单位经济学（用户、ARPU 等）
 
 ### 成熟/稳定公司
+
 - 较短的预测期（3-5 年）
 - 适度的增长率（GDP +1-3%）
 - 稳定的利润率
@@ -1183,12 +1273,14 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 - 关注现金生成和资本配置
 
 ### 周期性公司
+
 - 对整个经济周期建模
 - 在周期中点正常化利润率
 - 考虑低谷和峰值情景
 - 针对周期性调整 beta
 
 ### 多业务段公司
+
 - 为每个业务单元建立独立的 DCF
 - 按业务段设置不同的增长率和利润率
 - 分部加总估值
@@ -1196,7 +1288,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 
 ## 故障排除
 
-**如果遇到错误或不合理的结果，请阅读 [TROUBLESHOOTING.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/finance/dcf-model/TROUBLESHOOTING.md) 获取详细的调试指导。**
+**如果遇到错误或不合理的结果，请阅读 [TROUBLESHOOTING.md](https://github.com/w159/agent-penny/blob/main/optional-skills/finance/dcf-model/TROUBLESHOOTING.md) 获取详细的调试指导。**
 
 ## 工作流集成
 
@@ -1234,7 +1326,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 
 3. **检查输出**：
    - 如果 `status` 为 `"success"` → 继续第 4 步
-   - 如果 `status` 为 `"errors_found"` → 检查 `error_summary` 并阅读 [TROUBLESHOOTING.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/finance/dcf-model/TROUBLESHOOTING.md) 获取调试指导
+   - 如果 `status` 为 `"errors_found"` → 检查 `error_summary` 并阅读 [TROUBLESHOOTING.md](https://github.com/w159/agent-penny/blob/main/optional-skills/finance/dcf-model/TROUBLESHOOTING.md) 获取调试指导
 
 4. **修复错误并重新运行 recalc.py**，直到状态为"success"
 
@@ -1257,6 +1349,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 交付 DCF 模型前：
 
 **必要项：**
+
 - 运行 `python recalc.py model.xlsx 30` 直到状态为"success"（零公式错误）
 - 两个工作表：DCF（底部含敏感性分析）、WACC
 - 字体颜色：蓝色=输入，黑色=公式，绿色=工作表链接
@@ -1265,6 +1358,7 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 - 主要节周围的专业边框
 
 **验证：**
+
 - 运营费用基于收入（而非毛利润）
 - 终值占 EV 的 50-70%
 - 终端增长 &lt; WACC
@@ -1285,4 +1379,4 @@ WACC = (Cost of Equity × Equity Weight) + (After-tax Cost of Debt × Debt Weigh
 
 ## 归属
 
-本 skill 改编自 Anthropic 的 Claude 金融服务插件套件（Apache-2.0）。Office-JS / Cowork 实时 Excel 路径已被移除；此版本通过 `excel-author` skill 的约定面向无头 openpyxl。原始来源：https://github.com/anthropics/financial-services
+本 skill 改编自 Anthropic 的 Claude 金融服务插件套件（Apache-2.0）。Office-JS / Cowork 实时 Excel 路径已被移除；此版本通过 `excel-author` skill 的约定面向无头 openpyxl。原始来源：<https://github.com/anthropics/financial-services>

@@ -4,7 +4,7 @@ sidebar_label: "Sparse Autoencoder Training"
 description: "Provides guidance for training and analyzing Sparse Autoencoders (SAEs) using SAELens to decompose neural network activations into interpretable features"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Sparse Autoencoder Training
 
@@ -44,6 +44,7 @@ Individual neurons in neural networks are **polysemantic** - they activate in mu
 ## When to Use SAELens
 
 **Use SAELens when you need to:**
+
 - Discover interpretable features in model activations
 - Understand what concepts a model has learned
 - Study superposition and feature geometry
@@ -51,6 +52,7 @@ Individual neurons in neural networks are **polysemantic** - they activate in mu
 - Analyze safety-relevant features (deception, bias, harmful content)
 
 **Consider alternatives when:**
+
 - You need basic activation analysis → Use **TransformerLens** directly
 - You want causal intervention experiments → Use **pyvene** or **TransformerLens**
 - You need production steering → Consider direct activation engineering
@@ -81,6 +83,7 @@ Input Activation → Encoder → Sparse Features → Decoder → Reconstructed A
 ### Key Validation (Anthropic Research)
 
 In "Towards Monosemanticity", human evaluators found **70% of SAE features genuinely interpretable**. Features discovered include:
+
 - DNA sequences, legal language, HTTP requests
 - Hebrew text, nutrition statements, code syntax
 - Sentiment, named entities, grammatical structures
@@ -130,6 +133,7 @@ reconstruction_error = (activations - reconstructed).norm()
 | Various on HuggingFace | Search tag `saelens` | Various |
 
 ### Checklist
+
 - [ ] Load model with TransformerLens
 - [ ] Load matching SAE for target layer
 - [ ] Encode activations to sparse features
@@ -204,6 +208,7 @@ print(f"CE Loss Recovered: {trainer.metrics['ce_loss_score']}")
 | **Explained Variance** | >90% | Reconstruction quality |
 
 ### Checklist
+
 - [ ] Choose target layer and hook point
 - [ ] Set expansion factor (d_sae = 4-16× d_model)
 - [ ] Tune L1 coefficient for desired sparsity
@@ -297,6 +302,7 @@ for idx, val in zip(top_features.indices, top_features.values):
 ## Common Issues & Solutions
 
 ### Issue: High dead feature ratio
+
 ```python
 # WRONG: No warm-up, features die early
 cfg = LanguageModelSAERunnerConfig(
@@ -313,6 +319,7 @@ cfg = LanguageModelSAERunnerConfig(
 ```
 
 ### Issue: Poor reconstruction (low CE recovery)
+
 ```python
 # Reduce sparsity penalty
 cfg = LanguageModelSAERunnerConfig(
@@ -322,6 +329,7 @@ cfg = LanguageModelSAERunnerConfig(
 ```
 
 ### Issue: Features not interpretable
+
 ```python
 # Increase sparsity (higher L1)
 cfg = LanguageModelSAERunnerConfig(
@@ -335,6 +343,7 @@ cfg = LanguageModelSAERunnerConfig(
 ```
 
 ### Issue: Memory errors during training
+
 ```python
 cfg = LanguageModelSAERunnerConfig(
     train_batch_size_tokens=2048,  # Reduce batch size
@@ -369,23 +378,26 @@ For detailed API documentation, tutorials, and advanced usage, see the `referenc
 
 | File | Contents |
 |------|----------|
-| [references/README.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/saelens/references/README.md) | Overview and quick start guide |
-| [references/api.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/saelens/references/api.md) | Complete API reference for SAE, TrainingSAE, configurations |
-| [references/tutorials.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/saelens/references/tutorials.md) | Step-by-step tutorials for training, analysis, steering |
+| [references/README.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/saelens/references/README.md) | Overview and quick start guide |
+| [references/api.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/saelens/references/api.md) | Complete API reference for SAE, TrainingSAE, configurations |
+| [references/tutorials.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/saelens/references/tutorials.md) | Step-by-step tutorials for training, analysis, steering |
 
 ## External Resources
 
 ### Tutorials
+
 - [Basic Loading & Analysis](https://github.com/jbloomAus/SAELens/blob/main/tutorials/basic_loading_and_analysing.ipynb)
 - [Training a Sparse Autoencoder](https://github.com/jbloomAus/SAELens/blob/main/tutorials/training_a_sparse_autoencoder.ipynb)
 - [ARENA SAE Curriculum](https://www.lesswrong.com/posts/LnHowHgmrMbWtpkxx/intro-to-superposition-and-sparse-autoencoders-colab)
 
 ### Papers
+
 - [Towards Monosemanticity](https://transformer-circuits.pub/2023/monosemantic-features) - Anthropic (2023)
 - [Scaling Monosemanticity](https://transformer-circuits.pub/2024/scaling-monosemanticity/) - Anthropic (2024)
 - [Sparse Autoencoders Find Highly Interpretable Features](https://arxiv.org/abs/2309.08600) - Cunningham et al. (ICLR 2024)
 
 ### Official Documentation
+
 - [SAELens Docs](https://jbloomaus.github.io/SAELens/)
 - [Neuronpedia](https://neuronpedia.org) - Feature browser
 

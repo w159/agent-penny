@@ -4,7 +4,7 @@ sidebar_label: "Neuroskill Bci"
 description: "连接到运行中的 NeuroSkill 实例，将用户的实时认知与情绪状态（专注度、放松度、情绪、认知负荷、困倦度、心率、HRV、睡眠分期及 40+ 项衍生 EXG 评分）融入响应中..."
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Neuroskill Bci
 
@@ -17,7 +17,7 @@ description: "连接到运行中的 NeuroSkill 实例，将用户的实时认知
 | 来源 | 可选 — 通过 `hermes skills install official/health/neuroskill-bci` 安装 |
 | 路径 | `optional-skills/health/neuroskill-bci` |
 | 版本 | `1.0.0` |
-| 作者 | Hermes Agent + Nous Research |
+| 作者 | Hermes Agent + w159 |
 | 许可证 | MIT |
 | 平台 | linux, macos, windows |
 | 标签 | `BCI`, `neurofeedback`, `health`, `focus`, `EEG`, `cognitive-state`, `biometrics`, `neuroskill` |
@@ -46,6 +46,7 @@ description: "连接到运行中的 NeuroSkill 实例，将用户的实时认知
 - `npx neuroskill status` 无错误返回数据
 
 ### 验证设置
+
 ```bash
 node --version                    # Must be 20+
 npx neuroskill status             # Full system snapshot
@@ -53,6 +54,7 @@ npx neuroskill status --json      # Machine-parseable JSON
 ```
 
 如果 `npx neuroskill status` 返回错误，请告知用户：
+
 - 确保 NeuroSkill 桌面应用已打开
 - 确保 BCI 设备已开机并通过蓝牙连接
 - 检查信号质量 — NeuroSkill 中显示绿色指示（每个电极 ≥0.7）
@@ -83,6 +85,7 @@ npx neuroskill status --json      # Machine-parseable JSON
 | `raw '{json}'` | 原始 JSON 直通至服务器 |
 
 ### 全局标志
+
 | 标志 | 描述 |
 |------|-------------|
 | `--json` | 原始 JSON 输出（无 ANSI，适合管道传输） |
@@ -100,6 +103,7 @@ npx neuroskill status --json      # Machine-parseable JSON
 ## 1. 检查当前状态
 
 ### 获取实时指标
+
 ```bash
 npx neuroskill status --json
 ```
@@ -150,6 +154,7 @@ npx neuroskill status --json
 > "专注度：0.70，放松度：0.40，心率：68"
 
 关键解读阈值（完整指南见 `references/metrics.md`）：
+
 - **专注度 > 0.70** → 心流状态区间，注意保护
 - **专注度 &lt; 0.40** → 建议休息或执行协议
 - **困倦度 > 0.60** → 疲劳警告，存在微睡眠风险
@@ -164,6 +169,7 @@ npx neuroskill status --json
 ## 2. 会话分析
 
 ### 单次会话详情
+
 ```bash
 npx neuroskill session --json         # most recent session
 npx neuroskill session 1 --json       # previous session
@@ -175,6 +181,7 @@ npx neuroskill session 0 --json | jq '{focus: .metrics.focus, trend: .trends.foc
 > "您的专注度从 0.64 开始，到结束时上升至 0.76 — 呈明显上升趋势。认知负荷从 0.38 降至 0.28，表明随着您逐渐进入状态，任务变得更加自动化。"
 
 ### 列出所有会话
+
 ```bash
 npx neuroskill sessions --json
 npx neuroskill sessions --trends      # show per-session metric trends
@@ -185,6 +192,7 @@ npx neuroskill sessions --trends      # show per-session metric trends
 ## 3. 历史搜索
 
 ### 神经相似性搜索
+
 ```bash
 npx neuroskill search --json                    # auto: last session, k=5
 npx neuroskill search --k 10 --json             # 10 nearest neighbors
@@ -194,11 +202,13 @@ npx neuroskill search --start <UTC> --end <UTC> --json
 使用基于 128 维 ZUNA 嵌入的 HNSW 近似最近邻搜索，在历史记录中查找神经状态相似的时刻。返回距离统计、时间分布（一天中的小时）及最匹配的日期。
 
 在用户提问以下问题时使用：
+
 - "我上次处于这种状态是什么时候？"
 - "找出我最佳的专注会话"
 - "我通常在下午什么时候状态下滑？"
 
 ### 语义标签搜索
+
 ```bash
 npx neuroskill search-labels "deep focus" --k 10 --json
 npx neuroskill search-labels "stress" --json | jq '[.results[].EXG_metrics.tbr]'
@@ -207,6 +217,7 @@ npx neuroskill search-labels "stress" --json | jq '[.results[].EXG_metrics.tbr]'
 使用向量嵌入（Xenova/bge-small-en-v1.5）搜索标签文本。返回匹配标签及其标注时刻的关联 EXG 指标。
 
 ### 跨模态图搜索
+
 ```bash
 npx neuroskill interactive "deep focus" --json
 npx neuroskill interactive "deep focus" --dot | dot -Tsvg > graph.svg
@@ -217,6 +228,7 @@ npx neuroskill interactive "deep focus" --dot | dot -Tsvg > graph.svg
 ---
 
 ## 4. 会话对比
+
 ```bash
 npx neuroskill compare --json                   # auto: last 2 sessions
 npx neuroskill compare --a-start <UTC> --a-end <UTC> --b-start <UTC> --b-end <UTC> --json
@@ -235,6 +247,7 @@ npx neuroskill compare --json | jq '.insights.deltas | to_entries | sort_by(.val
 ---
 
 ## 5. 睡眠数据
+
 ```bash
 npx neuroskill sleep --json                     # last 24 hours
 npx neuroskill sleep 0 --json                   # most recent sleep session
@@ -242,6 +255,7 @@ npx neuroskill sleep --start <UTC> --end <UTC> --json
 ```
 
 返回逐 epoch 的睡眠分期（5 秒窗口）及分析：
+
 - **分期代码**：0=清醒，1=N1，2=N2，3=N3（深睡），4=REM
 - **分析**：efficiency_pct、onset_latency_min、rem_latency_min、bout 计数
 - **健康目标**：N3 占 15–25%，REM 占 20–25%，效率 >85%，入睡潜伏期 &lt;20 分钟
@@ -256,6 +270,7 @@ npx neuroskill sleep --json | jq '.analysis.efficiency_pct'
 ---
 
 ## 6. 标注时刻
+
 ```bash
 npx neuroskill label "breakthrough"
 npx neuroskill label "studying algorithms"
@@ -264,6 +279,7 @@ npx neuroskill label --json "focus block start"   # returns label_id
 ```
 
 在以下情况下自动标注时刻：
+
 - 用户报告突破或洞见
 - 用户开始新的任务类型（例如"切换到代码审查"）
 - 用户完成重要协议
@@ -275,6 +291,7 @@ npx neuroskill label --json "focus block start"   # returns label_id
 ---
 
 ## 7. 实时流式传输
+
 ```bash
 npx neuroskill listen --seconds 30 --json
 npx neuroskill listen --seconds 5 --json | jq '[.[] | select(.event == "scores")]'
@@ -287,12 +304,14 @@ npx neuroskill listen --seconds 5 --json | jq '[.[] | select(.event == "scores")
 ---
 
 ## 8. UMAP 可视化
+
 ```bash
 npx neuroskill umap --json                      # auto: last 2 sessions
 npx neuroskill umap --a-start <UTC> --a-end <UTC> --b-start <UTC> --b-end <UTC> --json
 ```
 
 对 ZUNA 嵌入进行 GPU 加速的 3D UMAP 投影。`separation_score` 表示两次会话在神经层面的差异程度：
+
 - **> 1.5** → 会话在神经层面存在显著差异（不同脑状态）
 - **&lt; 0.5** → 两次会话的脑状态相似
 
@@ -301,7 +320,9 @@ npx neuroskill umap --a-start <UTC> --a-end <UTC> --b-start <UTC> --b-end <UTC> 
 ## 9. 主动状态感知
 
 ### 会话开始检查
+
 在会话开始时，如果用户提到正在佩戴设备或询问自身状态，可选择性地执行状态检查：
+
 ```bash
 npx neuroskill status --json
 ```
@@ -312,6 +333,7 @@ npx neuroskill status --json
 ### 何时主动提及状态
 
 **仅在以下情况下**提及认知状态：
+
 - 用户明确询问（"我状态怎么样？"、"检查一下我的专注度"）
 - 用户反映难以集中注意力、感到压力或疲劳
 - 超过关键阈值（困倦度 > 0.70，专注度 &lt; 0.30 持续）
@@ -328,6 +350,7 @@ npx neuroskill status --json
 > "您的专注度在过去 15 分钟持续下降，TBR 已超过 1.5 — 这是 theta 主导和心理疲劳的迹象。需要我带您做一个 Theta-Beta 神经反馈锚定练习吗？这是一个 90 秒的练习，通过有节奏的计数和呼吸来抑制 theta 并提升 beta。"
 
 关键触发条件：
+
 - **专注度 &lt; 0.40，TBR > 1.5** → Theta-Beta 神经反馈锚定或箱式呼吸
 - **放松度 &lt; 0.30，stress_index 高** → 心脏相干性或 4-7-8 呼吸法
 - **认知负荷 > 0.70 持续** → 认知负荷卸载（思维倾倒）
@@ -342,27 +365,34 @@ npx neuroskill status --json
 ## 11. 附加工具
 
 ### 专注计时器
+
 ```bash
 npx neuroskill timer --json
 ```
+
 启动专注计时器窗口，提供 Pomodoro（25/5）、深度工作（50/10）或短时专注（15/5）预设。
 
 ### 校准
+
 ```bash
 npx neuroskill calibrate
 npx neuroskill calibrate --profile "Eyes Open"
 ```
+
 打开校准窗口。适用于信号质量较差或用户希望建立个性化基线时。
 
 ### 系统通知
+
 ```bash
 npx neuroskill notify "Break Time" "Your focus has been declining for 20 minutes"
 ```
 
 ### 原始 JSON 直通
+
 ```bash
 npx neuroskill raw '{"command":"status"}' --json
 ```
+
 用于尚未映射到 CLI 子命令的任何服务器命令。
 
 ---
@@ -383,42 +413,54 @@ npx neuroskill raw '{"command":"status"}' --json
 ## 交互示例
 
 **"我现在状态怎么样？"**
+
 ```bash
 npx neuroskill status --json
 ```
+
 → 自然地解读评分，提及专注度、放松度、情绪及任何值得关注的比率（FAA、TBR）。仅在指标表明有需要时才建议采取行动。
 
 **"我无法集中注意力"**
+
 ```bash
 npx neuroskill status --json
 ```
+
 → 检查指标是否印证（高 theta、低 beta、TBR 上升、困倦度高）。
 → 如果得到印证，从 `references/protocols.md` 中建议适当的协议。
 → 如果指标看起来正常，问题可能是动机层面而非神经层面。
 
 **"对比我今天和昨天的专注度"**
+
 ```bash
 npx neuroskill compare --json
 ```
+
 → 解读趋势而非单纯数字。提及哪些方面有所改善、哪些有所下降，以及可能的原因。
 
 **"我上次处于心流状态是什么时候？"**
+
 ```bash
 npx neuroskill search-labels "flow" --json
 npx neuroskill search --json
 ```
+
 → 报告时间戳、关联指标及用户当时正在做的事情（来自标签）。
 
 **"我睡得怎么样？"**
+
 ```bash
 npx neuroskill sleep --json
 ```
+
 → 报告睡眠结构（N3%、REM%、效率），与健康目标对比，并指出任何问题（清醒 epoch 过多、REM 不足）。
 
 **"标记这个时刻 — 我刚有了一个突破"**
+
 ```bash
 npx neuroskill label "breakthrough"
 ```
+
 → 确认标签已保存。可选择性地记录当前指标以留存该状态的记忆。
 
 ---

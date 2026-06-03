@@ -152,7 +152,7 @@ You no longer need to wrap `hermes update` in `screen` or `tmux` to survive a te
 hermes version
 ```
 
-Compare against the latest release at the [GitHub releases page](https://github.com/NousResearch/hermes-agent/releases).
+Compare against the latest release at the [GitHub releases page](https://github.com/w159/agent-penny/releases).
 
 ### Updating from Messaging Platforms
 
@@ -261,9 +261,11 @@ rm -rf ~/.hermes            # Optional — keep if you plan to reinstall
 
 :::info
 If you installed the gateway as a system service, stop and disable it first:
+
 ```bash
 hermes gateway stop
 # Linux: systemctl --user disable hermes-gateway
 # macOS: launchctl remove ai.hermes.gateway
 ```
+
 :::

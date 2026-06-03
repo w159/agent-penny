@@ -4,7 +4,7 @@ sidebar_label: "Excel Author"
 description: "Build auditable Excel workbooks headless with openpyxl — blue/black/green cell conventions, formulas over hardcodes, named ranges, balance checks, sensitivit..."
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Excel Author
 
@@ -17,7 +17,7 @@ Build auditable Excel workbooks headless with openpyxl — blue/black/green cell
 | Source | Optional — install with `hermes skills install official/finance/excel-author` |
 | Path | `optional-skills/finance/excel-author` |
 | Version | `1.0.0` |
-| Author | Anthropic (adapted by Nous Research) |
+| Author | Anthropic (adapted by w159) |
 | License | Apache-2.0 |
 | Platforms | linux, macos, windows |
 | Tags | `excel`, `openpyxl`, `finance`, `spreadsheet`, `modeling` |
@@ -50,6 +50,7 @@ pip install "openpyxl>=3.0"
 ## Core conventions (non-negotiable)
 
 ### Blue / black / green cell color
+
 - **Blue** (`Font(color="0000FF")`) — hardcoded input a human entered. Revenue drivers, WACC inputs, terminal growth, market data.
 - **Black** (default) — formula. Every derived cell is a live Excel formula.
 - **Green** (`Font(color="006100")`) — link to another sheet or external file.
@@ -57,6 +58,7 @@ pip install "openpyxl>=3.0"
 A reviewer can then scan the sheet and immediately see what's an assumption vs. what's computed.
 
 ### Formulas over hardcodes
+
 Every calculation cell MUST be a formula string, never a number computed in Python and pasted as a value.
 
 ```python
@@ -68,6 +70,7 @@ ws["D20"] = "=D19*(1+$B$8)"
 ```
 
 The only hardcoded numbers permitted:
+
 1. Raw historical inputs (actual revenues, reported EBITDA, etc.)
 2. Assumption drivers the user is meant to flex (growth rates, WACC inputs, terminal g)
 3. Current market data (share price, debt balance) — with a cell comment documenting source + date
@@ -75,6 +78,7 @@ The only hardcoded numbers permitted:
 If you catch yourself computing a value in Python and writing the result, stop.
 
 ### Named ranges for cross-sheet references
+
 Use named ranges for any figure referenced from another sheet, a deck, or a memo.
 
 ```python
@@ -85,13 +89,16 @@ calc["D30"] = "=D29/WACC"
 ```
 
 ### Balance checks tab
+
 Include a `Checks` tab that ties everything and surfaces TRUE/FALSE:
+
 - Balance sheet balances (assets = liabilities + equity)
 - Cash flow ties to period-over-period cash change on the BS
 - Sum-of-parts ties to consolidated totals
 - No rogue hardcodes inside calc ranges
 
 Example:
+
 ```python
 checks = wb.create_sheet("Checks")
 checks["A2"] = "BS balances"
@@ -100,6 +107,7 @@ checks["C2"] = "=ABS(B2)<0.01"  # TRUE/FALSE
 ```
 
 ### Cell comments on every hardcoded input
+
 Add the comment AS you create the cell, not later.
 
 ```python
@@ -232,6 +240,7 @@ Or use a Python recalc helper (see `scripts/recalc.py` in this skill).
 ## Model layout planning
 
 Before writing any formula:
+
 1. Define ALL section row positions
 2. Write ALL headers and labels
 3. Write ALL section dividers and blank rows
@@ -244,6 +253,7 @@ This prevents the cascading-formula-breakage pattern where inserting a header ro
 For large models (DCFs, 3-statement, LBO), stop and show the user intermediate artifacts before continuing. Catching a wrong margin assumption before you've built downstream sensitivity tables saves an hour.
 
 Checkpoint pattern:
+
 - After Inputs block → show raw inputs, confirm before projecting
 - After Revenue projections → confirm top line + growth
 - After FCF build → confirm the full schedule
@@ -259,4 +269,4 @@ Checkpoint pattern:
 
 ## Attribution
 
-Conventions (blue/black/green, formulas-over-hardcodes, named ranges, sensitivity rules) adapted from Anthropic's Claude for Financial Services plugin suite, Apache-2.0 licensed. Original: https://github.com/anthropics/financial-services/tree/main/plugins/vertical-plugins/financial-analysis/skills/xlsx-author
+Conventions (blue/black/green, formulas-over-hardcodes, named ranges, sensitivity rules) adapted from Anthropic's Claude for Financial Services plugin suite, Apache-2.0 licensed. Original: <https://github.com/anthropics/financial-services/tree/main/plugins/vertical-plugins/financial-analysis/skills/xlsx-author>

@@ -4,7 +4,7 @@ sidebar_label: "Pptx Author"
 description: "Build PowerPoint decks headless with python-pptx"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Pptx Author
 
@@ -17,7 +17,7 @@ Build PowerPoint decks headless with python-pptx. Pairs with excel-author for mo
 | Source | Optional — install with `hermes skills install official/finance/pptx-author` |
 | Path | `optional-skills/finance/pptx-author` |
 | Version | `1.0.0` |
-| Author | Anthropic (adapted by Nous Research) |
+| Author | Anthropic (adapted by w159) |
 | License | Apache-2.0 |
 | Platforms | linux, macos, windows |
 | Tags | `powerpoint`, `pptx`, `python-pptx`, `presentation`, `finance` |
@@ -51,9 +51,11 @@ pip install "python-pptx>=0.6"
 ## Core conventions
 
 ### One idea per slide
+
 Title states the takeaway; body supports it. A slide titled "Q3 Revenue" is weak; "Revenue growth accelerated to 14% Y/Y in Q3" is strong.
 
 ### Every number traces to the model
+
 If a figure on a slide came from `./out/model.xlsx`, footnote the sheet and cell.
 
 ```
@@ -63,6 +65,7 @@ Revenue: $1,250M  (Source: model.xlsx, Inputs!C3)
 Never transcribe numbers from memory or from a summary — open the workbook, read the named range, and bind the deck value to it programmatically when you can.
 
 ### Use the firm template when one is mounted
+
 If `./templates/firm-template.pptx` exists, load it so the deck inherits branded colors, fonts, and master layouts.
 
 ```python
@@ -74,6 +77,7 @@ prs = Presentation(str(template)) if template.exists() else Presentation()
 ```
 
 ### Charts: PNG-from-model beats native pptx charts
+
 When fidelity matters (the model's chart styling must match the deck exactly), render the chart to PNG from the source workbook and embed the image. Native `pptx.chart` charts are fragile and often don't match firm conventions.
 
 ```python
@@ -84,6 +88,7 @@ slide.shapes.add_picture("./out/charts/football_field.png",
 ```
 
 ### No external sends
+
 This skill writes a file. It never emails, uploads, or posts. Orchestration layers handle delivery.
 
 ## Skeleton
@@ -156,6 +161,7 @@ implied_mid  = nr("ImpliedSharePriceBase")
 ```
 
 Then build deck content using those values:
+
 ```python
 slide.shapes.title.text = f"Implied share price of ${implied_mid:.2f} (base case)"
 ```
@@ -188,4 +194,4 @@ A typical banking pitch deck follows this structure. Not prescriptive, but usefu
 
 ## Attribution
 
-Conventions adapted from Anthropic's Claude for Financial Services plugin suite, Apache-2.0 licensed. Original: https://github.com/anthropics/financial-services/tree/main/plugins/agent-plugins/pitch-agent/skills/pptx-author
+Conventions adapted from Anthropic's Claude for Financial Services plugin suite, Apache-2.0 licensed. Original: <https://github.com/anthropics/financial-services/tree/main/plugins/agent-plugins/pitch-agent/skills/pptx-author>

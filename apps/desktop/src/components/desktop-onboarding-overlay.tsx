@@ -97,7 +97,7 @@ const API_KEY_OPTIONS: ApiKeyOption[] = [
     short: 'self-hosted',
     envKey: 'OPENAI_BASE_URL',
     description: 'Point Hermes at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).',
-    docsUrl: 'https://github.com/NousResearch/hermes-agent#bring-your-own-endpoint',
+    docsUrl: 'https://github.com/w159/agent-penny#bring-your-own-endpoint',
     placeholder: 'http://127.0.0.1:8000/v1'
   }
 ]
@@ -571,8 +571,8 @@ function FlowPanel({ ctx, flow }: { ctx: OnboardingContext; flow: OnboardingFlow
     return (
       <Step title={`Sign in with ${title}`}>
         <p className="text-sm text-muted-foreground">
-          We opened {title} in your browser. Authorize Hermes there and you'll be connected
-          automatically — nothing to copy or paste.
+          We opened {title} in your browser. Authorize Hermes there and you'll be connected automatically — nothing to
+          copy or paste.
         </p>
         <FlowFooter left={<DocsLink href={flow.start.auth_url}>Re-open sign-in page</DocsLink>}>
           <span className="flex items-center gap-2 text-xs text-muted-foreground">

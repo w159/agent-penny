@@ -4,7 +4,7 @@ sidebar_label: "Code Wiki"
 description: "Generate wiki docs + Mermaid diagrams for any codebase"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Code Wiki
 
@@ -43,6 +43,7 @@ This skill produces **reference documentation** (what/how). It does not produce 
 - Need a stable artifact (markdown + Mermaid) that renders on GitHub
 
 Do NOT use this for:
+
 - Single-file or single-function documentation — just answer directly
 - API reference for one specific endpoint — use `read_file` and answer inline
 - Strategic "why does this exist" narrative — different skill, different purpose
@@ -142,6 +143,7 @@ Cap initial pass at **8–10 modules**. Heuristics by language:
 - Mixed/unfamiliar: top-level directories that contain source code (not config, not tests)
 
 For very large repos, prioritize by:
+
 1. Imported-from count (a module imported by many is core)
 2. LOC (bigger modules usually warrant their own doc)
 3. Mentions in README / top-level docs
@@ -165,24 +167,24 @@ reader has the source README.>
 
 ## Entry Points
 
-- [`path/to/main.py`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>) — <what runs when you start it>
-- [`path/to/cli.py`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>) — <CLI surface>
+- [`path/to/main.py`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>) — <what runs when you start it>
+- [`path/to/cli.py`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>) — <CLI surface>
 
 ## High-Level Architecture
 
 <2-3 sentences. Detail goes in architecture.md.>
 
-See [architecture.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/architecture.md).
+See [architecture.md](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/architecture.md).
 
 ## Module Map
 
 | Module | Purpose |
 |---|---|
-| [`<module>`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/modules/<module>.md) | <one-line purpose> |
+| [`<module>`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/modules/<module>.md) | <one-line purpose> |
 
 ## Getting Started
 
-See [getting-started.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/getting-started.md).
+See [getting-started.md](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/getting-started.md).
 ````
 
 For link targets in local mode use relative paths. For cloned repos use `https://github.com/<owner>/<repo>/blob/<sha>/<path>` so links survive future commits.
@@ -197,7 +199,7 @@ where it exits, where state lives.>
 
 ## Components
 
-- **<Component>** — <1-2 sentences>. See [`modules/<module>.md`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/modules/<module>.md).
+- **<Component>** — <1-2 sentences>. See [`modules/<module>.md`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/modules/<module>.md).
 
 ## System Diagram
 
@@ -211,8 +213,8 @@ flowchart TD
 
 ## Data Flow
 
-1. **<Step>** — [`<file>`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>)
-2. **<Step>** — [`<file>`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>)
+1. **<Step>** — [`<file>`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>)
+2. **<Step>** — [`<file>`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>)
 
 ## Key Design Decisions
 
@@ -220,6 +222,7 @@ flowchart TD
 ````
 
 **Mermaid shape semantics:**
+
 - `[]` = component
 - `[()]` = database / storage
 - `{{}}` = external service
@@ -244,7 +247,7 @@ For each selected module, inspect its layout with `ls`, identify 3–5 most impo
 
 ## Key Files
 
-- [`<module>/<file>`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>) — <what it does>
+- [`<module>/<file>`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>) — <what it does>
 
 ## Public API
 
@@ -325,8 +328,8 @@ sequenceDiagram
 
 ### Walkthrough
 
-1. **User input** — [`cli.py:HermesCLI.run_session`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>)
-2. **Message dispatch** — [`run_agent.py:AIAgent.chat`](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/<link>)
+1. **User input** — [`cli.py:HermesCLI.run_session`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>)
+2. **Message dispatch** — [`run_agent.py:AIAgent.chat`](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/<link>)
 ````
 
 Don't invent participants. Every box must correspond to a real component the reader can find in the code.
@@ -364,8 +367,8 @@ Don't invent participants. Every box must correspond to a real component the rea
 
 ## Where to Go Next
 
-- Architecture: [architecture.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/architecture.md)
-- Module reference: [README.md#module-map](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/software-development/code-wiki/README.md#module-map)
+- Architecture: [architecture.md](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/architecture.md)
+- Module reference: [README.md#module-map](https://github.com/w159/agent-penny/blob/main/optional-skills/software-development/code-wiki/README.md#module-map)
 ````
 
 ### 10. Write `api.md` (skip if not applicable)
@@ -447,6 +450,7 @@ Full incremental-regeneration is a future enhancement — for now, regenerating 
 After writing, verify:
 
 1. **Mermaid blocks balance** — opens equal closes per file:
+
    ```bash
    for f in "$OUTPUT_DIR"/diagrams/*.md "$OUTPUT_DIR"/architecture.md; do
      opens=$(grep -c '^```mermaid' "$f")
@@ -454,10 +458,13 @@ After writing, verify:
      echo "$f: $opens mermaid blocks, $total total fences (expect total = opens*2)"
    done
    ```
+
 2. **All expected files exist** —
+
    ```bash
    ls "$OUTPUT_DIR"/{README.md,architecture.md,getting-started.md,.codewiki-state.json} \
       "$OUTPUT_DIR"/modules/ "$OUTPUT_DIR"/diagrams/
    ```
+
 3. **Module count matches what you intended** — `ls "$OUTPUT_DIR/modules" | wc -l` should equal the number of modules you committed to in Step 3.
 4. **No fabricated paths** — sanity-check 2–3 source links resolve to real files.

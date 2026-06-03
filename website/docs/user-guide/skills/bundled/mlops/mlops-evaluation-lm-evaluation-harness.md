@@ -4,7 +4,7 @@ sidebar_label: "Evaluating Llms Harness"
 description: "lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Evaluating Llms Harness
 
@@ -40,11 +40,13 @@ Evaluates LLMs across 60+ academic benchmarks (MMLU, HumanEval, GSM8K, TruthfulQ
 lm-evaluation-harness evaluates LLMs across 60+ academic benchmarks using standardized prompts and metrics.
 
 **Installation**:
+
 ```bash
 pip install lm-eval
 ```
 
 **Evaluate any HuggingFace model**:
+
 ```bash
 lm_eval --model hf \
   --model_args pretrained=meta-llama/Llama-2-7b-hf \
@@ -54,6 +56,7 @@ lm_eval --model hf \
 ```
 
 **View available tasks**:
+
 ```bash
 lm_eval --tasks list
 ```
@@ -77,6 +80,7 @@ Benchmark Evaluation:
 **Step 1: Choose benchmark suite**
 
 **Core reasoning benchmarks**:
+
 - **MMLU** (Massive Multitask Language Understanding) - 57 subjects, multiple choice
 - **GSM8K** - Grade school math word problems
 - **HellaSwag** - Common sense reasoning
@@ -84,10 +88,12 @@ Benchmark Evaluation:
 - **ARC** (AI2 Reasoning Challenge) - Science questions
 
 **Code benchmarks**:
+
 - **HumanEval** - Python code generation (164 problems)
 - **MBPP** (Mostly Basic Python Problems) - Python coding
 
 **Standard suite** (recommended for model releases):
+
 ```bash
 --tasks mmlu,gsm8k,hellaswag,truthfulqa,arc_challenge
 ```
@@ -95,6 +101,7 @@ Benchmark Evaluation:
 **Step 2: Configure model**
 
 **HuggingFace model**:
+
 ```bash
 lm_eval --model hf \
   --model_args pretrained=meta-llama/Llama-2-7b-hf,dtype=bfloat16 \
@@ -104,6 +111,7 @@ lm_eval --model hf \
 ```
 
 **Quantized model (4-bit/8-bit)**:
+
 ```bash
 lm_eval --model hf \
   --model_args pretrained=meta-llama/Llama-2-7b-hf,load_in_4bit=True \
@@ -112,6 +120,7 @@ lm_eval --model hf \
 ```
 
 **Custom checkpoint**:
+
 ```bash
 lm_eval --model hf \
   --model_args pretrained=/path/to/my-model,tokenizer=/path/to/tokenizer \
@@ -202,11 +211,13 @@ lm_eval --model hf \
 **Step 2: Choose quick benchmarks**
 
 Fast benchmarks for frequent evaluation:
+
 - **HellaSwag**: ~10 minutes on 1 GPU
 - **GSM8K**: ~5 minutes
 - **PIQA**: ~2 minutes
 
 Avoid for frequent eval (too slow):
+
 - **MMLU**: ~2 hours (57 subjects)
 - **HumanEval**: Requires code execution
 
@@ -344,6 +355,7 @@ print(df.to_markdown(index=False))
 ```
 
 Output:
+
 ```
 | Model                  | MMLU  | GSM8K | HELLASWAG | TRUTHFULQA |
 |------------------------|-------|-------|-----------|------------|
@@ -400,6 +412,7 @@ lm_eval --model vllm \
 ## When to use vs alternatives
 
 **Use lm-evaluation-harness when:**
+
 - Benchmarking models for academic papers
 - Comparing model quality across standard tasks
 - Tracking training progress
@@ -407,6 +420,7 @@ lm_eval --model vllm \
 - Need reproducible evaluation
 
 **Use alternatives instead:**
+
 - **HELM** (Stanford): Broader evaluation (fairness, efficiency, calibration)
 - **AlpacaEval**: Instruction-following evaluation with LLM judges
 - **MT-Bench**: Conversational multi-turn evaluation
@@ -417,17 +431,20 @@ lm_eval --model vllm \
 **Issue: Evaluation too slow**
 
 Use vLLM backend:
+
 ```bash
 lm_eval --model vllm \
   --model_args pretrained=model-name,tensor_parallel_size=2
 ```
 
 Or reduce fewshot examples:
+
 ```bash
 --num_fewshot 0  # Instead of 5
 ```
 
 Or evaluate subset of MMLU:
+
 ```bash
 --tasks mmlu_stem  # Only STEM subjects
 ```
@@ -435,16 +452,19 @@ Or evaluate subset of MMLU:
 **Issue: Out of memory**
 
 Reduce batch size:
+
 ```bash
 --batch_size 1  # Or --batch_size auto
 ```
 
 Use quantization:
+
 ```bash
 --model_args pretrained=model-name,load_in_8bit=True
 ```
 
 Enable CPU offloading:
+
 ```bash
 --model_args pretrained=model-name,device_map=auto,offload_folder=offload
 ```
@@ -452,16 +472,19 @@ Enable CPU offloading:
 **Issue: Different results than reported**
 
 Check fewshot count:
+
 ```bash
 --num_fewshot 5  # Most papers use 5-shot
 ```
 
 Check exact task name:
+
 ```bash
 --tasks mmlu  # Not mmlu_direct or mmlu_fewshot
 ```
 
 Verify model and tokenizer match:
+
 ```bash
 --model_args pretrained=model-name,tokenizer=same-model-name
 ```
@@ -469,11 +492,13 @@ Verify model and tokenizer match:
 **Issue: HumanEval not executing code**
 
 Install execution dependencies:
+
 ```bash
 pip install human-eval
 ```
 
 Enable code execution:
+
 ```bash
 lm_eval --model hf \
   --model_args pretrained=model-name \
@@ -483,13 +508,13 @@ lm_eval --model hf \
 
 ## Advanced topics
 
-**Benchmark descriptions**: See [references/benchmark-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/benchmark-guide.md) for detailed description of all 60+ tasks, what they measure, and interpretation.
+**Benchmark descriptions**: See [references/benchmark-guide.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/benchmark-guide.md) for detailed description of all 60+ tasks, what they measure, and interpretation.
 
-**Custom tasks**: See [references/custom-tasks.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/custom-tasks.md) for creating domain-specific evaluation tasks.
+**Custom tasks**: See [references/custom-tasks.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/custom-tasks.md) for creating domain-specific evaluation tasks.
 
-**API evaluation**: See [references/api-evaluation.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/api-evaluation.md) for evaluating OpenAI, Anthropic, and other API models.
+**API evaluation**: See [references/api-evaluation.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/api-evaluation.md) for evaluating OpenAI, Anthropic, and other API models.
 
-**Multi-GPU strategies**: See [references/distributed-eval.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/distributed-eval.md) for data parallel and tensor parallel evaluation.
+**Multi-GPU strategies**: See [references/distributed-eval.md](https://github.com/w159/agent-penny/blob/main/skills/mlops/evaluation/lm-evaluation-harness/references/distributed-eval.md) for data parallel and tensor parallel evaluation.
 
 ## Hardware requirements
 
@@ -506,7 +531,7 @@ lm_eval --model hf \
 
 ## Resources
 
-- GitHub: https://github.com/EleutherAI/lm-evaluation-harness
-- Docs: https://github.com/EleutherAI/lm-evaluation-harness/tree/main/docs
+- GitHub: <https://github.com/EleutherAI/lm-evaluation-harness>
+- Docs: <https://github.com/EleutherAI/lm-evaluation-harness/tree/main/docs>
 - Task library: 60+ tasks including MMLU, GSM8K, HumanEval, TruthfulQA, HellaSwag, ARC, WinoGrande, etc.
-- Leaderboard: https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard (uses this harness)
+- Leaderboard: <https://huggingface.co/spaces/HuggingFaceH4/open_llm_leaderboard> (uses this harness)

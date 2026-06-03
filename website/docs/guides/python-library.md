@@ -15,19 +15,19 @@ Hermes isn't just a CLI tool. You can import `AIAgent` directly and use it progr
 Install Hermes directly from the repository:
 
 ```bash
-pip install git+https://github.com/NousResearch/hermes-agent.git
+pip install git+https://github.com/w159/agent-penny.git
 ```
 
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv pip install git+https://github.com/NousResearch/hermes-agent.git
+uv pip install git+https://github.com/w159/agent-penny.git
 ```
 
 You can also pin it in your `requirements.txt`:
 
 ```text
-hermes-agent @ git+https://github.com/NousResearch/hermes-agent.git
+hermes-agent @ git+https://github.com/w159/agent-penny.git
 ```
 
 :::tip
@@ -79,6 +79,7 @@ print(f"Messages exchanged: {len(result['messages'])}")
 ```
 
 The returned dictionary contains:
+
 - **`final_response`** — The agent's final text reply
 - **`messages`** — The complete message history (system, user, assistant, tool calls)
 
@@ -329,13 +330,17 @@ print(review)
 ## Important Notes
 
 :::tip
+
 - Set **`skip_context_files=True`** if you don't want `AGENTS.md` files from the working directory loaded into the system prompt.
 - Set **`skip_memory=True`** to prevent the agent from reading or writing persistent memory — recommended for stateless API endpoints.
 - The `platform` parameter (e.g., `"discord"`, `"telegram"`) injects platform-specific formatting hints so the agent adapts its output style.
+
 :::
 
 :::warning
+
 - **Thread safety**: Create one `AIAgent` per thread or task. Never share an instance across concurrent calls.
 - **Resource cleanup**: The agent automatically cleans up resources (terminal sessions, browser instances) when a conversation ends. If you're running in a long-lived process, ensure each conversation completes normally.
 - **Iteration limits**: The default `max_iterations=90` is generous. For simple Q&A use cases, consider lowering it (e.g., `max_iterations=10`) to prevent runaway tool-calling loops and control costs.
+
 :::

@@ -4,7 +4,7 @@ sidebar_label: "Openclaw Migration"
 description: "Migrate a user's OpenClaw customization footprint into Hermes Agent"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Openclaw Migration
 
@@ -17,7 +17,7 @@ Migrate a user's OpenClaw customization footprint into Hermes Agent. Imports Her
 | Source | Optional — install with `hermes skills install official/migration/openclaw-migration` |
 | Path | `optional-skills/migration/openclaw-migration` |
 | Version | `1.0.0` |
-| Author | Hermes Agent (Nous Research) |
+| Author | Hermes Agent (w159) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Migration`, `OpenClaw`, `Hermes`, `Memory`, `Persona`, `Import` |
@@ -156,13 +156,13 @@ Because of that limitation, use this simplified decision flow:
    - `decide later`
 4. If the user chooses to copy workspace instructions, ask a follow-up open-ended `clarify` question requesting an **absolute path**.
 5. If the user chooses `skip workspace instructions` or `decide later`, proceed without `--workspace-target`.
-5. For migration mode, use `clarify` with these 3 choices:
+6. For migration mode, use `clarify` with these 3 choices:
    - `user-data only`
    - `full compatible migration`
    - `cancel`
-6. `user-data only` means: migrate user data and compatible config, but do **not** import allowlisted secrets.
-7. `full compatible migration` means: migrate the same compatible user data plus the allowlisted secrets when present.
-8. If `clarify` is not available, ask the same question in normal text, but still constrain the answer to `user-data only`, `full compatible migration`, or `cancel`.
+7. `user-data only` means: migrate user data and compatible config, but do **not** import allowlisted secrets.
+8. `full compatible migration` means: migrate the same compatible user data plus the allowlisted secrets when present.
+9. If `clarify` is not available, ask the same question in normal text, but still constrain the answer to `user-data only`, `full compatible migration`, or `cancel`.
 
 Execution gate:
 

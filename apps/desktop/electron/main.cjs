@@ -383,7 +383,7 @@ function previewFileMetadata(filePath, mimeType) {
 app.setName(APP_NAME)
 app.setAboutPanelOptions({
   applicationName: APP_NAME,
-  copyright: 'Copyright © 2026 Nous Research'
+  copyright: 'Copyright © 2026 w159'
 })
 
 // Custom scheme for streaming local media (video/audio) into the renderer.
@@ -2766,7 +2766,9 @@ function buildApplicationMenu() {
       {
         label: 'Actual Size',
         accelerator: 'CommandOrControl+0',
-        click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setZoomLevel(0) }
+        click: () => {
+          if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setZoomLevel(0)
+        }
       },
       {
         label: 'Zoom In',

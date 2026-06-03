@@ -4,7 +4,7 @@ sidebar_label: "Optimizing Attention Flash"
 description: "Optimizes transformer attention with Flash Attention for 2-4x speedup and 10-20x memory reduction"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Optimizing Attention Flash
 
@@ -36,6 +36,7 @@ The following is the complete skill definition that Hermes loads when this skill
 Flash Attention provides 2-4x speedup and 10-20x memory reduction for transformer attention through IO-aware tiling and recomputation.
 
 **PyTorch native (easiest, PyTorch 2.2+)**:
+
 ```python
 import torch
 import torch.nn.functional as F
@@ -49,6 +50,7 @@ out = F.scaled_dot_product_attention(q, k, v)
 ```
 
 **flash-attn library (more features)**:
+
 ```bash
 pip install flash-attn --no-build-isolation
 ```
@@ -82,6 +84,7 @@ python -c "import torch; print(torch.__version__)"
 ```
 
 If &lt;2.2, upgrade:
+
 ```bash
 pip install --upgrade torch
 ```
@@ -89,6 +92,7 @@ pip install --upgrade torch
 **Step 2: Enable Flash Attention backend**
 
 Replace standard attention:
+
 ```python
 # Before (standard attention)
 attn_weights = torch.softmax(q @ k.transpose(-2, -1) / math.sqrt(d_k), dim=-1)
@@ -100,6 +104,7 @@ out = F.scaled_dot_product_attention(q, k, v, attn_mask=mask)
 ```
 
 Force Flash Attention backend:
+
 ```python
 with torch.backends.cuda.sdp_kernel(
     enable_flash=True,
@@ -202,6 +207,7 @@ out = out.transpose(1, 2)  # Back to [batch, heads, seq, dim]
 **Step 3: Enable advanced features**
 
 Multi-query attention (shared K/V across heads):
+
 ```python
 from flash_attn import flash_attn_func
 
@@ -211,6 +217,7 @@ out = flash_attn_func(q, k, v)  # Automatically handles MQA
 ```
 
 Sliding window attention (local attention):
+
 ```python
 # Only attend to window of 256 tokens before/after
 out = flash_attn_func(
@@ -299,6 +306,7 @@ out = flash_attn_func(q_fp8, k_fp8, v_fp8)
 ## When to use vs alternatives
 
 **Use Flash Attention when:**
+
 - Training transformers with sequences >512 tokens
 - Running inference with long context (>2K tokens)
 - GPU memory constrained (OOM with standard attention)
@@ -306,6 +314,7 @@ out = flash_attn_func(q_fp8, k_fp8, v_fp8)
 - Using PyTorch 2.2+ or can install flash-attn
 
 **Use alternatives instead:**
+
 - **Standard attention**: Sequences &lt;256 tokens (overhead not worth it)
 - **xFormers**: Need more attention variants (not just speed)
 - **Memory-efficient attention**: CPU inference (Flash Attention needs GPU)
@@ -315,11 +324,13 @@ out = flash_attn_func(q_fp8, k_fp8, v_fp8)
 **Issue: ImportError: cannot import flash_attn**
 
 Install with no-build-isolation flag:
+
 ```bash
 pip install flash-attn --no-build-isolation
 ```
 
 Or install CUDA toolkit first:
+
 ```bash
 conda install cuda -c nvidia
 pip install flash-attn --no-build-isolation
@@ -328,6 +339,7 @@ pip install flash-attn --no-build-isolation
 **Issue: Slower than expected (no speedup)**
 
 Flash Attention benefits increase with sequence length:
+
 - &lt;512 tokens: Minimal speedup (10-20%)
 - 512-2K tokens: 2-3x speedup
 - >2K tokens: 3-4x speedup
@@ -337,6 +349,7 @@ Check sequence length is sufficient.
 **Issue: RuntimeError: CUDA error**
 
 Verify GPU supports Flash Attention:
+
 ```python
 import torch
 print(torch.cuda.get_device_capability())
@@ -344,6 +357,7 @@ print(torch.cuda.get_device_capability())
 ```
 
 Flash Attention requires:
+
 - Ampere (A100, A10): ✅ Full support
 - Turing (T4): ✅ Supported
 - Volta (V100): ❌ Not supported
@@ -351,6 +365,7 @@ Flash Attention requires:
 **Issue: Accuracy degradation**
 
 Check dtype is float16 or bfloat16 (not float32):
+
 ```python
 q = q.to(torch.float16)  # Or torch.bfloat16
 ```
@@ -359,9 +374,9 @@ Flash Attention uses float16/bfloat16 for speed. Float32 not supported.
 
 ## Advanced topics
 
-**Integration with HuggingFace Transformers**: See [references/transformers-integration.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/flash-attention/references/transformers-integration.md) for enabling Flash Attention in BERT, GPT, Llama models.
+**Integration with HuggingFace Transformers**: See [references/transformers-integration.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/flash-attention/references/transformers-integration.md) for enabling Flash Attention in BERT, GPT, Llama models.
 
-**Performance benchmarks**: See [references/benchmarks.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/flash-attention/references/benchmarks.md) for detailed speed and memory comparisons across GPUs and sequence lengths.
+**Performance benchmarks**: See [references/benchmarks.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/flash-attention/references/benchmarks.md) for detailed speed and memory comparisons across GPUs and sequence lengths.
 
 ## Hardware requirements
 
@@ -376,6 +391,6 @@ Flash Attention uses float16/bfloat16 for speed. Float32 not supported.
 
 - Paper: "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness" (NeurIPS 2022)
 - Paper: "FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning" (ICLR 2024)
-- Blog: https://tridao.me/blog/2024/flash3/
-- GitHub: https://github.com/Dao-AILab/flash-attention
-- PyTorch docs: https://pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html
+- Blog: <https://tridao.me/blog/2024/flash3/>
+- GitHub: <https://github.com/Dao-AILab/flash-attention>
+- PyTorch docs: <https://pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html>

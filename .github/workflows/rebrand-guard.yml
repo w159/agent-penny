@@ -1,0 +1,102 @@
+name: rebrand-guard
+
+# Drift check: ensures the rebrand has not regressed and upstream brand
+# strings have not leaked back in. Runs on every PR and on push to main.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect upstream remote
+        id: has_upstream
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch upstream (mirror-only, no checkout)
+        if: steps.has_upstream.outputs.has == 'true'
+        run: git fetch upstream main
+
+      - name: Verify rebrand invariants
+        env:
+          HAS_UPSTREAM: ${{ steps.has_upstream.outputs.has }}
+        run: |
+          set -e
+
+          # --- 1. Author metadata should be w159, not Nous Research ---
+          if grep -rIE '"name": ?"Nous Research"' \
+              pyproject.toml \
+              acp_registry/agent.json \
+              package.json 2>/dev/null; then
+            echo "::error::Upstream author name found in fork metadata."
+            exit 1
+          fi
+
+          # --- 2. No raw upstream URLs in rebrand-tracked files ---
+          LEAKED=$(grep -rIE 'NousResearch/hermes-agent' \
+              README.md \
+              README.zh-CN.md \
+              package.json \
+              pyproject.toml \
+              acp_registry/agent.json \
+              scripts/install.sh \
+              scripts/install.ps1 \
+              packaging/homebrew/hermes-agent.rb \
+              flake.nix \
+              2>/dev/null || true)
+          if [[ -n "$LEAKED" ]]; then
+            echo "::error::Upstream GitHub URL leaked into fork files:"
+            echo "$LEAKED"
+            exit 1
+          fi
+
+          # --- 3. If upstream is configured, the rebrand should be replayable ---
+          if [[ "$HAS_UPSTREAM" == "true" ]]; then
+            echo ">> Checking that rebrand replays cleanly on top of upstream..."
+            chmod +x scripts/sync-upstream.sh
+            if ! scripts/sync-upstream.sh --check; then
+              echo "::error::Rebrand cannot be replayed on top of upstream. Manual fix required."
+              exit 1
+            fi
+          else
+            echo ">> Upstream remote not configured; skipping replay check."
+          fi
+
+          echo ">> Rebrand invariants OK."
+
+      - name: Detect common merge mistakes
+        run: |
+          set -e
+          # Common mistake: accidentally merging a NousResearch remote-tracking
+          # branch into the fork. We only look at commits on main that are NOT
+          # in upstream/main — upstream history legitimately contains
+          # "Merge ... from NousResearch/..." lines from PRs.
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git fetch upstream main
+            FORK_ONLY=$(git rev-list --reverse main ^upstream/main)
+          else
+            FORK_ONLY=$(git log --oneline -50 | awk '{print $1}')
+          fi
+          if [[ -n "$FORK_ONLY" ]] && echo "$FORK_ONLY" \
+              | xargs git log -1 --format='%s' -- \
+              | grep -iE 'Merge.*NousResearch/'; then
+            echo "::error::A merge commit from NousResearch appears in fork history. \
+              This will block future syncs. Use scripts/sync-upstream.sh instead."
+            exit 1
+          fi

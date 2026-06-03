@@ -35,13 +35,15 @@ hermes computer-use install
 
 安装完成后，无论采用哪种方式，继续执行以下步骤：
 
-3. 在提示时授予 macOS 权限：
+1. 在提示时授予 macOS 权限：
    - **系统设置 → 隐私与安全性 → 辅助功能** → 允许终端（或 Hermes 应用）。
    - **系统设置 → 隐私与安全性 → 屏幕录制** → 允许同一应用。
-4. 启动启用了该工具集的会话：
+2. 启动启用了该工具集的会话：
+
    ```
    hermes -t computer_use chat
    ```
+
    或在 `~/.hermes/config.yaml` 中将 `computer_use` 添加到已启用的工具集列表。
 
 ## 保持 cua-driver 最新
@@ -135,6 +137,6 @@ HERMES_COMPUTER_USE_BACKEND=noop   # records calls, no side effects
 
 ## 另请参阅
 
-- [通用技能：`macos-computer-use`](https://github.com/NousResearch/hermes-agent/blob/main/skills/apple/macos-computer-use/SKILL.md)
+- [通用技能：`macos-computer-use`](https://github.com/w159/agent-penny/blob/main/skills/apple/macos-computer-use/SKILL.md)
 - [cua-driver 源码（trycua/cua）](https://github.com/trycua/cua)
 - 跨平台 Web 任务请参阅[浏览器自动化](./browser.md)。

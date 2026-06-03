@@ -62,13 +62,14 @@ AI-native cross-session user modeling with dialectic reasoning, session-scoped c
 - `dialecticDepth` — how many `.chat()` passes per dialectic invocation (1–3, depth of reasoning)
 
 **Setup Wizard:**
+
 ```bash
 hermes memory setup        # select "honcho" — runs the Honcho-specific post-setup
 ```
 
 On a fresh install, configure Honcho directly with `hermes memory setup honcho`. The legacy `hermes honcho setup` command still works (it now redirects to `hermes memory setup`), but is only registered after Honcho is selected as the active memory provider.
 
-**Config:** `$HERMES_HOME/honcho.json` (profile-local) or `~/.honcho/config.json` (global). Resolution order: `$HERMES_HOME/honcho.json` > `~/.hermes/honcho.json` > `~/.honcho/config.json`. See the [config reference](https://github.com/NousResearch/hermes-agent/blob/main/plugins/memory/honcho/README.md) and the [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/hermes).
+**Config:** `$HERMES_HOME/honcho.json` (profile-local) or `~/.honcho/config.json` (global). Resolution order: `$HERMES_HOME/honcho.json` > `~/.hermes/honcho.json` > `~/.honcho/config.json`. See the [config reference](https://github.com/w159/agent-penny/blob/main/plugins/memory/honcho/README.md) and the [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/hermes).
 
 <details>
 <summary>Full config reference</summary>
@@ -255,8 +256,7 @@ See the [Honcho page](./honcho.md#observation-directional-vs-unified) for the fu
 
 </details>
 
-See the [config reference](https://github.com/NousResearch/hermes-agent/blob/main/plugins/memory/honcho/README.md) and [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/hermes).
-
+See the [config reference](https://github.com/w159/agent-penny/blob/main/plugins/memory/honcho/README.md) and [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/hermes).
 
 ---
 
@@ -274,6 +274,7 @@ Context database by Volcengine (ByteDance) with filesystem-style knowledge hiera
 **Tools:** `viking_search` (semantic search), `viking_read` (tiered: abstract/overview/full), `viking_browse` (filesystem navigation), `viking_remember` (store facts), `viking_add_resource` (ingest URLs/docs)
 
 **Setup:**
+
 ```bash
 # Start the OpenViking server first
 pip install openviking
@@ -287,6 +288,7 @@ echo "OPENVIKING_ENDPOINT=http://localhost:1933" >> ~/.hermes/.env
 ```
 
 **Key features:**
+
 - Tiered context loading: L0 (~100 tokens) → L1 (~2k) → L2 (full)
 - Automatic memory extraction on session commit (profile, preferences, entities, events, cases, patterns)
 - `viking://` URI scheme for hierarchical knowledge browsing
@@ -307,6 +309,7 @@ Server-side LLM fact extraction with semantic search, reranking, and automatic d
 **Tools:** `mem0_profile` (all stored memories), `mem0_search` (semantic search + reranking), `mem0_conclude` (store verbatim facts)
 
 **Setup:**
+
 ```bash
 hermes memory setup    # select "mem0"
 # Or manually:
@@ -337,6 +340,7 @@ Long-term memory with knowledge graph, entity resolution, and multi-strategy ret
 **Tools:** `hindsight_retain` (store with entity extraction), `hindsight_recall` (multi-strategy search), `hindsight_reflect` (cross-memory synthesis)
 
 **Setup:**
+
 ```bash
 hermes memory setup    # select "hindsight"
 # Or manually:
@@ -366,7 +370,7 @@ The setup wizard installs dependencies automatically and only installs what's ne
 | `retain_assistant_prefix` | `Assistant` | Label used before assistant turns in auto-retained transcripts |
 | `recall_tags` | — | Tags to filter on recall |
 
-See [plugin README](https://github.com/NousResearch/hermes-agent/blob/main/plugins/memory/hindsight/README.md) for the full configuration reference.
+See [plugin README](https://github.com/w159/agent-penny/blob/main/plugins/memory/hindsight/README.md) for the full configuration reference.
 
 ---
 
@@ -384,6 +388,7 @@ Local SQLite fact store with FTS5 full-text search, trust scoring, and HRR (Holo
 **Tools:** `fact_store` (9 actions: add, search, probe, related, reason, contradict, update, remove, list), `fact_feedback` (helpful/unhelpful rating that trains trust scores)
 
 **Setup:**
+
 ```bash
 hermes memory setup    # select "holographic"
 # Or manually:
@@ -399,6 +404,7 @@ hermes config set memory.provider holographic
 | `default_trust` | `0.5` | Default trust score (0.0–1.0) |
 
 **Unique capabilities:**
+
 - `probe` — entity-specific algebraic recall (all facts about a person/thing)
 - `reason` — compositional AND queries across multiple entities
 - `contradict` — automated detection of conflicting facts
@@ -420,6 +426,7 @@ Cloud memory API with hybrid search (Vector + BM25 + Reranking), 7 memory types,
 **Tools:** `retaindb_profile` (user profile), `retaindb_search` (semantic search), `retaindb_context` (task-relevant context), `retaindb_remember` (store with type + importance), `retaindb_forget` (delete memories)
 
 **Setup:**
+
 ```bash
 hermes memory setup    # select "retaindb"
 # Or manually:
@@ -443,6 +450,7 @@ Persistent memory via the `brv` CLI — hierarchical knowledge tree with tiered 
 **Tools:** `brv_query` (search knowledge tree), `brv_curate` (store facts/decisions/patterns), `brv_status` (CLI version + tree stats)
 
 **Setup:**
+
 ```bash
 # Install the CLI first
 curl -fsSL https://byterover.dev/install.sh | sh
@@ -454,6 +462,7 @@ hermes config set memory.provider byterover
 ```
 
 **Key features:**
+
 - Automatic pre-compression extraction (saves insights before context compression discards them)
 - Knowledge tree stored at `$HERMES_HOME/byterover/` (profile-scoped)
 - SOC2 Type II certified cloud sync (optional)
@@ -474,6 +483,7 @@ Semantic long-term memory with profile recall, semantic search, explicit memory 
 **Tools:** `supermemory_store` (save explicit memories), `supermemory_search` (semantic similarity search), `supermemory_forget` (forget by ID or best-match query), `supermemory_profile` (persistent profile + recent context)
 
 **Setup:**
+
 ```bash
 hermes memory setup    # select "supermemory"
 # Or manually:
@@ -497,6 +507,7 @@ echo 'SUPERMEMORY_API_KEY=***' >> ~/.hermes/.env
 **Environment variables:** `SUPERMEMORY_API_KEY` (required), `SUPERMEMORY_CONTAINER_TAG` (overrides config).
 
 **Key features:**
+
 - Automatic context fencing — strips recalled memories from captured turns to prevent recursive memory pollution
 - Session-end conversation ingest for richer graph-level knowledge building
 - Profile facts injected on first turn and at configurable intervals
@@ -534,6 +545,7 @@ Structured long-term memory using Memori Cloud, with background completed-turn c
 **Tools:** `memori_recall` (search long-term memory), `memori_recall_summary` (summarized context), `memori_quota` (usage/quota), `memori_signup` (request signup email), `memori_feedback` (send integration feedback)
 
 **Setup:**
+
 ```bash
 pip install hermes-memori
 hermes-memori install

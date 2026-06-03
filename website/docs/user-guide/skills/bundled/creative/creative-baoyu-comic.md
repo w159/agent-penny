@@ -4,7 +4,7 @@ sidebar_label: "Baoyu Comic"
 description: "Knowledge comics (知识漫画): educational, biography, tutorial"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Baoyu Comic
 
@@ -43,6 +43,7 @@ Trigger this skill when the user asks to create a knowledge/educational comic, b
 Hermes' `image_generate` tool is **prompt-only** — it accepts a text prompt and an aspect ratio, and returns an image URL. It does **NOT** accept reference images. When the user supplies a reference image, use it to **extract traits in text** that get embedded in every page prompt:
 
 **Intake**: Accept file paths when the user provides them (or pastes images in conversation).
+
 - File path(s) → copy to `refs/NN-ref-{slug}.{ext}` alongside the comic output for provenance
 - Pasted image with no path → ask the user for the path via `clarify`, or extract style traits verbally as a text fallback
 - No reference → skip this section
@@ -89,7 +90,7 @@ Character consistency is driven by **text descriptions** in `characters/characte
 | Images only | Generate images from existing prompts directory |
 | Regenerate N | Regenerate specific page(s) only (e.g., `3` or `2,5,8`) |
 
-Details: [references/partial-workflows.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md)
+Details: [references/partial-workflows.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md)
 
 ### Art, Tone & Preset Catalogue
 
@@ -107,15 +108,17 @@ Details: [references/partial-workflows.md](https://github.com/NousResearch/herme
 
   Full rules at `references/presets/<preset>.md` — load the file when a preset is picked.
 
-- **Compatibility matrix** and **content-signal → preset** table live in [references/auto-selection.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md). Read it before recommending combinations in Step 2.
+- **Compatibility matrix** and **content-signal → preset** table live in [references/auto-selection.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/auto-selection.md). Read it before recommending combinations in Step 2.
 
 ## File Structure
 
 Output directory: `comic/{topic-slug}/`
+
 - Slug: 2-4 words kebab-case from topic (e.g., `alan-turing-bio`)
 - Conflict: append timestamp (e.g., `turing-story-20260118-143052`)
 
 **Contents**:
+
 | File | Description |
 |------|-------------|
 | `source-{slug}.md` | Saved source content (kebab-case slug matches the output directory) |
@@ -130,11 +133,13 @@ Output directory: `comic/{topic-slug}/`
 ## Language Handling
 
 **Detection Priority**:
+
 1. User-specified language (explicit option)
 2. User's conversation language
 3. Source content language
 
 **Rule**: Use user's input language for ALL interactions:
+
 - Storyboard outlines and scene descriptions
 - Image generation prompts
 - User selection options and confirmations
@@ -185,7 +190,7 @@ Input → Analyze → [Check Existing?] → [Confirm: Style + Reviews] → Story
 
 ### User Questions
 
-Use the `clarify` tool to confirm options. Since `clarify` handles one question at a time, ask the most important question first and proceed sequentially. See [references/workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md) for the full Step 2 question set.
+Use the `clarify` tool to confirm options. Since `clarify` handles one question at a time, ask the most important question first and proceed sequentially. See [references/workflow.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/workflow.md) for the full Step 2 question set.
 
 **Timeout handling (CRITICAL)**: `clarify` can return `"The user did not provide a response within the time limit. Use your best judgement to make the choice and proceed."` — this is NOT user consent to default everything.
 
@@ -208,6 +213,7 @@ Use Hermes' built-in `image_generate` tool for all image rendering. Its schema a
 | `1:1` | `square` |
 
 **Download step** — after every `image_generate` call:
+
 1. Read the URL from the tool result
 2. Fetch the image bytes using an **absolute** output path, e.g.
    `curl -fsSL "<url>" -o /abs/path/to/comic/<slug>/NN-page-<slug>.png`
@@ -221,26 +227,29 @@ Use Hermes' built-in `image_generate` tool for all image rendering. Its schema a
 
 **Backup rule**: existing `prompts/…md` and `…png` files → rename with `-backup-YYYYMMDD-HHMMSS` suffix before regenerating.
 
-Full step-by-step workflow (analysis, storyboard, review gates, regeneration variants): [references/workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md).
+Full step-by-step workflow (analysis, storyboard, review gates, regeneration variants): [references/workflow.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/workflow.md).
 
 ## References
 
 **Core Templates**:
-- [analysis-framework.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/analysis-framework.md) - Deep content analysis
-- [character-template.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/character-template.md) - Character definition format
-- [storyboard-template.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/storyboard-template.md) - Storyboard structure
-- [ohmsha-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/ohmsha-guide.md) - Ohmsha manga specifics
+
+- [analysis-framework.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/analysis-framework.md) - Deep content analysis
+- [character-template.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/character-template.md) - Character definition format
+- [storyboard-template.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/storyboard-template.md) - Storyboard structure
+- [ohmsha-guide.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/ohmsha-guide.md) - Ohmsha manga specifics
 
 **Style Definitions**:
+
 - `references/art-styles/` - Art styles (ligne-claire, manga, realistic, ink-brush, chalk, minimalist)
 - `references/tones/` - Tones (neutral, warm, dramatic, romantic, energetic, vintage, action)
 - `references/presets/` - Presets with special rules (ohmsha, wuxia, shoujo, concept-story, four-panel)
 - `references/layouts/` - Layouts (standard, cinematic, dense, splash, mixed, webtoon, four-panel)
 
 **Workflow**:
-- [workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/workflow.md) - Full workflow details
-- [auto-selection.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/auto-selection.md) - Content signal analysis
-- [partial-workflows.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md) - Partial workflow options
+
+- [workflow.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/workflow.md) - Full workflow details
+- [auto-selection.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/auto-selection.md) - Content signal analysis
+- [partial-workflows.md](https://github.com/w159/agent-penny/blob/main/skills/creative/baoyu-comic/references/partial-workflows.md) - Partial workflow options
 
 ## Page Modification
 

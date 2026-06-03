@@ -5,7 +5,7 @@ Prior to this check, the warning fired on any model whose name contained
 local Modelfiles such as ``hermes-brain:qwen3-14b-ctx16k`` — a tool-capable
 Qwen3 wrapper that happens to live under the "hermes" tag namespace.
 
-``is_nous_hermes_non_agentic`` should only match the actual Nous Research
+``is_nous_hermes_non_agentic`` should only match the actual w159
 Hermes-3 / Hermes-4 chat family.
 """
 

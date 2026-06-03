@@ -4,7 +4,7 @@ sidebar_label: "Telephony"
 description: "无需修改核心工具即可赋予 Hermes 电话能力"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Telephony
 
@@ -17,7 +17,7 @@ description: "无需修改核心工具即可赋予 Hermes 电话能力"
 | 来源 | 可选 — 使用 `hermes skills install official/productivity/telephony` 安装 |
 | 路径 | `optional-skills/productivity/telephony` |
 | 版本 | `1.0.0` |
-| 作者 | Nous Research |
+| 作者 | w159 |
 | 许可证 | MIT |
 | 平台 | linux, macos, windows |
 | 标签 | `telephony`, `phone`, `sms`, `mms`, `voice`, `twilio`, `bland.ai`, `vapi`, `calling`, `texting` |
@@ -34,6 +34,7 @@ description: "无需修改核心工具即可赋予 Hermes 电话能力"
 此可选 skill 为 Hermes 提供实用的电话能力，同时将电话功能保留在核心工具列表之外。
 
 它附带一个辅助脚本 `scripts/telephony.py`，可以：
+
 - 将服务商凭据保存到 `~/.hermes/.env`
 - 搜索并购买 Twilio 电话号码
 - 记住已拥有的号码以供后续会话使用
@@ -46,6 +47,7 @@ description: "无需修改核心工具即可赋予 Hermes 电话能力"
 ## 此 skill 解决的问题
 
 此 skill 旨在覆盖用户实际需要的电话任务：
+
 - 外呼
 - 发短信
 - 拥有一个可复用的 agent 号码
@@ -71,49 +73,60 @@ description: "无需修改核心工具即可赋予 Hermes 电话能力"
 使用以下逻辑，而非硬编码的服务商路由：
 
 ### 1）"我希望 Hermes 拥有一个真实的电话号码"
+
 使用 **Twilio**。
 
 原因：
+
 - 购买并保留号码的最简路径
 - 最佳 SMS / MMS 支持
 - 最简单的入站 SMS 轮询方案
 - 未来接入入站 webhook 或通话处理的最清晰路径
 
 使用场景：
+
 - 稍后接收短信
 - 发送部署告警 / cron 通知
 - 为 agent 维护可复用的电话身份
 - 之后试验基于电话的认证流程
 
 ### 2）"我现在只需要最简单的 AI 外呼"
+
 使用 **Bland.ai**。
 
 原因：
+
 - 最快速的配置
 - 只需一个 API key
 - 无需先自行购买/导入号码
 
 权衡：
+
 - 灵活性较低
 - 语音质量尚可，但不是最佳
 
 ### 3）"我想要最佳的对话式 AI 语音质量"
+
 使用 **Twilio + Vapi**。
 
 原因：
+
 - Twilio 提供已拥有的号码
 - Vapi 提供更好的对话式 AI 通话质量和更多语音/模型灵活性
 
 推荐流程：
+
 1. 购买/保存 Twilio 号码
 2. 将其导入 Vapi
 3. 保存返回的 `VAPI_PHONE_NUMBER_ID`
 4. 使用 `ai-call --provider vapi`
 
 ### 4）"我想用自定义预录语音消息拨打电话"
+
 使用 **Twilio 直接通话**配合公开音频 URL。
 
 原因：
+
 - 播放自定义 MP3 的最简方式
 - 与 Hermes `text_to_speech` 加公开文件托管或隧道配合良好
 
@@ -122,7 +135,9 @@ description: "无需修改核心工具即可赋予 Hermes 电话能力"
 此 skill 在两个位置持久化电话状态：
 
 ### `~/.hermes/.env`
+
 用于长期存储的服务商凭据和已拥有号码的 ID，例如：
+
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_PHONE_NUMBER`
@@ -133,12 +148,15 @@ description: "无需修改核心工具即可赋予 Hermes 电话能力"
 - `PHONE_PROVIDER`（AI 外呼服务商：bland 或 vapi）
 
 ### `~/.hermes/telephony_state.json`
+
 用于仅限 skill 使用的、应在会话间保留的状态，例如：
+
 - 记住的默认 Twilio 号码 / SID
 - 记住的 Vapi 电话号码 ID
 - 用于收件箱轮询检查点的最后一条入站消息 SID/日期
 
 这意味着：
+
 - 下次加载 skill 时，`diagnose` 可以告知已配置的号码
 - `twilio-inbox --since-last --mark-seen` 可以从上次检查点继续
 
@@ -166,7 +184,8 @@ hermes skills install official/productivity/telephony
 ### Twilio — 拥有号码、SMS/MMS、直接通话、入站 SMS 轮询
 
 注册地址：
-- https://www.twilio.com/try-twilio
+
+- <https://www.twilio.com/try-twilio>
 
 然后将凭据保存到 Hermes：
 
@@ -203,7 +222,8 @@ python3 "$SCRIPT" twilio-set-default PNXXXXXXXXXXXXXXXXXXXXXXXXXXXX --save-env
 ### Bland.ai — 最简单的 AI 外呼
 
 注册地址：
-- https://app.bland.ai
+
+- <https://app.bland.ai>
 
 保存配置：
 
@@ -214,7 +234,8 @@ python3 "$SCRIPT" save-bland your_bland_api_key --voice mason
 ### Vapi — 更好的对话式语音质量
 
 注册地址：
-- https://dashboard.vapi.ai
+
+- <https://dashboard.vapi.ai>
 
 先保存 API key：
 
@@ -249,24 +270,29 @@ python3 "$SCRIPT" diagnose
 ### A. 购买 agent 号码并在之后继续使用
 
 1. 保存 Twilio 凭据：
+
 ```bash
 python3 "$SCRIPT" save-twilio AC... auth_token_here
 ```
 
-2. 搜索号码：
+1. 搜索号码：
+
 ```bash
 python3 "$SCRIPT" twilio-search --country US --area-code 702 --limit 10
 ```
 
-3. 购买并保存到 `~/.hermes/.env` 及状态文件：
+1. 购买并保存到 `~/.hermes/.env` 及状态文件：
+
 ```bash
 python3 "$SCRIPT" twilio-buy "+17025551234" --save-env
 ```
 
-4. 下次会话时运行：
+1. 下次会话时运行：
+
 ```bash
 python3 "$SCRIPT" diagnose
 ```
+
 这将显示记住的默认号码和收件箱检查点状态。
 
 ### B. 从 agent 号码发送短信
@@ -308,6 +334,7 @@ python3 "$SCRIPT" twilio-call "+15551230000" --message "Hello! This is Hermes ca
 这是复用 Hermes 现有 `text_to_speech` 支持的主要路径。
 
 适用场景：
+
 - 希望通话使用 Hermes 配置的 TTS 语音，而非 Twilio `<Say>`
 - 需要单向语音传递（简报、告警、提醒、状态更新）
 - **不**需要实时对话式电话通话
@@ -325,16 +352,19 @@ python3 "$SCRIPT" twilio-call "+155****0000" --audio-url "https://example.com/br
 3. 使用 `--audio-url` 拨打 Twilio 电话进行传递。
 
 示例 agent 流程：
+
 - 让 Hermes 使用 `text_to_speech` 创建消息音频
 - 如有需要，通过临时静态托管/隧道/对象存储 URL 暴露文件
 - 使用 `twilio-call --audio-url ...` 通过电话传递
 
 MP3 的推荐托管方式：
+
 - 临时公开对象/存储 URL
 - 指向本地静态文件服务器的短期隧道
 - 电话服务商可直接获取的任意 HTTPS URL
 
 重要说明：
+
 - Hermes TTS 非常适合预录外呼消息
 - Bland/Vapi 更适合**实时对话式 AI 通话**，因为它们自行处理实时电话音频栈
 - 此处单独使用 Hermes STT/TTS 并非作为全双工电话对话引擎；那将需要比此 skill 所要引入的更重量级的流式/webhook 集成
@@ -371,16 +401,19 @@ python3 "$SCRIPT" ai-status <call_id> --provider bland --analyze "Was the appoin
 ### H. 通过 Vapi 使用已拥有号码发起 AI 外呼
 
 1. 将 Twilio 号码导入 Vapi：
+
 ```bash
 python3 "$SCRIPT" vapi-import-twilio --save-env
 ```
 
-2. 拨打电话：
+1. 拨打电话：
+
 ```bash
 python3 "$SCRIPT" ai-call "+15551230000" "You are calling to make a dinner reservation for two at 7:30 PM. If that is unavailable, ask for the nearest time between 6:30 and 8:30 PM." --provider vapi --max-duration 4
 ```
 
-3. 查看结果：
+1. 查看结果：
+
 ```bash
 python3 "$SCRIPT" ai-status <call_id> --provider vapi
 ```
@@ -428,8 +461,8 @@ python3 "$SCRIPT" ai-status <call_id> --provider vapi
 
 ## 参考资料
 
-- Twilio 电话号码：https://www.twilio.com/docs/phone-numbers/api
-- Twilio 消息：https://www.twilio.com/docs/messaging/api/message-resource
-- Twilio 语音：https://www.twilio.com/docs/voice/api/call-resource
-- Vapi 文档：https://docs.vapi.ai/
-- Bland.ai：https://app.bland.ai/
+- Twilio 电话号码：<https://www.twilio.com/docs/phone-numbers/api>
+- Twilio 消息：<https://www.twilio.com/docs/messaging/api/message-resource>
+- Twilio 语音：<https://www.twilio.com/docs/voice/api/call-resource>
+- Vapi 文档：<https://docs.vapi.ai/>
+- Bland.ai：<https://app.bland.ai/>

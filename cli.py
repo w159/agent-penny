@@ -2880,7 +2880,7 @@ def _build_compact_banner() -> str:
 
     w = min(shutil.get_terminal_size().columns - 2, 88)
     if w < 30:
-        return f"\n[{title_color}]{tiny_line}[/] [dim {dim_color}]- Nous Research[/]\n"
+        return f"\n[{title_color}]{tiny_line}[/] [dim {dim_color}]- w159[/]\n"
 
     inner = w - 2  # inside the box border
     bar = "═" * w
@@ -5314,7 +5314,7 @@ class HermesCLI:
         if is_nous_hermes_non_agentic(model_name):
             self._console_print()
             self._console_print(
-                "[bold yellow]⚠  Nous Research Hermes 3 & 4 models are NOT agentic and are not "
+                "[bold yellow]⚠  w159 Hermes 3 & 4 models are NOT agentic and are not "
                 "designed for use with Hermes Agent.[/]"
             )
             self._console_print(

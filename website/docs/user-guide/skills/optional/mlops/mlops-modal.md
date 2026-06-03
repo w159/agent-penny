@@ -4,7 +4,7 @@ sidebar_label: "Modal Serverless Gpu"
 description: "Serverless GPU cloud platform for running ML workloads"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Modal Serverless Gpu
 
@@ -36,6 +36,7 @@ Comprehensive guide to running ML workloads on Modal's serverless GPU cloud plat
 ## When to use Modal
 
 **Use Modal when:**
+
 - Running GPU-intensive ML workloads without managing infrastructure
 - Deploying ML models as auto-scaling APIs
 - Running batch processing jobs (training, inference, data processing)
@@ -44,6 +45,7 @@ Comprehensive guide to running ML workloads on Modal's serverless GPU cloud plat
 - Running scheduled jobs (cron-like workloads)
 
 **Key features:**
+
 - **Serverless GPUs**: T4, L4, A10G, L40S, A100, H100, H200, B200 on-demand
 - **Python-native**: Define infrastructure in Python code, no YAML
 - **Auto-scaling**: Scale to zero, scale to 100+ GPUs instantly
@@ -52,6 +54,7 @@ Comprehensive guide to running ML workloads on Modal's serverless GPU cloud plat
 - **Web endpoints**: Deploy functions as REST APIs with zero-downtime updates
 
 **Use alternatives instead:**
+
 - **RunPod**: For longer-running pods with persistent state
 - **Lambda Labs**: For reserved GPU instances
 - **SkyPilot**: For multi-cloud orchestration and cost optimization
@@ -351,12 +354,12 @@ if __name__ == "__main__":
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/modal/references/advanced-usage.md)** - Multi-GPU, distributed training, cost optimization
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/modal/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/modal/references/advanced-usage.md)** - Multi-GPU, distributed training, cost optimization
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/modal/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 
-- **Documentation**: https://modal.com/docs
-- **Examples**: https://github.com/modal-labs/modal-examples
-- **Pricing**: https://modal.com/pricing
-- **Discord**: https://discord.gg/modal
+- **Documentation**: <https://modal.com/docs>
+- **Examples**: <https://github.com/modal-labs/modal-examples>
+- **Pricing**: <https://modal.com/pricing>
+- **Discord**: <https://discord.gg/modal>

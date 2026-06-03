@@ -4,7 +4,7 @@ sidebar_label: "Segment Anything Model"
 description: "SAM：通过点、框、掩码实现零样本图像分割"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Segment Anything Model
 
@@ -36,6 +36,7 @@ Meta AI Segment Anything Model 零样本图像分割综合使用指南。
 ## 何时使用 SAM
 
 **在以下情况使用 SAM：**
+
 - 需要在无需任务特定训练的情况下分割图像中的任意对象
 - 构建支持点/框 prompt（提示词）的交互式标注工具
 - 为其他视觉模型生成训练数据
@@ -44,6 +45,7 @@ Meta AI Segment Anything Model 零样本图像分割综合使用指南。
 - 处理医学、卫星或特定领域图像
 
 **核心特性：**
+
 - **零样本分割**：无需微调即可适用于任意图像域
 - **灵活的 prompt**：支持点、边界框或先前掩码
 - **自动分割**：自动生成所有对象掩码
@@ -52,6 +54,7 @@ Meta AI Segment Anything Model 零样本图像分割综合使用指南。
 - **ONNX 导出**：可在浏览器和边缘设备上部署
 
 **以下情况请使用替代方案：**
+
 - **YOLO/Detectron2**：用于带类别的实时目标检测
 - **Mask2Former**：用于带类别的语义/全景分割
 - **GroundingDINO + SAM**：用于文本 prompt 驱动的分割
@@ -92,7 +95,7 @@ import numpy as np
 from segment_anything import sam_model_registry, SamPredictor
 
 # 加载模型
-sam = sam_model_registry["vit_h"](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_h_4b8939.pth")
+sam = sam_model_registry["vit_h"](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_h_4b8939.pth")
 sam.to(device="cuda")
 
 # 创建预测器
@@ -478,7 +481,7 @@ decoded_mask = mask_utils.decode(rle)
 
 ```python
 # 在 VRAM 有限时使用较小模型
-sam = sam_model_registry["vit_b"](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_b_01ec64.pth")
+sam = sam_model_registry["vit_b"](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/checkpoint="sam_vit_b_01ec64.pth")
 
 # 批量处理图像
 # 在大批量之间清空 CUDA 缓存
@@ -513,13 +516,13 @@ mask_generator = SamAutomaticMaskGenerator(
 
 ## 参考资料
 
-- **[高级用法](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/references/advanced-usage.md)** - 批处理、微调、集成
-- **[故障排查](https://github.com/NousResearch/hermes-agent/blob/main/skills/mlops/models/segment-anything/references/troubleshooting.md)** - 常见问题与解决方案
+- **[高级用法](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/references/advanced-usage.md)** - 批处理、微调、集成
+- **[故障排查](https://github.com/w159/agent-penny/blob/main/skills/mlops/models/segment-anything/references/troubleshooting.md)** - 常见问题与解决方案
 
 ## 资源
 
-- **GitHub**：https://github.com/facebookresearch/segment-anything
-- **论文**：https://arxiv.org/abs/2304.02643
-- **演示**：https://segment-anything.com
-- **SAM 2（视频）**：https://github.com/facebookresearch/segment-anything-2
-- **HuggingFace**：https://huggingface.co/facebook/sam-vit-huge
+- **GitHub**：<https://github.com/facebookresearch/segment-anything>
+- **论文**：<https://arxiv.org/abs/2304.02643>
+- **演示**：<https://segment-anything.com>
+- **SAM 2（视频）**：<https://github.com/facebookresearch/segment-anything-2>
+- **HuggingFace**：<https://huggingface.co/facebook/sam-vit-huge>

@@ -4,7 +4,7 @@ sidebar_label: "Merger Model"
 description: "Build accretion/dilution (merger) models in Excel — pro-forma P&L, synergies, financing mix, EPS impact"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Merger Model
 
@@ -17,7 +17,7 @@ Build accretion/dilution (merger) models in Excel — pro-forma P&L, synergies, 
 | Source | Optional — install with `hermes skills install official/finance/merger-model` |
 | Path | `optional-skills/finance/merger-model` |
 | Version | `1.0.0` |
-| Author | Anthropic (adapted by Nous Research) |
+| Author | Anthropic (adapted by w159) |
 | License | Apache-2.0 |
 | Platforms | linux, macos, windows |
 | Tags | `finance`, `m-and-a`, `merger`, `accretion-dilution`, `excel`, `openpyxl`, `modeling`, `investment-banking` |
@@ -44,6 +44,7 @@ Build accretion/dilution analysis for M&A transactions. Models pro forma EPS imp
 ### Step 1: Gather Inputs
 
 **Acquirer:**
+
 - Company name, current share price, shares outstanding
 - LTM and NTM EPS (GAAP and adjusted)
 - P/E multiple
@@ -51,11 +52,13 @@ Build accretion/dilution analysis for M&A transactions. Models pro forma EPS imp
 - Cash on balance sheet, existing debt
 
 **Target:**
+
 - Company name, current share price, shares outstanding (if public)
 - LTM and NTM EPS or net income
 - Enterprise value or equity value
 
 **Deal Terms:**
+
 - Offer price per share (or premium to current)
 - Consideration mix: % cash vs. % stock
 - New debt raised to fund cash portion
@@ -144,7 +147,6 @@ Calculate the minimum synergies needed for the deal to be EPS-neutral in Year 1.
 - Don't forget foregone interest income on cash used and new interest expense on debt raised
 - Tax rate on synergies and interest adjustments should match the acquirer's marginal rate
 
-
 ## Data sources — MCP first, web fallback
 
 Many passages below say "use the S&P Kensho MCP / Daloopa MCP / FactSet MCP". Those are commercial financial-data MCPs from the original Cowork plugin context. In Hermes:
@@ -159,4 +161,4 @@ Many passages below say "use the S&P Kensho MCP / Daloopa MCP / FactSet MCP". Th
 
 ## Attribution
 
-This skill is adapted from Anthropic's Claude for Financial Services plugin suite (Apache-2.0). The Office-JS / Cowork live-Excel paths have been removed; this version targets headless openpyxl via the `excel-author` skill's conventions. Original: https://github.com/anthropics/financial-services
+This skill is adapted from Anthropic's Claude for Financial Services plugin suite (Apache-2.0). The Office-JS / Cowork live-Excel paths have been removed; this version targets headless openpyxl via the `excel-author` skill's conventions. Original: <https://github.com/anthropics/financial-services>

@@ -30,9 +30,11 @@ description: "使用 Socket Mode 将 Hermes Agent 设置为 Slack 机器人"
 ### 方式 A：使用 Hermes 生成的 manifest（推荐）
 
 1. 生成 manifest：
+
    ```bash
    hermes slack manifest --write
    ```
+
    此命令会将 `~/.hermes/slack-manifest.json` 写入磁盘并打印粘贴说明。
 2. 前往 [https://api.slack.com/apps](https://api.slack.com/apps) →
    **Create New App** → **From an app manifest**
@@ -114,7 +116,7 @@ Socket Mode 让机器人通过 WebSocket 连接，无需公开 URL。
 | `message.groups` | **推荐** | 机器人接收被邀请加入的**私有**频道消息 |
 | `app_mention` | **必需** | 防止机器人被 @ 提及时出现 Bolt SDK 错误 |
 
-4. 点击页面底部的 **Save Changes**
+1. 点击页面底部的 **Save Changes**
 
 :::danger 缺少事件订阅是第一大设置问题
 如果机器人在私信中正常工作但**在频道中不响应**，你几乎肯定忘记添加 `message.channels`（公开频道）和/或 `message.groups`（私有频道）。没有这些事件，Slack 根本不会将频道消息传递给机器人。
@@ -213,7 +215,7 @@ sudo hermes gateway install --system   # 仅 Linux：开机启动系统服务
 
 每个 Hermes 命令（`/btw`、`/stop`、`/new`、`/model`、`/help`……）都是原生 Slack 斜杠命令——与它们在 Telegram 和 Discord 上的工作方式完全相同。在 Slack 中输入 `/`，自动补全选择器会列出每个 Hermes 命令及其描述。
 
-底层实现：Hermes 附带一个生成的 Slack 应用 manifest（见第一步，方式 A），它将 [`COMMAND_REGISTRY`](https://github.com/NousResearch/hermes-agent/blob/main/hermes_cli/commands.py) 中的每个命令声明为斜杠命令。在 Socket Mode 下，无论 manifest 的 `url` 字段如何，Slack 都会通过 WebSocket 路由命令事件。
+底层实现：Hermes 附带一个生成的 Slack 应用 manifest（见第一步，方式 A），它将 [`COMMAND_REGISTRY`](https://github.com/w159/agent-penny/blob/main/hermes_cli/commands.py) 中的每个命令声明为斜杠命令。在 Socket Mode 下，无论 manifest 的 `url` 字段如何，Slack 都会通过 WebSocket 路由命令事件。
 
 ### 更新后刷新斜杠命令
 
@@ -224,6 +226,7 @@ hermes slack manifest --write
 ```
 
 然后在 Slack 中：
+
 1. 打开 [https://api.slack.com/apps](https://api.slack.com/apps) →
    你的 Hermes 应用
 2. **Features → App Manifest → Edit**
@@ -546,6 +549,7 @@ slack:
 ```
 
 注意事项：
+
 - 绑定按频道 ID 匹配。对于绑定频道中的话题消息，话题继承父频道的绑定。
 - 技能仅在会话开始时加载（新会话或自动重置后）。如果更改绑定，请运行 `/new` 或等待会话自动重置以使其生效。
 - 与 `channel_prompts` 结合使用，可在技能指令之上为每个频道设置语气/约束。

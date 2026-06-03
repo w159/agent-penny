@@ -145,6 +145,7 @@ If a job ran and failed, you may see error context in:
 
 **"No such file or directory" for scripts**
 The `script` path must be an absolute path (or relative to the Hermes config directory). Verify:
+
 ```bash
 ls ~/.hermes/scripts/your-script.py   # Must exist
 hermes cron edit <job_id> --script ~/.hermes/scripts/your-script.py
@@ -164,6 +165,7 @@ The scheduler uses an inactivity-based timeout (default 600s, configurable via `
 The scheduler uses file-based locking to prevent overlapping ticks. If two gateway instances are running (or a CLI session conflicts with a gateway), jobs may be delayed or skipped.
 
 Kill duplicate gateway processes:
+
 ```bash
 ps aux | grep hermes
 # Kill duplicate processes, keep only one
@@ -214,7 +216,7 @@ If you've worked through this guide and the issue persists:
 
 1. Run the job with `hermes cron run <job_id>` (fires on next gateway tick) and watch for errors in the chat output
 2. Check `~/.hermes/logs/agent.log` for scheduler messages and `~/.hermes/logs/errors.log` for warnings
-3. Open an issue at [github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) with:
+3. Open an issue at [github.com/w159/agent-penny](https://github.com/w159/agent-penny) with:
    - The job ID and schedule
    - The delivery target
    - What you expected vs. what happened

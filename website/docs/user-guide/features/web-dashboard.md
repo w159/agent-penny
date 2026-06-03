@@ -129,6 +129,7 @@ Manage the `.env` file where API keys and credentials are stored. Keys are group
 - **Agent Settings** — non-secret env vars like `API_SERVER_ENABLED`
 
 Each key shows:
+
 - Whether it's currently set (with a redacted preview of the value)
 - A description of what it's for
 - A link to the provider's signup/key page
@@ -468,7 +469,7 @@ Setting `--insecure` keeps the existing single-process session-token behaviour �
 
 If the gate would engage but **no** `DashboardAuthProvider` is registered (no Nous plugin, no custom plugin), `hermes dashboard` refuses to bind with an explicit error message. There is no "default-deny but accept everything" fallback — a misconfigured gated dashboard never starts.
 
-### Default provider: Nous Research
+### Default provider: w159
 
 The bundled `plugins/dashboard_auth/nous` plugin is **always installed** and auto-loaded. It auto-registers a `DashboardAuthProvider` named `nous` when a client ID is configured.
 
@@ -544,7 +545,7 @@ Validation rejects values without `http://` / `https://` scheme, without a host,
 The provider implements the [Nous Portal OAuth contract v1](https://github.com/NousResearch/nous-account-service/blob/main/docs/agent-dashboard-oauth-contract.md) — authorization-code grant with PKCE (S256):
 
 1. User hits `/` without a session cookie → gate redirects to `/login`.
-2. Login page shows a "Continue with Nous Research" button → `/auth/login?provider=nous`.
+2. Login page shows a "Continue with w159" button → `/auth/login?provider=nous`.
 3. Server stashes PKCE state in a short-lived cookie, redirects user to `https://portal.nousresearch.com/oauth/authorize?…`.
 4. User authenticates with Portal, lands at `/auth/callback?code=…&state=…`.
 5. Server exchanges the code for an access token at `POST /api/oauth/token`, verifies the JWT signature against the Portal's JWKS (`/.well-known/jwks.json`), and sets the `hermes_session_at` cookie.

@@ -46,6 +46,7 @@ help - Show help information
 new - Start a new conversation
 sethome - Set this chat as the home channel
 ```
+
 :::
 
 ## Step 3: Privacy Mode (Critical for Groups)
@@ -53,6 +54,7 @@ sethome - Set this chat as the home channel
 Telegram bots have a **privacy mode** that is **enabled by default**. This is the single most common source of confusion when using bots in groups.
 
 **With privacy mode ON**, your bot can only see:
+
 - Messages that start with a `/` command
 - Replies directly to the bot's own messages
 - Service messages (member joins/leaves, pinned messages, etc.)
@@ -212,7 +214,7 @@ TELEGRAM_WEBHOOK_SECRET="$(openssl rand -hex 32)"  # required
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `TELEGRAM_WEBHOOK_URL` | Yes | Public HTTPS URL where Telegram will send updates. The URL path is auto-extracted (e.g., `/telegram` from the example above). |
-| `TELEGRAM_WEBHOOK_SECRET` | **Yes** (when `TELEGRAM_WEBHOOK_URL` is set) | Secret token that Telegram echoes in every webhook request for verification. The gateway refuses to start without it — see [GHSA-3vpc-7q5r-276h](https://github.com/NousResearch/hermes-agent/security/advisories/GHSA-3vpc-7q5r-276h). Generate with `openssl rand -hex 32`. |
+| `TELEGRAM_WEBHOOK_SECRET` | **Yes** (when `TELEGRAM_WEBHOOK_URL` is set) | Secret token that Telegram echoes in every webhook request for verification. The gateway refuses to start without it — see [GHSA-3vpc-7q5r-276h](https://github.com/w159/agent-penny/security/advisories/GHSA-3vpc-7q5r-276h). Generate with `openssl rand -hex 32`. |
 | `TELEGRAM_WEBHOOK_PORT` | No | Local port the webhook server listens on (default: `8443`). |
 
 When `TELEGRAM_WEBHOOK_URL` is set, the gateway starts an HTTP webhook server instead of polling. When unset, polling mode is used — no behavior change from previous versions.
@@ -226,7 +228,7 @@ fly secrets set TELEGRAM_WEBHOOK_URL=https://my-app.fly.dev/telegram
 fly secrets set TELEGRAM_WEBHOOK_SECRET=$(openssl rand -hex 32)
 ```
 
-2. Expose the webhook port in your `fly.toml`:
+1. Expose the webhook port in your `fly.toml`:
 
 ```toml
 [[services]]
@@ -238,7 +240,7 @@ fly secrets set TELEGRAM_WEBHOOK_SECRET=$(openssl rand -hex 32)
     port = 443
 ```
 
-3. Deploy:
+1. Deploy:
 
 ```bash
 fly deploy

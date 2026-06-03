@@ -66,7 +66,7 @@ The `full` variant adds ~700 MB to the closure. If you only need messaging platf
 <summary><strong>Building from a local clone</strong></summary>
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/w159/agent-penny.git
 cd hermes-agent
 nix build
 ./result/bin/hermes setup
@@ -132,6 +132,7 @@ echo "OPENROUTER_API_KEY=sk-or-your-key" | sudo install -m 0600 -o hermes /dev/s
 ```nix
 services.hermes-agent.environmentFiles = [ "/var/lib/hermes/env" ];
 ```
+
 :::
 
 :::tip addToSystemPackages

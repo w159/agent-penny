@@ -4,7 +4,7 @@ sidebar_label: "Pptx Author"
 description: "使用 python-pptx 无头构建 PowerPoint 演示文稿"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Pptx Author
 
@@ -17,7 +17,7 @@ description: "使用 python-pptx 无头构建 PowerPoint 演示文稿"
 | 来源 | 可选 — 通过 `hermes skills install official/finance/pptx-author` 安装 |
 | 路径 | `optional-skills/finance/pptx-author` |
 | 版本 | `1.0.0` |
-| 作者 | Anthropic（由 Nous Research 改编） |
+| 作者 | Anthropic（由 w159 改编） |
 | 许可证 | Apache-2.0 |
 | 平台 | linux, macos, windows |
 | 标签 | `powerpoint`, `pptx`, `python-pptx`, `presentation`, `finance` |
@@ -51,9 +51,11 @@ pip install "python-pptx>=0.6"
 ## 核心约定
 
 ### 每张幻灯片一个观点
+
 标题陈述结论；正文支撑结论。标题为"Q3 Revenue"的幻灯片表达力弱；"Revenue growth accelerated to 14% Y/Y in Q3"则更有力。
 
 ### 每个数字都追溯到模型
+
 如果幻灯片上的数字来自 `./out/model.xlsx`，则在脚注中注明工作表和单元格。
 
 ```
@@ -63,6 +65,7 @@ Revenue: $1,250M  (Source: model.xlsx, Inputs!C3)
 切勿凭记忆或摘要转录数字 — 打开工作簿，读取命名区域，并在可能的情况下以编程方式将演示文稿中的值绑定到工作簿。
 
 ### 存在公司模板时使用公司模板
+
 如果 `./templates/firm-template.pptx` 存在，则加载它，使演示文稿继承品牌颜色、字体和母版布局。
 
 ```python
@@ -74,6 +77,7 @@ prs = Presentation(str(template)) if template.exists() else Presentation()
 ```
 
 ### 图表：从模型导出 PNG 优于原生 pptx 图表
+
 当保真度要求较高时（模型的图表样式必须与演示文稿完全匹配），从源工作簿将图表渲染为 PNG 并嵌入图片。原生 `pptx.chart` 图表较脆弱，且通常不符合公司规范。
 
 ```python
@@ -84,6 +88,7 @@ slide.shapes.add_picture("./out/charts/football_field.png",
 ```
 
 ### 不对外发送
+
 本 skill 只写入文件，不发送邮件、上传或发布。交付由编排层处理。
 
 ## 骨架代码
@@ -156,6 +161,7 @@ implied_mid  = nr("ImpliedSharePriceBase")
 ```
 
 然后使用这些值构建演示文稿内容：
+
 ```python
 slide.shapes.title.text = f"Implied share price of ${implied_mid:.2f} (base case)"
 ```
@@ -188,4 +194,4 @@ slide.shapes.title.text = f"Implied share price of ${implied_mid:.2f} (base case
 
 ## 致谢
 
-约定改编自 Anthropic 的 Claude for Financial Services 插件套件，采用 Apache-2.0 许可证。原始来源：https://github.com/anthropics/financial-services/tree/main/plugins/agent-plugins/pitch-agent/skills/pptx-author
+约定改编自 Anthropic 的 Claude for Financial Services 插件套件，采用 Apache-2.0 许可证。原始来源：<https://github.com/anthropics/financial-services/tree/main/plugins/agent-plugins/pitch-agent/skills/pptx-author>

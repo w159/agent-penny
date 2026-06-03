@@ -4,7 +4,7 @@ sidebar_label: "Tensorrt Llm"
 description: "Optimizes LLM inference with NVIDIA TensorRT for maximum throughput and lowest latency"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Tensorrt Llm
 
@@ -36,6 +36,7 @@ NVIDIA's open-source library for optimizing LLM inference with state-of-the-art 
 ## When to use TensorRT-LLM
 
 **Use TensorRT-LLM when:**
+
 - Deploying on NVIDIA GPUs (A100, H100, GB200)
 - Need maximum throughput (24,000+ tokens/sec on Llama 3)
 - Require low latency for real-time applications
@@ -43,11 +44,13 @@ NVIDIA's open-source library for optimizing LLM inference with state-of-the-art 
 - Scaling across multiple GPUs or nodes
 
 **Use vLLM instead when:**
+
 - Need simpler setup and Python-first API
 - Want PagedAttention without TensorRT compilation
 - Working with AMD GPUs or non-NVIDIA hardware
 
 **Use llama.cpp instead when:**
+
 - Deploying on CPU or Apple Silicon
 - Need edge deployment without NVIDIA GPUs
 - Want simpler GGUF quantization format
@@ -112,6 +115,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ## Key features
 
 ### Performance optimizations
+
 - **In-flight batching**: Dynamic batching during generation
 - **Paged KV cache**: Efficient memory management
 - **Flash Attention**: Optimized attention kernels
@@ -119,12 +123,14 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 - **CUDA graphs**: Reduced kernel launch overhead
 
 ### Parallelism
+
 - **Tensor parallelism (TP)**: Split model across GPUs
 - **Pipeline parallelism (PP)**: Layer-wise distribution
 - **Expert parallelism**: For Mixture-of-Experts models
 - **Multi-node**: Scale beyond single machine
 
 ### Advanced features
+
 - **Speculative decoding**: Faster generation with draft models
 - **LoRA serving**: Efficient multi-adapter deployment
 - **Disaggregated serving**: Separate prefill and generation
@@ -175,11 +181,13 @@ outputs = llm.generate(
 ## Performance benchmarks
 
 **Meta Llama 3-8B** (H100 GPU):
+
 - Throughput: 24,000 tokens/sec
 - Latency: ~10ms per token
 - vs PyTorch: **100× faster**
 
 **Llama 3-70B** (8× A100 80GB):
+
 - FP8 quantization: 2× faster than FP16
 - Memory: 50% reduction with FP8
 
@@ -195,12 +203,12 @@ outputs = llm.generate(
 
 ## References
 
-- **[Optimization Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/tensorrt-llm/references/optimization.md)** - Quantization, batching, KV cache tuning
-- **[Multi-GPU Setup](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/tensorrt-llm/references/multi-gpu.md)** - Tensor/pipeline parallelism, multi-node
-- **[Serving Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/tensorrt-llm/references/serving.md)** - Production deployment, monitoring, autoscaling
+- **[Optimization Guide](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/tensorrt-llm/references/optimization.md)** - Quantization, batching, KV cache tuning
+- **[Multi-GPU Setup](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/tensorrt-llm/references/multi-gpu.md)** - Tensor/pipeline parallelism, multi-node
+- **[Serving Guide](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/tensorrt-llm/references/serving.md)** - Production deployment, monitoring, autoscaling
 
 ## Resources
 
-- **Docs**: https://nvidia.github.io/TensorRT-LLM/
-- **GitHub**: https://github.com/NVIDIA/TensorRT-LLM
-- **Models**: https://huggingface.co/models?library=tensorrt_llm
+- **Docs**: <https://nvidia.github.io/TensorRT-LLM/>
+- **GitHub**: <https://github.com/NVIDIA/TensorRT-LLM>
+- **Models**: <https://huggingface.co/models?library=tensorrt_llm>

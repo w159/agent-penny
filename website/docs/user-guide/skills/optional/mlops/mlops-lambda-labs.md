@@ -4,7 +4,7 @@ sidebar_label: "Lambda Labs Gpu Cloud"
 description: "Reserved and on-demand GPU cloud instances for ML training and inference"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Lambda Labs Gpu Cloud
 
@@ -36,6 +36,7 @@ Comprehensive guide to running ML workloads on Lambda Labs GPU cloud with on-dem
 ## When to use Lambda Labs
 
 **Use Lambda Labs when:**
+
 - Need dedicated GPU instances with full SSH access
 - Running long training jobs (hours to days)
 - Want simple pricing with no egress fees
@@ -44,6 +45,7 @@ Comprehensive guide to running ML workloads on Lambda Labs GPU cloud with on-dem
 - Want pre-installed ML stack (Lambda Stack with PyTorch, CUDA, NCCL)
 
 **Key features:**
+
 - **GPU variety**: B200, H100, GH200, A100, A10, A6000, V100
 - **Lambda Stack**: Pre-installed PyTorch, TensorFlow, CUDA, cuDNN, NCCL
 - **Persistent filesystems**: Keep data across instance restarts
@@ -52,6 +54,7 @@ Comprehensive guide to running ML workloads on Lambda Labs GPU cloud with on-dem
 - **Global regions**: 12+ regions worldwide
 
 **Use alternatives instead:**
+
 - **Modal**: For serverless, auto-scaling workloads
 - **SkyPilot**: For multi-cloud orchestration and cost optimization
 - **RunPod**: For cheaper spot instances and serverless endpoints
@@ -61,14 +64,14 @@ Comprehensive guide to running ML workloads on Lambda Labs GPU cloud with on-dem
 
 ### Account setup
 
-1. Create account at https://lambda.ai
+1. Create account at <https://lambda.ai>
 2. Add payment method
 3. Generate API key from dashboard
 4. Add SSH key (required before launching instances)
 
 ### Launch via console
 
-1. Go to https://cloud.lambda.ai/instances
+1. Go to <https://cloud.lambda.ai/instances>
 2. Click "Launch instance"
 3. Select GPU type and region
 4. Choose SSH key
@@ -289,6 +292,7 @@ python train.py --checkpoint-dir /lambda/nfs/my-storage/checkpoints
 ### Attach to instance
 
 Filesystems must be attached at instance launch time:
+
 - Via console: Select filesystem when launching
 - Via API: Include `file_system_names` in launch request
 
@@ -435,6 +439,7 @@ torch.save({
 ### Overview
 
 High-performance Slurm clusters with:
+
 - 16-512 NVIDIA H100 or B200 GPUs
 - NVIDIA Quantum-2 400 Gb/s InfiniBand
 - GPUDirect RDMA at 3200 Gb/s
@@ -556,13 +561,13 @@ python inference.py \
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/lambda-labs/references/advanced-usage.md)** - Multi-node training, API automation
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/lambda-labs/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/lambda-labs/references/advanced-usage.md)** - Multi-node training, API automation
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/lambda-labs/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 
-- **Documentation**: https://docs.lambda.ai
-- **Console**: https://cloud.lambda.ai
-- **Pricing**: https://lambda.ai/instances
-- **Support**: https://support.lambdalabs.com
-- **Blog**: https://lambda.ai/blog
+- **Documentation**: <https://docs.lambda.ai>
+- **Console**: <https://cloud.lambda.ai>
+- **Pricing**: <https://lambda.ai/instances>
+- **Support**: <https://support.lambdalabs.com>
+- **Blog**: <https://lambda.ai/blog>

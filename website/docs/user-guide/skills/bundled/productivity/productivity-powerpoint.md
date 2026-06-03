@@ -4,7 +4,7 @@ sidebar_label: "Powerpoint"
 description: "Create, read, edit"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Powerpoint
 
@@ -36,8 +36,8 @@ Use this skill any time a .pptx file is involved in any way — as input, output
 | Task | Guide |
 |------|-------|
 | Read/analyze content | `python -m markitdown presentation.pptx` |
-| Edit or create from template | Read [editing.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/editing.md) |
-| Create from scratch | Read [pptxgenjs.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/pptxgenjs.md) |
+| Edit or create from template | Read [editing.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/editing.md) |
+| Create from scratch | Read [pptxgenjs.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/pptxgenjs.md) |
 
 ---
 
@@ -58,7 +58,7 @@ python scripts/office/unpack.py presentation.pptx unpacked/
 
 ## Editing Workflow
 
-**Read [editing.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/editing.md) for full details.**
+**Read [editing.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/editing.md) for full details.**
 
 1. Analyze template with `thumbnail.py`
 2. Unpack → manipulate slides → edit content → clean → pack
@@ -67,7 +67,7 @@ python scripts/office/unpack.py presentation.pptx unpacked/
 
 ## Creating from Scratch
 
-**Read [pptxgenjs.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/productivity/powerpoint/pptxgenjs.md) for full details.**
+**Read [pptxgenjs.md](https://github.com/w159/agent-penny/blob/main/skills/productivity/powerpoint/pptxgenjs.md) for full details.**
 
 Use when no template or reference presentation is available.
 
@@ -106,17 +106,20 @@ Choose colors that match your topic — don't default to generic blue. Use these
 **Every slide needs a visual element** — image, chart, icon, or shape. Text-only slides are forgettable.
 
 **Layout options:**
+
 - Two-column (text left, illustration on right)
 - Icon + text rows (icon in colored circle, bold header, description below)
 - 2x2 or 2x3 grid (image on one side, grid of content blocks on other)
 - Half-bleed image (full left or right side) with content overlay
 
 **Data display:**
+
 - Large stat callouts (big numbers 60-72pt with small labels below)
 - Comparison columns (before/after, pros/cons, side-by-side options)
 - Timeline or process flow (numbered steps, arrows)
 
 **Visual polish:**
+
 - Icons in small colored circles next to section headers
 - Italic accent text for key stats or taglines
 

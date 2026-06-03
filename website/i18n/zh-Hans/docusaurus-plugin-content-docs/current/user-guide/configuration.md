@@ -79,7 +79,7 @@ delegation:
 
 还可以设置 `providers.<id>.stale_timeout_seconds` 用于非流式陈旧调用检测器，以及 `providers.<id>.models.<model>.stale_timeout_seconds` 作为特定模型的覆盖值。此值优先于旧版 `HERMES_API_CALL_STALE_TIMEOUT` 环境变量。
 
-不设置这些值将保持旧版默认值（`HERMES_API_TIMEOUT=1800`s、`HERMES_API_CALL_STALE_TIMEOUT=300`s、原生 Anthropic 900s）。目前不适用于 AWS Bedrock（`bedrock_converse` 和 AnthropicBedrock SDK 路径均使用 boto3 及其自身的超时配置）。请参阅 [`cli-config.yaml.example`](https://github.com/NousResearch/hermes-agent/blob/main/cli-config.yaml.example) 中的注释示例。
+不设置这些值将保持旧版默认值（`HERMES_API_TIMEOUT=1800`s、`HERMES_API_CALL_STALE_TIMEOUT=300`s、原生 Anthropic 900s）。目前不适用于 AWS Bedrock（`bedrock_converse` 和 AnthropicBedrock SDK 路径均使用 boto3 及其自身的超时配置）。请参阅 [`cli-config.yaml.example`](https://github.com/w159/agent-penny/blob/main/cli-config.yaml.example) 中的注释示例。
 
 ## 终端后端配置
 
@@ -159,6 +159,7 @@ terminal:
 通过 `delegate_task(tasks=[...])` 生成的并行子 agent 共享这一个容器 —— 并发的 `cd`、环境变量修改以及对同一路径的写入会发生冲突。如果子 agent 需要隔离的沙箱，必须通过 `register_task_env_overrides()` 注册每任务镜像覆盖，RL 和基准测试环境（TerminalBench2、HermesSweEnv 等）会自动为其每任务 Docker 镜像执行此操作。
 
 **安全加固：**
+
 - `--cap-drop ALL`，仅添加回 `DAC_OVERRIDE`、`CHOWN`、`FOWNER`
 - `--security-opt no-new-privileges`
 - `--pids-limit 256`
@@ -296,6 +297,7 @@ terminal:
 ```
 
 适用于：
+
 - **向 agent 提供文件**（数据集、配置、参考代码）
 - **从 agent 接收文件**（生成的代码、报告、导出）
 - **共享工作区**，您和 agent 都访问相同的文件
@@ -357,6 +359,7 @@ terminal:
 ```
 
 启用后：
+
 - 如果您从 `~/projects/my-app` 启动 Hermes，该宿主目录将绑定挂载到 `/workspace`
 - Docker 后端从 `/workspace` 开始
 - 文件工具和终端命令都能看到相同的挂载项目
@@ -364,6 +367,7 @@ terminal:
 禁用时，`/workspace` 保持沙箱所有，除非您通过 `docker_volumes` 显式挂载内容。
 
 安全权衡：
+
 - `false` 保留沙箱边界
 - `true` 使沙箱直接访问您启动 Hermes 的目录
 
@@ -387,6 +391,7 @@ hermes config set terminal.persistent_shell false
 ```
 
 **跨命令保持的内容：**
+
 - 工作目录（`cd /tmp` 对下一条命令生效）
 - 导出的环境变量（`export FOO=bar`）
 - Shell 变量（`MY_VAR=hello`）
@@ -578,29 +583,35 @@ auxiliary:
 ### 常见设置
 
 **默认（自动检测）—— 无需配置：**
+
 ```yaml
 compression:
   enabled: true
   threshold: 0.50
 ```
+
 使用您的主 provider 和主模型。如果您希望在比主聊天模型更便宜的模型上进行压缩，请覆盖每任务（例如 `auxiliary.compression.provider: openrouter` + `model: google/gemini-2.5-flash`）。
 
 **强制特定 provider**（基于 OAuth 或 API 密钥）：
+
 ```yaml
 auxiliary:
   compression:
     provider: nous
     model: gemini-3-flash
 ```
+
 适用于任何 provider：`nous`、`openrouter`、`codex`、`anthropic`、`main` 等。
 
 **自定义端点**（自托管、Ollama、zai、DeepSeek 等）：
+
 ```yaml
 auxiliary:
   compression:
     model: glm-4.7
     base_url: https://api.z.ai/api/coding/paas/v4
 ```
+
 指向自定义 OpenAI 兼容端点。使用 `OPENAI_API_KEY` 进行认证。
 
 ### 三个旋钮的交互方式
@@ -924,6 +935,7 @@ auxiliary:
 ### 常见设置
 
 **使用直接自定义端点**（比 `provider: "main"` 对本地/自托管 API 更清晰）：
+
 ```yaml
 auxiliary:
   vision:
@@ -935,6 +947,7 @@ auxiliary:
 `base_url` 优先于 `provider`，因此这是将辅助任务路由到特定端点的最明确方式。对于直接端点覆盖，Hermes 使用配置的 `api_key` 或回退到 `OPENAI_API_KEY`；它不会为该自定义端点重用 `OPENROUTER_API_KEY`。
 
 **使用 OpenAI API 密钥进行视觉：**
+
 ```yaml
 # 在 ~/.hermes/.env 中：
 # OPENAI_BASE_URL=https://api.openai.com/v1
@@ -947,6 +960,7 @@ auxiliary:
 ```
 
 **使用 OpenRouter 进行视觉**（路由到任何模型）：
+
 ```yaml
 auxiliary:
   vision:
@@ -955,6 +969,7 @@ auxiliary:
 ```
 
 **使用 Codex OAuth**（ChatGPT Pro/Plus 账户 —— 无需 API 密钥）：
+
 ```yaml
 auxiliary:
   vision:
@@ -963,15 +978,18 @@ auxiliary:
 ```
 
 **使用 MiniMax OAuth**（浏览器登录，无需 API 密钥）：
+
 ```yaml
 model:
   default: MiniMax-M2.7
   provider: minimax-oauth
   base_url: https://api.minimax.io/anthropic
 ```
+
 运行 `hermes model` 并选择 **MiniMax (OAuth)** 自动登录并设置此项。对于中国区域，基础 URL 将是 `https://api.minimaxi.com/anthropic`。完整演练请参阅 [MiniMax OAuth 指南](../guides/minimax-oauth.md)。
 
 **使用本地/自托管模型：**
+
 ```yaml
 auxiliary:
   vision:
@@ -1541,6 +1559,7 @@ security:
 启用后，任何匹配被阻止域名模式的 URL 在 web 或浏览器工具执行之前都会被拒绝。这适用于 `web_search`、`web_extract`、`browser_navigate` 以及任何访问 URL 的工具。
 
 域名规则支持：
+
 - 精确域名：`admin.example.com`
 - 通配符子域名：`*.internal.company.com`（阻止所有子域名）
 - TLD 通配符：`*.local`
@@ -1579,7 +1598,6 @@ checkpoints:
   enabled: false                 # 启用自动检查点（也可：hermes chat --checkpoints）。默认：false（选择加入）。
   max_snapshots: 20              # 每个目录保留的最大检查点数（默认：20）
 ```
-
 
 ## 委托
 
@@ -1639,6 +1657,7 @@ Hermes 使用两种不同的上下文范围：
 - 所有加载的上下文文件上限为 20,000 字符，并进行智能截断。
 
 另请参阅：
+
 - [个性与 SOUL.md](/user-guide/features/personality)
 - [上下文文件](/user-guide/features/context-files)
 
@@ -1651,6 +1670,7 @@ Hermes 使用两种不同的上下文范围：
 | **Docker / Singularity / Modal / SSH** | 容器或远程机器内用户的主目录 |
 
 覆盖工作目录：
+
 ```bash
 # 在 ~/.hermes/.env 或 ~/.hermes/config.yaml 中：
 MESSAGING_CWD=/home/myuser/projects    # Gateway 会话

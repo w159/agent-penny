@@ -4,7 +4,7 @@ sidebar_label: "Gif Search"
 description: "Search/download GIFs from Tenor via curl + jq"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Gif Search
 
@@ -44,7 +44,7 @@ Set your Tenor API key in your environment (add to `~/.hermes/.env`):
 TENOR_API_KEY=your_key_here
 ```
 
-Get a free API key at https://developers.google.com/tenor/guides/quickstart — the Google Cloud Console Tenor API key is free and has generous rate limits.
+Get a free API key at <https://developers.google.com/tenor/guides/quickstart> — the Google Cloud Console Tenor API key is free and has generous rate limits.
 
 ## Prerequisites
 
@@ -103,4 +103,4 @@ Each result has multiple formats under `.media_formats`:
 
 - URL-encode the query: spaces as `+`, special chars as `%XX`
 - For sending in chat, `tinygif` URLs are lighter weight
-- GIF URLs can be used directly in markdown: `![alt](https://github.com/NousResearch/hermes-agent/blob/main/skills/media/gif-search/url)`
+- GIF URLs can be used directly in markdown: `![alt](https://github.com/w159/agent-penny/blob/main/skills/media/gif-search/url)`

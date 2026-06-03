@@ -4,7 +4,7 @@ sidebar_label: "Google Workspace"
 description: "Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Google Workspace
 
@@ -17,7 +17,7 @@ Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python.
 | Source | Bundled (installed by default) |
 | Path | `skills/productivity/google-workspace` |
 | Version | `1.1.0` |
-| Author | Nous Research |
+| Author | w159 |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Google`, `Gmail`, `Calendar`, `Drive`, `Sheets`, `Docs`, `Contacts`, `Email`, `OAuth` |
@@ -98,17 +98,17 @@ Tell the user:
 > You need a Google Cloud OAuth client. This is a one-time setup:
 >
 > 1. Create or select a project:
->    https://console.cloud.google.com/projectselector2/home/dashboard
+>    <https://console.cloud.google.com/projectselector2/home/dashboard>
 > 2. Enable the required APIs from the API Library:
->    https://console.cloud.google.com/apis/library
+>    <https://console.cloud.google.com/apis/library>
 >    Enable: Gmail API, Google Calendar API, Google Drive API,
 >    Google Sheets API, Google Docs API, People API
 > 3. Create the OAuth client here:
->    https://console.cloud.google.com/apis/credentials
+>    <https://console.cloud.google.com/apis/credentials>
 >    Credentials → Create Credentials → OAuth 2.0 Client ID
 > 4. Application type: "Desktop app" → Create
 > 5. If the app is still in Testing, add the user's Google account as a test user here:
->    https://console.cloud.google.com/auth/audience
+>    <https://console.cloud.google.com/auth/audience>
 >    Audience → Test users → Add users
 > 6. Download the JSON file and tell me the file path
 >
@@ -140,6 +140,7 @@ This returns JSON with an `auth_url` field and also saves the exact URL to
 `~/.hermes/google_oauth_last_url.txt`.
 
 Agent rules for this step:
+
 - Extract the `auth_url` field and send that exact URL to the user as a single line.
 - Tell the user that the browser will likely fail on `http://localhost:1` after approval, and that this is expected.
 - Tell them to copy the ENTIRE redirected URL from the browser address bar.

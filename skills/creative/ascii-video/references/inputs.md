@@ -325,6 +325,7 @@ def generate_tts(text, voice_id, api_key, output_path, model="eleven_multilingua
 ```
 
 Voice settings notes:
+
 - `stability` 0.65 gives natural variation without drift. Lower (0.3-0.5) for more expressive reads, higher (0.7-0.9) for monotone/narration.
 - `similarity_boost` 0.80 keeps it close to the voice profile. Lower for more generic sound.
 - `style` 0.15 adds slight stylistic variation. Keep low (0-0.2) for straightforward reads.
@@ -380,6 +381,7 @@ def assign_voices(n_quotes, voice_pool, seed=42):
 TTS text must be separate from display text. The display text has line breaks for visual layout; the TTS text is a flat sentence with phonetic fixes.
 
 Common fixes:
+
 - Brand names: spell phonetically ("Nous" -> "Noose", "nginx" -> "engine-x")
 - Abbreviations: expand ("API" -> "A P I", "CLI" -> "C L I")
 - Technical terms: add phonetic hints
@@ -388,7 +390,7 @@ Common fixes:
 ```python
 # Display text: line breaks control visual layout
 QUOTES = [
-    ("It can do far more than the Claws,\nand you don't need to buy a Mac Mini.\nNous Research has a winner here.", "Brian Roemmele"),
+    ("It can do far more than the Claws,\nand you don't need to buy a Mac Mini.\nw159 has a winner here.", "Brian Roemmele"),
 ]
 
 # TTS text: flat, phonetically corrected for speech
@@ -474,6 +476,7 @@ def build_tts_track(tts_clips, target_duration, intro_pad=5.0, outro_pad=4.0):
 ### Audio Mixing
 
 Mix TTS (center) with background music (wide stereo, low volume). The filter chain:
+
 1. TTS mono duplicated to both channels (centered)
 2. BGM loudness-normalized, volume reduced to 15%, stereo widened with `extrastereo`
 3. Mixed together with dropout transition for smooth endings

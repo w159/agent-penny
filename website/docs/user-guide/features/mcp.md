@@ -27,7 +27,7 @@ cd ~/.hermes/hermes-agent
 uv pip install -e ".[mcp]"
 ```
 
-2. Add an MCP server to `~/.hermes/config.yaml`:
+1. Add an MCP server to `~/.hermes/config.yaml`:
 
 ```yaml
 mcp_servers:
@@ -36,13 +36,13 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
 ```
 
-3. Start Hermes:
+1. Start Hermes:
 
 ```bash
 hermes chat
 ```
 
-4. Ask Hermes to use the MCP-backed capability.
+1. Ask Hermes to use the MCP-backed capability.
 
 For example:
 
@@ -130,7 +130,7 @@ the hermes-agent repo, so Nous has reviewed each entry before it shipped —
 `transport.command:` invocation.
 
 Manifests live at
-[`optional-mcps/<name>/manifest.yaml`](https://github.com/NousResearch/hermes-agent/tree/main/optional-mcps)
+[`optional-mcps/<name>/manifest.yaml`](https://github.com/w159/agent-penny/tree/main/optional-mcps)
 on GitHub. The picker also prints the manifest's `source:` URL at install
 time so you can quickly verify the upstream repo.
 
@@ -170,7 +170,7 @@ MCPs are never auto-updated. Re-run `hermes mcp install <name>` to refresh
 after a Hermes update if a manifest version changed.
 
 To add an MCP to the catalog, open a PR against
-[`optional-mcps/`](https://github.com/NousResearch/hermes-agent/tree/main/optional-mcps).
+[`optional-mcps/`](https://github.com/w159/agent-penny/tree/main/optional-mcps).
 
 ## Two kinds of MCP servers
 
@@ -188,6 +188,7 @@ mcp_servers:
 ```
 
 Use stdio servers when:
+
 - the server is installed locally
 - you want low-latency access to local resources
 - you are following MCP server docs that show `command`, `args`, and `env`
@@ -205,6 +206,7 @@ mcp_servers:
 ```
 
 Use HTTP servers when:
+
 - the MCP server is hosted elsewhere
 - your organization exposes internal MCP endpoints
 - you do not want Hermes spawning a local subprocess for that integration
@@ -342,6 +344,7 @@ These are registered per server with the same prefix pattern, for example:
 ### Important
 
 These utility tools are now capability-aware:
+
 - Hermes only registers resource utilities if the MCP session actually supports resource operations
 - Hermes only registers prompt utilities if the MCP session actually supports prompt operations
 
@@ -415,6 +418,7 @@ mcp_servers:
 ```
 
 That means:
+
 - `tools.resources: false` disables `list_resources` and `read_resource`
 - `tools.prompts: false` disables `list_prompts` and `get_prompt`
 
@@ -495,6 +499,7 @@ Only explicitly configured `env` plus a safe baseline are passed through. This r
 ### Config-level exposure control
 
 The new filtering support is also a security control:
+
 - disable dangerous tools you do not want the model to see
 - expose only a minimal whitelist for a sensitive server
 - disable resource/prompt wrappers when you do not want that surface exposed
@@ -574,6 +579,7 @@ Then verify your config and restart Hermes.
 ### Tools not appearing
 
 Possible causes:
+
 - the server failed to connect
 - discovery failed
 - your filter config excluded the tools
@@ -585,6 +591,7 @@ If you are intentionally filtering, this is expected.
 ### Why didn't resource or prompt utilities appear?
 
 Because Hermes now only registers those wrappers when both are true:
+
 1. your config allows them
 2. the server session actually supports the capability
 

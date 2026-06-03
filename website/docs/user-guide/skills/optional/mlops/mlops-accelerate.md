@@ -4,7 +4,7 @@ sidebar_label: "Huggingface Accelerate"
 description: "Simplest distributed training API"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Huggingface Accelerate
 
@@ -36,11 +36,13 @@ The following is the complete skill definition that Hermes loads when this skill
 Accelerate simplifies distributed training to 4 lines of code.
 
 **Installation**:
+
 ```bash
 pip install accelerate
 ```
 
 **Convert PyTorch script** (4 lines):
+
 ```python
 import torch
 + from accelerate import Accelerator
@@ -62,6 +64,7 @@ import torch
 ```
 
 **Run** (single command):
+
 ```bash
 accelerate launch train.py
 ```
@@ -71,6 +74,7 @@ accelerate launch train.py
 ### Workflow 1: From single GPU to multi-GPU
 
 **Original script**:
+
 ```python
 # train.py
 import torch
@@ -89,6 +93,7 @@ for epoch in range(10):
 ```
 
 **With Accelerate** (4 lines added):
+
 ```python
 # train.py
 import torch
@@ -112,17 +117,20 @@ for epoch in range(10):
 ```
 
 **Configure** (interactive):
+
 ```bash
 accelerate config
 ```
 
 **Questions**:
+
 - Which machine? (single/multi GPU/TPU/CPU)
 - How many machines? (1)
 - Mixed precision? (no/fp16/bf16/fp8)
 - DeepSpeed? (no/yes)
 
 **Launch** (works on any setup):
+
 ```bash
 # Single GPU
 accelerate launch train.py
@@ -140,6 +148,7 @@ accelerate launch --multi_gpu --num_processes 16 \
 ### Workflow 2: Mixed precision training
 
 **Enable FP16/BF16**:
+
 ```python
 from accelerate import Accelerator
 
@@ -164,6 +173,7 @@ for batch in dataloader:
 ### Workflow 3: DeepSpeed ZeRO integration
 
 **Enable DeepSpeed ZeRO-2**:
+
 ```python
 from accelerate import Accelerator
 
@@ -181,12 +191,14 @@ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
 ```
 
 **Or via config**:
+
 ```bash
 accelerate config
 # Select: DeepSpeed → ZeRO-2
 ```
 
 **deepspeed_config.json**:
+
 ```json
 {
     "fp16": {"enabled": false},
@@ -201,6 +213,7 @@ accelerate config
 ```
 
 **Launch**:
+
 ```bash
 accelerate launch --config_file deepspeed_config.json train.py
 ```
@@ -208,6 +221,7 @@ accelerate launch --config_file deepspeed_config.json train.py
 ### Workflow 4: FSDP (Fully Sharded Data Parallel)
 
 **Enable FSDP**:
+
 ```python
 from accelerate import Accelerator, FullyShardedDataParallelPlugin
 
@@ -226,6 +240,7 @@ model, optimizer, dataloader = accelerator.prepare(model, optimizer, dataloader)
 ```
 
 **Or via config**:
+
 ```bash
 accelerate config
 # Select: FSDP → Full Shard → No CPU Offload
@@ -234,6 +249,7 @@ accelerate config
 ### Workflow 5: Gradient accumulation
 
 **Accumulate gradients**:
+
 ```python
 from accelerate import Accelerator
 
@@ -254,6 +270,7 @@ for batch in dataloader:
 ## When to use vs alternatives
 
 **Use Accelerate when**:
+
 - Want simplest distributed training
 - Need single script for any hardware
 - Use HuggingFace ecosystem
@@ -261,6 +278,7 @@ for batch in dataloader:
 - Need quick prototyping
 
 **Key advantages**:
+
 - **4 lines**: Minimal code changes
 - **Unified API**: Same code for DDP, DeepSpeed, FSDP, Megatron
 - **Automatic**: Device placement, mixed precision, sharding
@@ -268,6 +286,7 @@ for batch in dataloader:
 - **Single launch**: Works everywhere
 
 **Use alternatives instead**:
+
 - **PyTorch Lightning**: Need callbacks, high-level abstractions
 - **Ray Train**: Multi-node orchestration, hyperparameter tuning
 - **DeepSpeed**: Direct API control, advanced features
@@ -278,6 +297,7 @@ for batch in dataloader:
 **Issue: Wrong device placement**
 
 Don't manually move to device:
+
 ```python
 # WRONG
 batch = batch.to('cuda')
@@ -289,6 +309,7 @@ batch = batch.to('cuda')
 **Issue: Gradient accumulation not working**
 
 Use context manager:
+
 ```python
 # CORRECT
 with accelerator.accumulate(model):
@@ -300,6 +321,7 @@ with accelerator.accumulate(model):
 **Issue: Checkpointing in distributed**
 
 Use accelerator methods:
+
 ```python
 # Save only on main process
 if accelerator.is_main_process:
@@ -312,6 +334,7 @@ accelerator.load_state('checkpoint/')
 **Issue: Different results with FSDP**
 
 Ensure same random seed:
+
 ```python
 from accelerate.utils import set_seed
 set_seed(42)
@@ -319,11 +342,11 @@ set_seed(42)
 
 ## Advanced topics
 
-**Megatron integration**: See [references/megatron-integration.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/accelerate/references/megatron-integration.md) for tensor parallelism, pipeline parallelism, and sequence parallelism setup.
+**Megatron integration**: See [references/megatron-integration.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/accelerate/references/megatron-integration.md) for tensor parallelism, pipeline parallelism, and sequence parallelism setup.
 
-**Custom plugins**: See [references/custom-plugins.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/accelerate/references/custom-plugins.md) for creating custom distributed plugins and advanced configuration.
+**Custom plugins**: See [references/custom-plugins.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/accelerate/references/custom-plugins.md) for creating custom distributed plugins and advanced configuration.
 
-**Performance tuning**: See [references/performance.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/accelerate/references/performance.md) for profiling, memory optimization, and best practices.
+**Performance tuning**: See [references/performance.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/accelerate/references/performance.md) for profiling, memory optimization, and best practices.
 
 ## Hardware requirements
 
@@ -335,6 +358,7 @@ set_seed(42)
 - **Apple MPS**: Supported
 
 **Launcher requirements**:
+
 - **DDP**: `torch.distributed.run` (built-in)
 - **DeepSpeed**: `deepspeed` (pip install deepspeed)
 - **FSDP**: PyTorch 1.12+ (built-in)
@@ -342,9 +366,9 @@ set_seed(42)
 
 ## Resources
 
-- Docs: https://huggingface.co/docs/accelerate
-- GitHub: https://github.com/huggingface/accelerate
+- Docs: <https://huggingface.co/docs/accelerate>
+- GitHub: <https://github.com/huggingface/accelerate>
 - Version: 1.11.0+
 - Tutorial: "Accelerate your scripts"
-- Examples: https://github.com/huggingface/accelerate/tree/main/examples
+- Examples: <https://github.com/huggingface/accelerate/tree/main/examples>
 - Used by: HuggingFace Transformers, TRL, PEFT, all HF libraries

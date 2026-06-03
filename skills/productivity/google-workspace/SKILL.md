@@ -2,19 +2,30 @@
 name: google-workspace
 description: "Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python."
 version: 1.1.0
-author: Nous Research
+author: w159
 license: MIT
 platforms: [linux, macos, windows]
 required_credential_files:
-  - path: google_token.json
-    description: Google OAuth2 token (created by setup script)
-  - path: google_client_secret.json
-    description: Google OAuth2 client credentials (downloaded from Google Cloud Console)
+    - path: google_token.json
+      description: Google OAuth2 token (created by setup script)
+    - path: google_client_secret.json
+      description: Google OAuth2 client credentials (downloaded from Google Cloud Console)
 metadata:
-  hermes:
-    tags: [Google, Gmail, Calendar, Drive, Sheets, Docs, Contacts, Email, OAuth]
-    homepage: https://github.com/NousResearch/hermes-agent
-    related_skills: [himalaya]
+    hermes:
+        tags:
+            [
+                Google,
+                Gmail,
+                Calendar,
+                Drive,
+                Sheets,
+                Docs,
+                Contacts,
+                Email,
+                OAuth,
+            ]
+        homepage: https://github.com/w159/agent-penny
+        related_skills: [himalaya]
 ---
 
 # Google Workspace
@@ -128,6 +139,7 @@ This returns JSON with an `auth_url` field and also saves the exact URL to
 `~/.hermes/google_oauth_last_url.txt`.
 
 Agent rules for this step:
+
 - Extract the `auth_url` field and send that exact URL to the user as a single line.
 - Tell the user that the browser will likely fail on `http://localhost:1` after approval, and that this is expected.
 - Tell them to copy the ENTIRE redirected URL from the browser address bar.
@@ -318,15 +330,15 @@ All commands return JSON. Parse with `jq` or read directly. Key fields:
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `NOT_AUTHENTICATED` | Run setup Steps 2-5 above |
-| `REFRESH_FAILED` | Token revoked or expired — redo Steps 3-5 |
-| `HttpError 403: Insufficient Permission` | Missing API scope — `$GSETUP --revoke` then redo Steps 3-5 |
+| Problem                                             | Fix                                                                                                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NOT_AUTHENTICATED`                                 | Run setup Steps 2-5 above                                                                                                                                    |
+| `REFRESH_FAILED`                                    | Token revoked or expired — redo Steps 3-5                                                                                                                    |
+| `HttpError 403: Insufficient Permission`            | Missing API scope — `$GSETUP --revoke` then redo Steps 3-5                                                                                                   |
 | `AUTHENTICATED (partial)` or "Token missing scopes" | New write capabilities (Drive write/delete, Docs create/edit) require re-authorization. `$GSETUP --revoke` then redo Steps 3-5 to grant the upgraded scopes. |
-| `HttpError 403: Access Not Configured` | API not enabled — user needs to enable it in Google Cloud Console |
-| `ModuleNotFoundError` | Run `$GSETUP --install-deps` |
-| Advanced Protection blocks auth | Workspace admin must allowlist the OAuth client ID |
+| `HttpError 403: Access Not Configured`              | API not enabled — user needs to enable it in Google Cloud Console                                                                                            |
+| `ModuleNotFoundError`                               | Run `$GSETUP --install-deps`                                                                                                                                 |
+| Advanced Protection blocks auth                     | Workspace admin must allowlist the OAuth client ID                                                                                                           |
 
 ## Revoking Access
 

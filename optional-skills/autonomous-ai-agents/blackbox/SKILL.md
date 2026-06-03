@@ -2,13 +2,13 @@
 name: blackbox
 description: Delegate coding tasks to Blackbox AI CLI agent. Multi-model agent with built-in judge that runs tasks through multiple LLMs and picks the best result. Requires the blackbox CLI and a Blackbox AI API key.
 version: 1.0.0
-author: Hermes Agent (Nous Research)
+author: Hermes Agent (w159)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  hermes:
-    tags: [Coding-Agent, Blackbox, Multi-Agent, Judge, Multi-Model]
-    related_skills: [claude-code, codex, hermes-agent]
+    hermes:
+        tags: [Coding-Agent, Blackbox, Multi-Agent, Judge, Multi-Model]
+        related_skills: [claude-code, codex, hermes-agent]
 ---
 
 # Blackbox CLI
@@ -22,10 +22,10 @@ The CLI is [open-source](https://github.com/blackboxaicode/cli) (GPL-3.0, TypeSc
 - Node.js 20+ installed
 - Blackbox CLI installed: `npm install -g @blackboxai/cli`
 - Or install from source:
-  ```
-  git clone https://github.com/blackboxaicode/cli.git
-  cd cli && npm install && npm install -g .
-  ```
+    ```
+    git clone https://github.com/blackboxaicode/cli.git
+    cd cli && npm install && npm install -g .
+    ```
 - API key from [app.blackbox.ai/dashboard](https://app.blackbox.ai/dashboard)
 - Configured: run `blackbox configure` and enter your API key
 - Use `pty=true` in terminal calls — Blackbox CLI is an interactive terminal app
@@ -37,6 +37,7 @@ terminal(command="blackbox --prompt 'Add JWT authentication with refresh tokens 
 ```
 
 For quick scratch work:
+
 ```
 terminal(command="cd $(mktemp -d) && git init && blackbox --prompt 'Build a REST API for todos with SQLite'", pty=true)
 ```
@@ -75,12 +76,12 @@ terminal(command="blackbox --resume-checkpoint 'task-abc123-2026-03-06' --prompt
 
 During an interactive session, use these commands:
 
-| Command | Effect |
-|---------|--------|
+| Command     | Effect                                     |
+| ----------- | ------------------------------------------ |
 | `/compress` | Shrink conversation history to save tokens |
-| `/clear` | Wipe history and start fresh |
-| `/stats` | View current token usage |
-| `Ctrl+C` | Cancel current operation |
+| `/clear`    | Wipe history and start fresh               |
+| `/stats`    | View current token usage                   |
+| `Ctrl+C`    | Cancel current operation                   |
 
 ## PR Reviews
 
@@ -108,18 +109,19 @@ Blackbox's unique feature is running the same task through multiple models and j
 
 ## Key Flags
 
-| Flag | Effect |
-|------|--------|
-| `--prompt "task"` | Non-interactive one-shot execution |
-| `--resume-checkpoint "tag"` | Resume from a saved checkpoint |
-| `--yolo` | Auto-approve all actions and model switches |
-| `blackbox session` | Start interactive chat session |
-| `blackbox configure` | Change settings, providers, models |
-| `blackbox info` | Display system information |
+| Flag                        | Effect                                      |
+| --------------------------- | ------------------------------------------- |
+| `--prompt "task"`           | Non-interactive one-shot execution          |
+| `--resume-checkpoint "tag"` | Resume from a saved checkpoint              |
+| `--yolo`                    | Auto-approve all actions and model switches |
+| `blackbox session`          | Start interactive chat session              |
+| `blackbox configure`        | Change settings, providers, models          |
+| `blackbox info`             | Display system information                  |
 
 ## Vision Support
 
 Blackbox automatically detects images in input and can switch to multimodal analysis. VLM modes:
+
 - `"once"` — Switch model for current query only
 - `"session"` — Switch for entire session
 - `"persist"` — Stay on current model (no switch)
@@ -127,9 +129,10 @@ Blackbox automatically detects images in input and can switch to multimodal anal
 ## Token Limits
 
 Control token usage via `.blackboxcli/settings.json`:
+
 ```json
 {
-  "sessionTokenLimit": 32000
+    "sessionTokenLimit": 32000
 }
 ```
 

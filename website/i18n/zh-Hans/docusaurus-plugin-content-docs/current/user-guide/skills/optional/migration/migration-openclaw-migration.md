@@ -4,7 +4,7 @@ sidebar_label: "Openclaw Migration"
 description: "将用户的 OpenClaw 自定义配置迁移到 Hermes Agent"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Openclaw Migration
 
@@ -17,7 +17,7 @@ description: "将用户的 OpenClaw 自定义配置迁移到 Hermes Agent"
 | 来源 | 可选 — 通过 `hermes skills install official/migration/openclaw-migration` 安装 |
 | 路径 | `optional-skills/migration/openclaw-migration` |
 | 版本 | `1.0.0` |
-| 作者 | Hermes Agent (Nous Research) |
+| 作者 | Hermes Agent (w159) |
 | 许可证 | MIT |
 | 平台 | linux, macos, windows |
 | 标签 | `Migration`, `OpenClaw`, `Hermes`, `Memory`, `Persona`, `Import` |
@@ -156,13 +156,13 @@ Hermes CLI 支持 `clarify` 工具进行交互式提示，但有以下限制：
    - `decide later`
 4. 如果用户选择复制工作区指令，追加一个开放式 `clarify` 问题，要求提供**绝对路径**。
 5. 如果用户选择 `skip workspace instructions` 或 `decide later`，继续执行而不添加 `--workspace-target`。
-5. 对于迁移模式，使用 `clarify`，提供以下 3 个选项：
+6. 对于迁移模式，使用 `clarify`，提供以下 3 个选项：
    - `user-data only`
    - `full compatible migration`
    - `cancel`
-6. `user-data only` 表示：迁移用户数据和兼容配置，但**不**导入白名单 secret。
-7. `full compatible migration` 表示：迁移相同的兼容用户数据，并在存在时导入白名单 secret。
-8. 如果 `clarify` 不可用，以普通文本提出相同问题，但仍将答案限制为 `user-data only`、`full compatible migration` 或 `cancel`。
+7. `user-data only` 表示：迁移用户数据和兼容配置，但**不**导入白名单 secret。
+8. `full compatible migration` 表示：迁移相同的兼容用户数据，并在存在时导入白名单 secret。
+9. 如果 `clarify` 不可用，以普通文本提出相同问题，但仍将答案限制为 `user-data only`、`full compatible migration` 或 `cancel`。
 
 执行门控：
 

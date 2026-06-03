@@ -4,7 +4,7 @@ sidebar_label: "Hermes Agent"
 description: "配置、扩展或贡献 Hermes Agent"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Hermes Agent
 
@@ -31,7 +31,7 @@ description: "配置、扩展或贡献 Hermes Agent"
 
 # Hermes Agent
 
-Hermes Agent 是 Nous Research 开发的开源 AI agent 框架，可在终端、消息平台和 IDE 中运行。它与 Claude Code（Anthropic）、Codex（OpenAI）和 OpenClaw 同属一类——使用工具调用（tool calling）与系统交互的自主编码和任务执行 agent。Hermes 支持任意 LLM 提供商（OpenRouter、Anthropic、OpenAI、DeepSeek、本地模型及 15+ 其他提供商），可在 Linux、macOS 和 WSL 上运行。
+Hermes Agent 是 w159 开发的开源 AI agent 框架，可在终端、消息平台和 IDE 中运行。它与 Claude Code（Anthropic）、Codex（OpenAI）和 OpenClaw 同属一类——使用工具调用（tool calling）与系统交互的自主编码和任务执行 agent。Hermes 支持任意 LLM 提供商（OpenRouter、Anthropic、OpenAI、DeepSeek、本地模型及 15+ 其他提供商），可在 Linux、macOS 和 WSL 上运行。
 
 Hermes 的差异化特性：
 
@@ -46,13 +46,13 @@ Hermes 的差异化特性：
 
 **此 skill 帮助你高效使用 Hermes Agent** — 包括设置、配置功能、生成额外的 agent 实例、排查问题、找到正确的命令和设置，以及在需要扩展或贡献时理解系统的工作原理。
 
-**文档：** https://hermes-agent.nousresearch.com/docs/
+**文档：** <https://hermes-agent.nousresearch.com/docs/>
 
 ## 快速开始
 
 ```bash
 # 安装
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash
 
 # 交互式聊天（默认）
 hermes
@@ -170,7 +170,7 @@ hermes gateway setup        Configure platforms
 
 支持的平台：Telegram、Discord、Slack、WhatsApp、Signal、Email、SMS、Matrix、Mattermost、Home Assistant、DingTalk、Feishu、WeCom、BlueBubbles（iMessage）、Weixin（WeChat）、API Server、Webhooks。Open WebUI 通过 API Server 适配器连接。
 
-平台文档：https://hermes-agent.nousresearch.com/docs/user-guide/messaging/
+平台文档：<https://hermes-agent.nousresearch.com/docs/user-guide/messaging/>
 
 ### 会话
 
@@ -250,6 +250,7 @@ hermes uninstall            Uninstall Hermes
 在交互式聊天会话中输入这些命令。新命令会不定期上线；如果以下内容看起来过时，请在会话内运行 `/help` 获取权威列表，或查看[实时斜杠命令参考](https://hermes-agent.nousresearch.com/docs/reference/slash-commands)。命令注册表的权威来源是 `hermes_cli/commands.py` — 每个消费方（自动补全、Telegram 菜单、Slack 映射、`/help`）均从中派生。
 
 ### 会话控制
+
 ```
 /new (/reset)        Fresh session
 /clear               Clear screen + new session (CLI)
@@ -271,6 +272,7 @@ hermes uninstall            Uninstall Hermes
 ```
 
 ### 配置
+
 ```
 /config              Show config (CLI)
 /model [name]        Show or change model
@@ -289,6 +291,7 @@ hermes uninstall            Uninstall Hermes
 ```
 
 ### 工具与 Skill
+
 ```
 /tools               Manage tools (CLI)
 /toolsets            List toolsets (CLI)
@@ -304,6 +307,7 @@ hermes uninstall            Uninstall Hermes
 ```
 
 ### Gateway
+
 ```
 /approve             Approve a pending command (gateway)
 /deny                Deny a pending command (gateway)
@@ -315,6 +319,7 @@ hermes uninstall            Uninstall Hermes
 ```
 
 ### 实用工具
+
 ```
 /branch (/fork)      Branch the current session
 /fast                Toggle priority/fast processing
@@ -327,6 +332,7 @@ hermes uninstall            Uninstall Hermes
 ```
 
 ### 信息
+
 ```
 /help                Show commands
 /commands [page]     Browse all commands (gateway)
@@ -339,6 +345,7 @@ hermes uninstall            Uninstall Hermes
 ```
 
 ### 退出
+
 ```
 /quit (/exit, /q)    Exit CLI
 ```
@@ -377,7 +384,7 @@ Profiles 使用 `~/.hermes/profiles/<name>/`，布局相同。
 | `delegation` | `model`, `provider`, `base_url`, `api_key`, `max_iterations` (50), `reasoning_effort` |
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
 
-完整配置参考：https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+完整配置参考：<https://hermes-agent.nousresearch.com/docs/user-guide/configuration>
 
 ### 提供商
 
@@ -407,7 +414,7 @@ Profiles 使用 `~/.hermes/profiles/<name>/`，布局相同。
 | 自定义端点 | 配置 | `config.yaml` 中的 `model.base_url` + `model.api_key` |
 | GitHub Copilot ACP | 外部 | `COPILOT_CLI_PATH` 或 Copilot CLI |
 
-完整提供商文档：https://hermes-agent.nousresearch.com/docs/integrations/providers
+完整提供商文档：<https://hermes-agent.nousresearch.com/docs/integrations/providers>
 
 ### Toolset
 
@@ -467,6 +474,7 @@ hermes config set security.redact_secrets true       # 全局启用
 **需要重启。** `security.redact_secrets` 在导入时快照 — 在会话中途切换（例如通过工具调用执行 `export HERMES_REDACT_SECRETS=true`）对正在运行的进程**不会**生效。告知用户在终端运行 `hermes config set security.redact_secrets true`，然后启动新会话。这是有意为之——防止 LLM 在任务中途自行切换该开关。
 
 再次禁用：
+
 ```bash
 hermes config set security.redact_secrets false
 ```
@@ -494,6 +502,7 @@ hermes config set approvals.mode off         # 绕过一切（不推荐）
 ```
 
 单次调用绕过（不更改配置）：
+
 - `hermes --yolo …`
 - `export HERMES_YOLO_MODE=1`
 
@@ -516,12 +525,14 @@ hermes config set approvals.mode off         # 绕过一切（不推荐）
 来自消息平台的语音消息会自动转录。
 
 提供商优先级（自动检测）：
+
 1. **本地 faster-whisper** — 免费，无需 API key：`pip install faster-whisper`
 2. **Groq Whisper** — 免费套餐：设置 `GROQ_API_KEY`
 3. **OpenAI Whisper** — 付费：设置 `VOICE_TOOLS_OPENAI_KEY`
 4. **Mistral Voxtral** — 设置 `MISTRAL_API_KEY`
 
 配置：
+
 ```yaml
 stt:
   enabled: true
@@ -649,7 +660,7 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 - **每任务选项：** `skills`、`model`/`provider` 覆盖、`script`（预运行数据收集；`no_agent=True` 使脚本成为整个任务）、`context_from`（将任务 A 的输出链接到任务 B）、`workdir`（在特定目录中运行，加载其 `AGENTS.md` / `CLAUDE.md`）、多平台投递。
 - **不变量：** 每次运行 3 分钟硬中断，`.tick.lock` 文件防止跨进程重复 tick，cron 会话默认传递 `skip_memory=True`，cron 投递使用页眉/页脚框架而非镜像到目标 gateway 会话（保持角色交替完整）。
 
-用户文档：https://hermes-agent.nousresearch.com/docs/user-guide/features/cron
+用户文档：<https://hermes-agent.nousresearch.com/docs/user-guide/features/cron>
 
 ### Curator（skill 生命周期）
 
@@ -661,7 +672,7 @@ agent 创建的 skill 的后台维护。跟踪使用情况，将闲置 skill 标
 - **遥测：** `~/.hermes/skills/.usage.json` 中的 sidecar 保存每个 skill 的 `use_count`、`view_count`、`patch_count`、`last_activity_at`、`state`、`pinned`。
 
 配置：`curator.*`（`enabled`、`interval_hours`、`min_idle_hours`、`stale_after_days`、`archive_after_days`、`backup.*`）。
-用户文档：https://hermes-agent.nousresearch.com/docs/user-guide/features/curator
+用户文档：<https://hermes-agent.nousresearch.com/docs/user-guide/features/curator>
 
 ### Kanban（多 agent 工作队列）
 
@@ -672,7 +683,7 @@ agent 创建的 skill 的后台维护。跟踪使用情况，将闲置 skill 标
 - **调度器** 默认在 gateway 内运行（`kanban.dispatch_in_gateway: true`）——回收过期认领、推进就绪任务、原子认领、生成已分配的 profile。在配置的 `kanban.failure_limit` 次连续非成功尝试后自动阻塞任务（默认：2）。
 - **隔离：** 看板是硬边界（worker 在环境中固定 `HERMES_KANBAN_BOARD`）；租户是看板内用于工作区路径和记忆键隔离的软命名空间。
 
-用户文档：https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
+用户文档：<https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban>
 
 ---
 
@@ -709,6 +720,7 @@ export PYTHONPATH="$(pwd)"
 使用 `-n 0` 而非 `-n 4` — `pyproject.toml` 的默认 `addopts` 已包含 `-n`，且 wrapper 的 CI 一致性保证不适用于非 POSIX 环境。
 
 **仅 POSIX 的测试需要跳过守卫。** 代码库中已有的常见标记：
+
 - 符号链接——Windows 上需要提升权限
 - `0o600` 文件模式——POSIX 模式位在 NTFS 上默认不强制执行
 - `signal.SIGALRM`——仅 Unix（参见 `tests/conftest.py::_enforce_test_timeout`）
@@ -727,49 +739,60 @@ export PYTHONPATH="$(pwd)"
 ## 故障排查
 
 ### 语音不工作
+
 1. 检查 `config.yaml` 中 `stt.enabled: true`
 2. 验证提供商：`pip install faster-whisper` 或设置 API key
 3. 在 gateway 中：`/restart`。在 CLI 中：退出并重新启动。
 
 ### 工具不可用
+
 1. `hermes tools` — 检查 toolset 是否为你的平台启用
 2. 某些工具需要环境变量（检查 `.env`）
 3. 启用工具后执行 `/reset`
 
 ### 模型/提供商问题
+
 1. `hermes doctor` — 检查配置和依赖
 2. `hermes auth` — 重新认证 OAuth 提供商（或 `hermes auth add <provider>`）
 3. 检查 `.env` 中是否有正确的 API key
 4. **Copilot 403**：`gh auth login` 的 token **不适用于** Copilot API。必须通过 `hermes model` → GitHub Copilot 使用 Copilot 专用 OAuth 设备码流程。
 
 ### 变更未生效
+
 - **工具/skill：** `/reset` 以更新后的 toolset 启动新会话
 - **配置变更：** 在 gateway 中：`/restart`。在 CLI 中：退出并重新启动。
 - **代码变更：** 重启 CLI 或 gateway 进程
 
 ### Skill 未显示
+
 1. `hermes skills list` — 验证已安装
 2. `hermes skills config` — 检查平台启用状态
 3. 显式加载：`/skill name` 或 `hermes -s name`
 
 ### Gateway 问题
+
 首先检查日志：
+
 ```bash
 grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
 ```
 
 常见 gateway 问题：
+
 - **SSH 注销后 gateway 停止**：启用 linger：`sudo loginctl enable-linger $USER`
 - **WSL2 关闭后 gateway 停止**：WSL2 需要 `/etc/wsl.conf` 中的 `systemd=true` 才能使 systemd 服务工作。没有它，gateway 回退到 `nohup`（会话关闭时停止）。
 - **Gateway 崩溃循环**：重置失败状态：`systemctl --user reset-failed hermes-gateway`
 
 ### 平台特定问题
+
 - **Discord bot 静默**：必须在 Bot → Privileged Gateway Intents 中启用 **Message Content Intent**。
 - **Slack bot 仅在私信中工作**：必须订阅 `message.channels` 事件。没有它，bot 会忽略公共频道。
 - **Windows 特有问题**（`Alt+Enter` 换行、WinError 10106、UTF-8 BOM 配置、测试套件、行尾）：参见上方专门的 **Windows 特有问题** 部分。
 
 ### 辅助模型不工作
+
 如果 `auxiliary` 任务（视觉、压缩）静默失败，`auto` 提供商找不到后端。请设置 `OPENROUTER_API_KEY` 或 `GOOGLE_API_KEY`，或显式配置每个辅助任务的提供商：
+
 ```bash
 hermes config set auxiliary.vision.provider <your_provider>
 hermes config set auxiliary.vision.model <model_name>
@@ -801,7 +824,7 @@ hermes config set auxiliary.vision.model <model_name>
 
 ## 贡献者快速参考
 
-面向偶尔贡献者和 PR 作者。完整开发者文档：https://hermes-agent.nousresearch.com/docs/developer-guide/
+面向偶尔贡献者和 PR 作者。完整开发者文档：<https://hermes-agent.nousresearch.com/docs/developer-guide/>
 
 ### 项目结构
 
@@ -833,6 +856,7 @@ hermes-agent/
 ### 添加工具（3 个文件）
 
 **1. 创建 `tools/your_tool.py`：**
+
 ```python
 import json, os
 from tools.registry import registry
@@ -901,6 +925,7 @@ export PYTHONPATH="$(pwd)"
 使用 `-n 0`（而非 `-n 4`），因为 `pyproject.toml` 的默认 `addopts` 已包含 `-n`，且 wrapper 的 CI 一致性保证不适用于非 POSIX 环境。
 
 **跨平台测试守卫：** 使用仅 POSIX 系统调用的测试需要跳过标记。代码库中已有的常见标记：
+
 - 符号链接创建 → `@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks require elevated privileges on Windows")`（参见 `tests/cron/test_cron_script.py`）
 - POSIX 文件模式（0o600 等）→ `@pytest.mark.skipif(sys.platform.startswith("win"), reason="POSIX mode bits not enforced on Windows")`（参见 `tests/hermes_cli/test_auth_toctou_file_modes.py`）
 - `signal.SIGALRM` → 仅 Unix（参见 `tests/conftest.py::_enforce_test_timeout`）

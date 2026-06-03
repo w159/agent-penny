@@ -4,7 +4,7 @@ sidebar_label: "Peft Fine Tuning"
 description: "Parameter-efficient fine-tuning for LLMs using LoRA, QLoRA, and 25+ methods"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Peft Fine Tuning
 
@@ -36,17 +36,20 @@ Fine-tune LLMs by training &lt;1% of parameters using LoRA, QLoRA, and 25+ adapt
 ## When to use PEFT
 
 **Use PEFT/LoRA when:**
+
 - Fine-tuning 7B-70B models on consumer GPUs (RTX 4090, A100)
 - Need to train &lt;1% parameters (6MB adapters vs 14GB full model)
 - Want fast iteration with multiple task-specific adapters
 - Deploying multiple fine-tuned variants from one base model
 
 **Use QLoRA (PEFT + quantization) when:**
+
 - Fine-tuning 70B models on single 24GB GPU
 - Memory is the primary constraint
 - Can accept ~5% quality trade-off vs full fine-tuning
 
 **Use full fine-tuning instead when:**
+
 - Training small models (&lt;1B parameters)
 - Need maximum quality and have compute budget
 - Significant domain shift requires updating all weights
@@ -440,13 +443,13 @@ TrainingArguments(learning_rate=1e-4)
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/peft/references/advanced-usage.md)** - DoRA, LoftQ, rank stabilization, custom modules
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/peft/references/troubleshooting.md)** - Common errors, debugging, optimization
+- **[Advanced Usage](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/peft/references/advanced-usage.md)** - DoRA, LoftQ, rank stabilization, custom modules
+- **[Troubleshooting](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/peft/references/troubleshooting.md)** - Common errors, debugging, optimization
 
 ## Resources
 
-- **GitHub**: https://github.com/huggingface/peft
-- **Docs**: https://huggingface.co/docs/peft
+- **GitHub**: <https://github.com/huggingface/peft>
+- **Docs**: <https://huggingface.co/docs/peft>
 - **LoRA Paper**: arXiv:2106.09685
 - **QLoRA Paper**: arXiv:2305.14314
-- **Models**: https://huggingface.co/models?library=peft
+- **Models**: <https://huggingface.co/models?library=peft>

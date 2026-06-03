@@ -4,7 +4,7 @@ sidebar_label: "Gif Search"
 description: "通过 curl + jq 搜索/下载 Tenor GIF"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Gif Search
 
@@ -44,7 +44,7 @@ description: "通过 curl + jq 搜索/下载 Tenor GIF"
 TENOR_API_KEY=your_key_here
 ```
 
-在 https://developers.google.com/tenor/guides/quickstart 免费获取 API 密钥 —— Google Cloud Console Tenor API 密钥免费且具有较高的速率限制。
+在 <https://developers.google.com/tenor/guides/quickstart> 免费获取 API 密钥 —— Google Cloud Console Tenor API 密钥免费且具有较高的速率限制。
 
 ## 前置条件
 
@@ -103,4 +103,4 @@ curl -s "https://tenor.googleapis.com/v2/search?q=cat&limit=3&key=${TENOR_API_KE
 
 - 对查询进行 URL 编码：空格用 `+`，特殊字符用 `%XX`
 - 在聊天中发送时，`tinygif` URL 更轻量
-- GIF URL 可直接用于 markdown：`![alt](https://github.com/NousResearch/hermes-agent/blob/main/skills/media/gif-search/url)`
+- GIF URL 可直接用于 markdown：`![alt](https://github.com/w159/agent-penny/blob/main/skills/media/gif-search/url)`

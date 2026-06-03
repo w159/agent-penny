@@ -4,7 +4,7 @@ sidebar_label: "Research Paper Writing"
 description: "Write ML papers for NeurIPS/ICML/ICLR: design→submit"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Research Paper Writing
 
@@ -65,6 +65,7 @@ This is **not a linear pipeline** — it is an iterative loop. Results trigger n
 ## When To Use This Skill
 
 Use this skill when:
+
 - **Starting a new research paper** from an existing codebase or idea
 - **Designing and running experiments** to support paper claims
 - **Writing or revising** any section of a research paper
@@ -119,6 +120,7 @@ find . -name "*.md" -o -name "*.txt" | xargs grep -l -i "result\|conclusion\|fin
 ```
 
 Look for:
+
 - `README.md` — project overview and claims
 - `results/`, `outputs/`, `experiments/` — existing findings
 - `configs/` — experimental settings
@@ -148,6 +150,7 @@ git checkout -b paper-draft  # or main
 ```
 
 **Git discipline**: Every completed experiment batch gets committed with a descriptive message. Example:
+
 ```
 Add Monte Carlo constrained results (5 runs, Sonnet 4.6, policy memo task)
 Add Haiku baseline comparison: autoreason vs refinement baselines at cheap model tier
@@ -156,6 +159,7 @@ Add Haiku baseline comparison: autoreason vs refinement baselines at cheap model
 ### Step 0.4: Identify the Contribution
 
 Before writing anything, articulate:
+
 - **The What**: What is the single thing this paper contributes?
 - **The Why**: What evidence supports it?
 - **The So What**: Why should readers care?
@@ -194,6 +198,7 @@ Compute Budget Checklist:
 ```
 
 Track actual spend as experiments run:
+
 ```python
 # Simple cost tracker pattern
 import json, os
@@ -239,6 +244,7 @@ Author Coordination Checklist:
 ```
 
 **LaTeX conventions to agree on early**:
+
 - `\method{}` macro for consistent method naming
 - Citation style: `\citet{}` vs `\citep{}` usage
 - Math notation: lowercase bold for vectors, uppercase bold for matrices, etc.
@@ -286,6 +292,7 @@ Search queries:
 ```
 
 **Recommended**: Install **Exa MCP** for real-time academic search:
+
 ```bash
 claude mcp add exa -- npx -y mcp-remote "https://mcp.exa.ai/mcp"
 ```
@@ -358,7 +365,7 @@ If you cannot verify a citation:
 
 **Always tell the scientist**: "I've marked [X] citations as placeholders that need verification."
 
-See [references/citation-workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/citation-workflow.md) for complete API documentation and the full `CitationManager` class.
+See [references/citation-workflow.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/citation-workflow.md) for complete API documentation and the full `CitationManager` class.
 
 ### Step 1.4: Organize Related Work
 
@@ -390,6 +397,7 @@ Create an explicit mapping:
 Strong baselines are what separates accepted papers from rejected ones. Reviewers will ask: "Did they compare against X?"
 
 Standard baseline categories:
+
 - **Naive baseline**: Simplest possible approach
 - **Strong baseline**: Best known existing method
 - **Ablation baselines**: Your method minus one component
@@ -398,6 +406,7 @@ Standard baseline categories:
 ### Step 2.3: Define Evaluation Protocol
 
 Before running anything, specify:
+
 - **Metrics**: What you're measuring, direction symbols (higher/lower better)
 - **Aggregation**: How results are combined across runs/tasks
 - **Statistical tests**: What tests will establish significance
@@ -408,6 +417,7 @@ Before running anything, specify:
 Follow these patterns from successful research pipelines:
 
 **Incremental saving** — save results after each step for crash recovery:
+
 ```python
 # Save after each problem/task
 result_path = f"results/{task}/{strategy}/result.json"
@@ -419,6 +429,7 @@ with open(result_path, 'w') as f:
 ```
 
 **Artifact preservation** — save all intermediate outputs:
+
 ```
 results/<experiment>/
   <task>/
@@ -432,6 +443,7 @@ results/<experiment>/
 ```
 
 **Separation of concerns** — keep generation, evaluation, and visualization separate:
+
 ```
 run_experiment.py              # Core experiment runner
 run_baselines.py               # Baseline comparison
@@ -440,13 +452,14 @@ analyze_results.py             # Statistical analysis
 make_charts.py                 # Visualization
 ```
 
-See [references/experiment-patterns.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/experiment-patterns.md) for complete design patterns, cron monitoring, and error recovery.
+See [references/experiment-patterns.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/experiment-patterns.md) for complete design patterns, cron monitoring, and error recovery.
 
 ### Step 2.5: Design Human Evaluation (If Applicable)
 
 Many NLP, HCI, and alignment papers require human evaluation as primary or complementary evidence. Design this before running automated experiments — human eval often has longer lead times (IRB approval, annotator recruitment).
 
 **When human evaluation is needed:**
+
 - Automated metrics don't capture what you care about (fluency, helpfulness, safety)
 - Your contribution is about human-facing qualities (readability, preference, trust)
 - Reviewers at NLP venues (ACL, EMNLP) expect it for generation tasks
@@ -462,6 +475,7 @@ Many NLP, HCI, and alignment papers require human evaluation as primary or compl
 | **Platform** | Prolific, MTurk, internal team | Prolific for quality; MTurk for scale; internal for domain expertise |
 
 **Annotation guideline checklist:**
+
 ```
 - [ ] Clear task description with examples (good AND bad)
 - [ ] Decision criteria for ambiguous cases
@@ -473,13 +487,14 @@ Many NLP, HCI, and alignment papers require human evaluation as primary or compl
 ```
 
 **Reporting requirements** (reviewers check all of these):
+
 - Number of annotators and their qualifications
 - Inter-annotator agreement with specific metric and value
 - Compensation details (amount, estimated hourly rate)
 - Annotation interface description or screenshot (appendix)
 - Total annotation time
 
-See [references/human-evaluation.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/human-evaluation.md) for complete guide including statistical tests for human eval data, crowdsourcing quality control patterns, and IRB guidance.
+See [references/human-evaluation.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/human-evaluation.md) for complete guide including statistical tests for human eval data, crowdsourcing quality control patterns, and IRB guidance.
 
 ---
 
@@ -565,9 +580,11 @@ Git commits track what happened, but not the **exploration tree** — the decisi
 **Selecting the best path**: When the journal shows a branching tree (exp_001 → exp_002a, exp_002b, exp_003), identify the path that best supports the paper's claims. Document dead-end branches in the appendix as ablations or negative results.
 
 **Snapshot code per experiment**: Copy the experiment script after each run:
+
 ```bash
 cp experiment.py results/exp_003/experiment_snapshot.py
 ```
+
 This enables exact reproduction even after subsequent code changes.
 
 ---
@@ -579,6 +596,7 @@ This enables exact reproduction even after subsequent code changes.
 ### Step 4.1: Aggregate Results
 
 Write analysis scripts that:
+
 1. Load all result files from a batch
 2. Compute per-task and aggregate metrics
 3. Generate summary tables
@@ -604,16 +622,18 @@ for strategy, tasks in results.items():
 ### Step 4.2: Statistical Significance
 
 Always compute:
+
 - **Error bars**: Standard deviation or standard error, specify which
 - **Confidence intervals**: 95% CI for key results
 - **Pairwise tests**: McNemar's test for comparing two methods
 - **Effect sizes**: Cohen's d or h for practical significance
 
-See [references/experiment-patterns.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/experiment-patterns.md) for complete implementations of McNemar's test, bootstrapped CIs, and Cohen's h.
+See [references/experiment-patterns.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/experiment-patterns.md) for complete implementations of McNemar's test, bootstrapped CIs, and Cohen's h.
 
 ### Step 4.3: Identify the Story
 
 After analysis, explicitly answer:
+
 1. **What is the main finding?** State it in one sentence.
 2. **What surprised you?** Unexpected results often make the best papers.
 3. **What failed?** Failed experiments can be the most informative. Honest reporting of failures strengthens the paper.
@@ -631,6 +651,7 @@ When your hypothesis was wrong or results are inconclusive, you have three optio
 | Results inconclusive, no clear story | Pivot — run different experiments or reframe | Don't force a paper that isn't there |
 
 **How to write a negative results paper:**
+
 - Lead with what the community believes and why it matters to test it
 - Describe your rigorous methodology (must be airtight — reviewers will scrutinize harder)
 - Present the null result clearly with statistical evidence
@@ -642,12 +663,14 @@ When your hypothesis was wrong or results are inconclusive, you have three optio
 ### Step 4.4: Create Figures and Tables
 
 **Figures**:
+
 - Use vector graphics (PDF) for all plots: `plt.savefig('fig.pdf')`
 - Colorblind-safe palettes (Okabe-Ito or Paul Tol)
 - Self-contained captions — reader should understand without main text
 - No title inside figure — the caption serves this function
 
 **Tables**:
+
 - Use `booktabs` LaTeX package
 - Bold best value per metric
 - Include direction symbols (higher/lower better)
@@ -766,6 +789,7 @@ Each pass produces three candidates from fresh, isolated agents:
 5. **Convergence** → A wins k=2 consecutive passes → done
 
 **Key parameters:**
+
 - k=2 convergence (k=1 premature, k=3 too expensive, no quality gain)
 - CoT judges always (3x faster convergence)
 - Temperature 0.8 authors, 0.3 judges
@@ -775,6 +799,7 @@ Each pass produces three candidates from fresh, isolated agents:
 ### Applying to Paper Drafts
 
 When refining the paper itself through autoreason:
+
 - **Provide ground truth to the critic**: actual experimental data, result JSONs, statistical outputs. Without this, models hallucinate fabricated ablation studies and fake confidence intervals.
 - **Use 3 working judges minimum**: A broken judge parser doesn't add noise — it prevents equilibrium entirely.
 - **Scope constrain the revision**: "Address these specific weaknesses" not "improve the paper."
@@ -789,7 +814,7 @@ When refining the paper itself through autoreason:
 | Overfitting (code) | High public-test pass, low private-test pass | Use structured analysis, not just test feedback |
 | Broken judges | Parsing failures reduce panel below 3 | Fix parser before continuing |
 
-See [references/autoreason-methodology.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/autoreason-methodology.md) for complete prompts, Borda scoring details, model selection guide, scope constraint design patterns, and compute budget reference.
+See [references/autoreason-methodology.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/autoreason-methodology.md) for complete prompts, Borda scoring details, model selection guide, scope constraint design patterns, and compute budget reference.
 
 ---
 
@@ -812,10 +837,12 @@ A paper project with 50+ experiment files, multiple result directories, and exte
 | Revision pass | Full paper draft, specific reviewer concerns | Everything else |
 
 **Principles:**
+
 - **`experiment_log.md` is the primary context bridge** — it summarizes everything needed for writing without loading raw data files (see Step 4.6)
 - **Load one section's context at a time** when delegating. A sub-agent drafting Methods doesn't need the literature review notes.
 - **Summarize, don't include raw files.** For a 200-line result JSON, load a 10-line summary table. For a 50-page related paper, load the 5-sentence abstract + your 2-line note about its relevance.
 - **For very large projects**: Create a `context/` directory with pre-compressed summaries:
+
   ```
   context/
     contribution.md          # 1 sentence
@@ -855,12 +882,14 @@ This skill synthesizes writing philosophy from researchers who have published ex
 | **Andrej Karpathy** | Single contribution focus | Various lectures |
 
 **For deeper dives into any of these, see:**
-- [references/writing-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/writing-guide.md) — Full explanations with examples
-- [references/sources.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/sources.md) — Complete bibliography
+
+- [references/writing-guide.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/writing-guide.md) — Full explanations with examples
+- [references/sources.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/sources.md) — Complete bibliography
 
 ### Time Allocation
 
 Spend approximately **equal time** on each of:
+
 1. The abstract
 2. The introduction
 3. The figures
@@ -930,16 +959,19 @@ LaTeX Quality Checklist (verify after every edit):
 The title is the single most-read element of the paper. It determines whether anyone clicks through to the abstract.
 
 **Good titles**:
+
 - State the contribution or finding: "Autoreason: When Iterative LLM Refinement Works and Why It Fails"
 - Highlight a surprising result: "Scaling Data-Constrained Language Models" (implies you can)
 - Name the method + what it does: "DPO: Direct Preference Optimization of Language Models"
 
 **Bad titles**:
+
 - Too generic: "An Approach to Improving Language Model Outputs"
 - Too long: anything over ~15 words
 - Jargon-only: "Asymptotic Convergence of Iterative Stochastic Policy Refinement" (who is this for?)
 
 **Rules**:
+
 - Include your method name if you have one (for citability)
 - Include 1-2 keywords reviewers will search for
 - Avoid colons unless both halves carry meaning
@@ -975,6 +1007,7 @@ Figure 1 is the second thing most readers look at (after abstract). Draft it bef
 ### Step 5.3: Introduction (1-1.5 pages max)
 
 Must include:
+
 - Clear problem statement
 - Brief approach overview
 - 2-4 bullet contribution list (max 1-2 lines each in two-column format)
@@ -983,6 +1016,7 @@ Must include:
 ### Step 5.4: Methods
 
 Enable reimplementation:
+
 - Conceptual outline or pseudocode
 - All hyperparameters listed
 - Architectural details sufficient for reproduction
@@ -991,11 +1025,13 @@ Enable reimplementation:
 ### Step 5.5: Experiments & Results
 
 For each experiment, explicitly state:
+
 - **What claim it supports**
 - How it connects to main contribution
 - What to observe: "the blue line shows X, which demonstrates Y"
 
 Requirements:
+
 - Error bars with methodology (std dev vs std error)
 - Hyperparameter search ranges
 - Compute infrastructure (GPU type, total hours)
@@ -1008,6 +1044,7 @@ Organize methodologically, not paper-by-paper. Cite generously — reviewers lik
 ### Step 5.7: Limitations (REQUIRED)
 
 All major conferences require this. Honesty helps:
+
 - Reviewers are instructed not to penalize honest limitation acknowledgment
 - Pre-empt criticisms by identifying weaknesses first
 - Explain why limitations don't undermine core claims
@@ -1015,12 +1052,14 @@ All major conferences require this. Honesty helps:
 ### Step 5.8: Conclusion & Discussion
 
 **Conclusion** (required, 0.5-1 page):
+
 - Restate the contribution in one sentence (different wording from abstract)
 - Summarize key findings (2-3 sentences, not a list)
 - Implications: what does this mean for the field?
 - Future work: 2-3 concrete next steps (not vague "we leave X for future work")
 
 **Discussion** (optional, sometimes combined with conclusion):
+
 - Broader implications beyond immediate results
 - Connections to other subfields
 - Honest assessment of when the method does and doesn't work
@@ -1043,6 +1082,7 @@ Appendices are unlimited at all major venues and are essential for reproducibili
 | **Additional Figures** | Per-task breakdowns, trajectory visualizations, failure case examples |
 
 **Rules**:
+
 - The main paper must be self-contained — reviewers are not required to read appendices
 - Never put critical evidence only in the appendix
 - Cross-reference: "Full results in Table 5 (Appendix B)" not just "see appendix"
@@ -1098,12 +1138,14 @@ require [specific additional work].
 ```
 
 **Common mistakes:**
+
 - Writing "we foresee no negative impacts" (almost never true — reviewers distrust this)
 - Being vague: "this could be misused" without specifying how
 - Ignoring compute costs for large-scale work
 - Forgetting to disclose LLM use at venues that require it
 
 **Compute carbon footprint** (for training-heavy papers):
+
 ```python
 # Estimate using ML CO2 Impact tool methodology
 gpu_hours = 1000  # total GPU hours
@@ -1160,12 +1202,13 @@ Model Card (Appendix):
 | Context before new | Set stage before presenting |
 
 **Word choice (Lipton, Steinhardt):**
+
 - Be specific: "accuracy" not "performance"
 - Eliminate hedging: drop "may" unless genuinely uncertain
 - Consistent terminology throughout
 - Avoid incremental vocabulary: "develop", not "combine"
 
-**Full writing guide with examples**: See [references/writing-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/writing-guide.md)
+**Full writing guide with examples**: See [references/writing-guide.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/writing-guide.md)
 
 ### Using LaTeX Templates
 
@@ -1194,6 +1237,7 @@ Copy the ENTIRE directory, not just the .tex file. Templates include style files
 **Step 2: Verify Template Compiles First**
 
 Before making ANY changes:
+
 ```bash
 latexmk -pdf main.tex
 # Or manual: pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
@@ -1204,6 +1248,7 @@ If the unmodified template doesn't compile, fix that first (usually missing TeX 
 **Step 3: Keep Template Content as Reference**
 
 Don't immediately delete example content. Comment it out and use as formatting reference:
+
 ```latex
 % Template example (keep for reference):
 % \begin{figure}[t]
@@ -1256,7 +1301,7 @@ Work through systematically: title/authors → abstract → introduction → met
 
 **Universal**: Double-blind, references don't count, appendices unlimited, LaTeX required.
 
-Templates in `templates/` directory. See [templates/README.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/templates/README.md) for compilation setup (VS Code, CLI, Overleaf, other IDEs).
+Templates in `templates/` directory. See [templates/README.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/templates/README.md) for compilation setup (VS Code, CLI, Overleaf, other IDEs).
 
 ### Tables and Figures
 
@@ -1275,12 +1320,14 @@ Baseline & 85.2 & 45ms \\
 ```
 
 Rules:
+
 - Bold best value per metric
 - Include direction symbols ($\uparrow$ higher better, $\downarrow$ lower better)
 - Right-align numerical columns
 - Consistent decimal precision
 
 **Figures**:
+
 - **Vector graphics** (PDF, EPS) for all plots and diagrams — `plt.savefig('fig.pdf')`
 - **Raster** (PNG 600 DPI) only for photographs
 - **Colorblind-safe palettes** (Okabe-Ito or Paul Tol)
@@ -1342,6 +1389,7 @@ Add these packages to any paper for professional quality. They are compatible wi
 ```
 
 **Notes:**
+
 - `microtype` is the single highest-impact package for visual quality. It adjusts character spacing at a sub-pixel level. Always include it.
 - `siunitx` handles decimal alignment in tables via the `S` column type — eliminates manual spacing.
 - `cleveref` must be loaded **after** `hyperref`. Most conference .sty files load hyperref, so put cleveref last.
@@ -1544,6 +1592,7 @@ with plt.style.context(['science', 'no-latex']):
 ```
 
 **Standard figure sizes** (two-column format):
+
 - Single column: `figsize=(3.5, 2.5)` — fits in one column
 - Double column: `figsize=(7.0, 3.0)` — spans both columns
 - Square: `figsize=(3.5, 3.5)` — for heatmaps, confusion matrices
@@ -1617,7 +1666,7 @@ Each reviewer can refine their review after seeing the meta-review. Use an early
 
 **Model selection for reviewing**: Reviewing is best done with the strongest available model, even if you wrote the paper with a cheaper one. The reviewer model should be chosen independently from the writing model.
 
-**Few-shot calibration**: If available, include 1-2 real published reviews from the target venue as examples. This dramatically improves score calibration. See [references/reviewer-guidelines.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/reviewer-guidelines.md) for example reviews.
+**Few-shot calibration**: If available, include 1-2 real published reviews from the target venue as examples. This dramatically improves score calibration. See [references/reviewer-guidelines.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/reviewer-guidelines.md) for example reviews.
 
 ### Step 6.1b: Visual Review Pass (VLM)
 
@@ -1666,6 +1715,7 @@ After collecting reviews, categorize:
 ### Step 6.3: Revision Cycle
 
 For each critical/high issue:
+
 1. Identify the specific section(s) affected
 2. Draft the fix
 3. Verify the fix doesn't break other claims
@@ -1677,6 +1727,7 @@ For each critical/high issue:
 When responding to actual reviews (post-submission), rebuttals are a distinct skill from revision:
 
 **Format**: Point-by-point. For each reviewer concern:
+
 ```
 > R1-W1: "The paper lacks comparison with Method X."
 
@@ -1686,6 +1737,7 @@ Method X in Table 3 (revised). Our method outperforms X by 3.2pp on [metric]
 ```
 
 **Rules**:
+
 - Address every concern — reviewers notice if you skip one
 - Lead with the strongest responses
 - Be concise and direct — reviewers read dozens of rebuttals
@@ -1699,6 +1751,7 @@ Method X in Table 3 (revised). Our method outperforms X by 3.2pp on [metric]
 ### Step 6.5: Paper Evolution Tracking
 
 Save snapshots at key milestones:
+
 ```
 paper/
   paper.tex                    # Current working version
@@ -1718,7 +1771,8 @@ paper/
 
 Every venue has mandatory checklists. Complete them carefully — incomplete checklists can result in desk rejection.
 
-See [references/checklists.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/checklists.md) for:
+See [references/checklists.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/checklists.md) for:
+
 - NeurIPS 16-item paper checklist
 - ICML broader impact + reproducibility
 - ICLR LLM disclosure policy
@@ -1824,6 +1878,7 @@ ls -la main.pdf
 ```
 
 **If compilation fails**: Parse the `.log` file for the first error. Common fixes:
+
 - "Undefined control sequence" → missing package or typo in command name
 - "Missing $ inserted" → math symbol outside math mode
 - "File not found" → wrong figure path or missing .sty file
@@ -1914,6 +1969,7 @@ Posting to arXiv is standard practice in ML but has important timing and anonymi
 **List primary + 1-2 cross-listed categories.** More categories = more visibility, but only cross-list where genuinely relevant.
 
 **Versioning strategy:**
+
 - **v1**: Initial submission (matches conference submission)
 - **v2**: Post-acceptance with camera-ready corrections (add "accepted at [Venue]" to abstract)
 - Don't post v2 during the review period with changes that clearly respond to reviewer feedback
@@ -1972,6 +2028,7 @@ To reproduce Figure 2: `python scripts/make_figure2.py`
 ```
 
 **Pre-release checklist:**
+
 ```
 - [ ] Code runs from a clean clone (test on fresh machine or Docker)
 - [ ] All dependencies pinned to specific versions
@@ -1984,6 +2041,7 @@ To reproduce Figure 2: `python scripts/make_figure2.py`
 ```
 
 **Anonymous code for submission** (before acceptance):
+
 ```bash
 # Use Anonymous GitHub for double-blind review
 # https://anonymous.4open.science/
@@ -2023,6 +2081,7 @@ If awarded an oral or spotlight presentation:
 | **Workshop talk** | 10-15 min | Adapt based on workshop audience — may need more background. |
 
 **Slide design rules:**
+
 - One idea per slide
 - Minimize text — speak the details, don't project them
 - Animate key figures to build understanding step-by-step
@@ -2057,6 +2116,7 @@ Workshop papers and short papers (e.g., ACL short papers, Findings papers) follo
 | **Contribution bar** | Novel direction, interesting negative result, work-in-progress | Significant advance with strong evidence |
 
 **When to target a workshop:**
+
 - Early-stage idea you want feedback on before a full paper
 - Negative result that doesn't justify 8+ pages
 - Position piece or opinion on a timely topic
@@ -2078,13 +2138,14 @@ ACL venues have distinct submission types:
 
 ## Paper Types Beyond Empirical ML
 
-The main pipeline above targets empirical ML papers. Other paper types require different structures and evidence standards. See [references/paper-types.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/paper-types.md) for detailed guidance on each type.
+The main pipeline above targets empirical ML papers. Other paper types require different structures and evidence standards. See [references/paper-types.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/paper-types.md) for detailed guidance on each type.
 
 ### Theory Papers
 
 **Structure**: Introduction → Preliminaries (definitions, notation) → Main Results (theorems) → Proof Sketches → Discussion → Full Proofs (appendix)
 
 **Key differences from empirical papers:**
+
 - Contribution is a theorem, bound, or impossibility result — not experimental numbers
 - Methods section replaced by "Preliminaries" and "Main Results"
 - Proofs are the evidence, not experiments (though empirical validation of theory is welcome)
@@ -2092,6 +2153,7 @@ The main pipeline above targets empirical ML papers. Other paper types require d
 - Experimental section is optional but strengthens the paper if it validates theoretical predictions
 
 **Proof writing principles:**
+
 - State theorems formally with all assumptions explicit
 - Provide intuition before formal proof ("The key insight is...")
 - Proof sketches should convey the main idea in 0.5-1 page
@@ -2103,6 +2165,7 @@ The main pipeline above targets empirical ML papers. Other paper types require d
 **Structure**: Introduction → Taxonomy / Organization → Detailed Coverage → Open Problems → Conclusion
 
 **Key differences:**
+
 - Contribution is the organization, synthesis, and identification of open problems — not new methods
 - Must be comprehensive within scope (reviewers will check for missing references)
 - Requires a clear taxonomy or organizational framework
@@ -2114,6 +2177,7 @@ The main pipeline above targets empirical ML papers. Other paper types require d
 **Structure**: Introduction → Task Definition → Dataset Construction → Baseline Evaluation → Analysis → Intended Use & Limitations
 
 **Key differences:**
+
 - Contribution is the benchmark itself — it must fill a genuine evaluation gap
 - Dataset documentation is mandatory, not optional (see Datasheets, Step 5.11)
 - Must demonstrate the benchmark is challenging (baselines don't saturate it)
@@ -2125,6 +2189,7 @@ The main pipeline above targets empirical ML papers. Other paper types require d
 **Structure**: Introduction → Background → Thesis / Argument → Supporting Evidence → Counterarguments → Implications
 
 **Key differences:**
+
 - Contribution is an argument, not a result
 - Must engage seriously with counterarguments
 - Evidence can be empirical, theoretical, or logical analysis
@@ -2171,6 +2236,7 @@ Compose this skill with other Hermes skills for specific phases:
 ### Tool Usage Patterns
 
 **Experiment monitoring** (most common):
+
 ```
 terminal("ps aux | grep <pattern>")
 → terminal("tail -30 <logfile>")
@@ -2181,6 +2247,7 @@ terminal("ps aux | grep <pattern>")
 ```
 
 **Parallel section drafting** (using delegation):
+
 ```
 delegate_task("Draft the Methods section based on these experiment scripts and configs. 
   Include: pseudocode, all hyperparameters, architectural details sufficient for 
@@ -2196,6 +2263,7 @@ delegate_task("Draft the Experiments section. Read all result files in results/.
 Each delegate runs as a **fresh subagent** with no shared context — provide all necessary information in the prompt. Collect outputs and integrate.
 
 **Citation verification** (using execute_code):
+
 ```python
 # In execute_code:
 from semanticscholar import SemanticScholar
@@ -2235,6 +2303,7 @@ todo("update", id=1, status="completed")
 ```
 
 **Session startup protocol:**
+
 ```
 1. todo("list")                           # Check current task list
 2. memory("read")                         # Recall key decisions
@@ -2265,6 +2334,7 @@ cronjob("create", {
 **[SILENT] protocol**: When nothing has changed since the last check, respond with exactly `[SILENT]`. This suppresses notification delivery to the user. Only report when there are genuine changes worth knowing about.
 
 **Deadline tracking**:
+
 ```
 cronjob("create", {
   "schedule": "0 9 * * *",  # Daily at 9am
@@ -2278,17 +2348,20 @@ cronjob("create", {
 ### Communication Patterns
 
 **When to notify the user** (via `send_message` or direct response):
+
 - Experiment batch completed (with results table)
 - Unexpected finding or failure requiring decision
 - Draft section ready for review
 - Deadline approaching with incomplete tasks
 
 **When NOT to notify:**
+
 - Experiment still running, no new results → `[SILENT]`
 - Routine monitoring with no changes → `[SILENT]`
 - Intermediate steps that don't need attention
 
 **Report format** — always include structured data:
+
 ```
 ## Experiment: <name>
 Status: Complete / Running / Failed
@@ -2313,6 +2386,7 @@ Use `clarify` for targeted questions when genuinely blocked:
 | Submission readiness | Before final submission |
 
 **Do NOT ask about** (be proactive, make a choice, flag it):
+
 - Word choice, section ordering
 - Which specific results to highlight
 - Citation completeness (draft with what you find, note gaps)
@@ -2331,6 +2405,7 @@ Understanding what reviewers look for helps focus effort:
 | **Originality** | New insights (doesn't require new method) |
 
 **Scoring (NeurIPS 6-point scale):**
+
 - 6: Strong Accept — groundbreaking, flawless
 - 5: Accept — technically solid, high impact
 - 4: Borderline Accept — solid, limited evaluation
@@ -2338,7 +2413,7 @@ Understanding what reviewers look for helps focus effort:
 - 2: Reject — technical flaws
 - 1: Strong Reject — known results or ethics issues
 
-See [references/reviewer-guidelines.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/reviewer-guidelines.md) for detailed guidelines, common concerns, and rebuttal strategies.
+See [references/reviewer-guidelines.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/reviewer-guidelines.md) for detailed guidelines, common concerns, and rebuttal strategies.
 
 ---
 
@@ -2354,9 +2429,9 @@ See [references/reviewer-guidelines.md](https://github.com/NousResearch/hermes-a
 | Scope creep in experiments | Every experiment must map to a specific claim. Cut experiments that don't. |
 | Paper rejected, need to resubmit | See Conference Resubmission in Phase 7. Address reviewer concerns without referencing reviews. |
 | Missing broader impact statement | See Step 5.10. Most venues require it. "No negative impacts" is almost never credible. |
-| Human eval criticized as weak | See Step 2.5 and [references/human-evaluation.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/human-evaluation.md). Report agreement metrics, annotator details, compensation. |
+| Human eval criticized as weak | See Step 2.5 and [references/human-evaluation.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/human-evaluation.md). Report agreement metrics, annotator details, compensation. |
 | Reviewers question reproducibility | Release code (Step 7.9), document all hyperparameters, include seeds and compute details. |
-| Theory paper lacks intuition | Add proof sketches with plain-language explanations before formal proofs. See [references/paper-types.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/paper-types.md). |
+| Theory paper lacks intuition | Add proof sketches with plain-language explanations before formal proofs. See [references/paper-types.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/paper-types.md). |
 | Results are negative/null | See Phase 4.3 on handling negative results. Consider workshops, TMLR, or reframing as analysis. |
 
 ---
@@ -2365,25 +2440,26 @@ See [references/reviewer-guidelines.md](https://github.com/NousResearch/hermes-a
 
 | Document | Contents |
 |----------|----------|
-| [references/writing-guide.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/writing-guide.md) | Gopen & Swan 7 principles, Perez micro-tips, Lipton word choice, Steinhardt precision, figure design |
-| [references/citation-workflow.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/citation-workflow.md) | Citation APIs, Python code, CitationManager class, BibTeX management |
-| [references/checklists.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/checklists.md) | NeurIPS 16-item, ICML, ICLR, ACL requirements, universal pre-submission checklist |
-| [references/reviewer-guidelines.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/reviewer-guidelines.md) | Evaluation criteria, scoring, common concerns, rebuttal template |
-| [references/sources.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/sources.md) | Complete bibliography of all writing guides, conference guidelines, APIs |
-| [references/experiment-patterns.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/experiment-patterns.md) | Experiment design patterns, evaluation protocols, monitoring, error recovery |
-| [references/autoreason-methodology.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/autoreason-methodology.md) | Autoreason loop, strategy selection, model guide, prompts, scope constraints, Borda scoring |
-| [references/human-evaluation.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/human-evaluation.md) | Human evaluation design, annotation guidelines, agreement metrics, crowdsourcing QC, IRB guidance |
-| [references/paper-types.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/references/paper-types.md) | Theory papers (proof writing, theorem structure), survey papers, benchmark papers, position papers |
+| [references/writing-guide.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/writing-guide.md) | Gopen & Swan 7 principles, Perez micro-tips, Lipton word choice, Steinhardt precision, figure design |
+| [references/citation-workflow.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/citation-workflow.md) | Citation APIs, Python code, CitationManager class, BibTeX management |
+| [references/checklists.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/checklists.md) | NeurIPS 16-item, ICML, ICLR, ACL requirements, universal pre-submission checklist |
+| [references/reviewer-guidelines.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/reviewer-guidelines.md) | Evaluation criteria, scoring, common concerns, rebuttal template |
+| [references/sources.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/sources.md) | Complete bibliography of all writing guides, conference guidelines, APIs |
+| [references/experiment-patterns.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/experiment-patterns.md) | Experiment design patterns, evaluation protocols, monitoring, error recovery |
+| [references/autoreason-methodology.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/autoreason-methodology.md) | Autoreason loop, strategy selection, model guide, prompts, scope constraints, Borda scoring |
+| [references/human-evaluation.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/human-evaluation.md) | Human evaluation design, annotation guidelines, agreement metrics, crowdsourcing QC, IRB guidance |
+| [references/paper-types.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/references/paper-types.md) | Theory papers (proof writing, theorem structure), survey papers, benchmark papers, position papers |
 
 ### LaTeX Templates
 
 Templates in `templates/` for: **NeurIPS 2025**, **ICML 2026**, **ICLR 2026**, **ACL**, **AAAI 2026**, **COLM 2025**.
 
-See [templates/README.md](https://github.com/NousResearch/hermes-agent/blob/main/skills/research/research-paper-writing/templates/README.md) for compilation instructions.
+See [templates/README.md](https://github.com/w159/agent-penny/blob/main/skills/research/research-paper-writing/templates/README.md) for compilation instructions.
 
 ### Key External Sources
 
 **Writing Philosophy:**
+
 - [Neel Nanda: How to Write ML Papers](https://www.alignmentforum.org/posts/eJGptPbbFPZGLpjsp/highly-opinionated-advice-on-how-to-write-ml-papers)
 - [Sebastian Farquhar: How to Write ML Papers](https://sebastianfarquhar.com/on-research/2024/11/04/how_to_write_ml_papers/)
 - [Gopen & Swan: Science of Scientific Writing](https://cseweb.ucsd.edu/~swanson/papers/science-of-writing.pdf)

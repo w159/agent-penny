@@ -37,9 +37,11 @@ Mode — all at once.
 ### Option A: From a Hermes-generated manifest (recommended)
 
 1. Generate the manifest:
+
    ```bash
    hermes slack manifest --write
    ```
+
    This writes `~/.hermes/slack-manifest.json` and prints paste-in
    instructions.
 2. Go to [https://api.slack.com/apps](https://api.slack.com/apps) →
@@ -116,7 +118,6 @@ You can always find or regenerate app-level tokens under **Settings → Basic In
 
 This step is critical — it controls what messages the bot can see.
 
-
 1. In the sidebar, go to **Features → Event Subscriptions**
 2. Toggle **Enable Events** to ON
 3. Expand **Subscribe to bot events** and add:
@@ -128,14 +129,13 @@ This step is critical — it controls what messages the bot can see.
 | `message.groups` | **Recommended** | Bot receives messages in **private** channels it's invited to |
 | `app_mention` | **Yes** | Prevents Bolt SDK errors when bot is @mentioned |
 
-4. Click **Save Changes** at the bottom of the page
+1. Click **Save Changes** at the bottom of the page
 
 :::danger Missing event subscriptions is the #1 setup issue
 If the bot works in DMs but **not in channels**, you almost certainly forgot to add
 `message.channels` (for public channels) and/or `message.groups` (for private channels).
 Without these events, Slack simply never delivers channel messages to the bot.
 :::
-
 
 ---
 
@@ -236,7 +236,7 @@ Hermes command with its description.
 
 Under the hood: Hermes ships with a generated Slack app manifest (see
 Step 1, Option A) that declares every command in
-[`COMMAND_REGISTRY`](https://github.com/NousResearch/hermes-agent/blob/main/hermes_cli/commands.py)
+[`COMMAND_REGISTRY`](https://github.com/w159/agent-penny/blob/main/hermes_cli/commands.py)
 as a slash command. In Socket Mode, Slack routes the command event
 through the WebSocket regardless of the manifest's `url` field.
 
@@ -250,6 +250,7 @@ hermes slack manifest --write
 ```
 
 Then in Slack:
+
 1. Open [https://api.slack.com/apps](https://api.slack.com/apps) →
    your Hermes app
 2. **Features → App Manifest → Edit**
@@ -467,7 +468,6 @@ platforms:
 
 ---
 
-
 ## Home Channel
 
 Set `SLACK_HOME_CHANNEL` to a channel ID where Hermes will deliver scheduled messages,
@@ -589,6 +589,7 @@ slack:
 ```
 
 Notes:
+
 - The binding matches by channel ID. For threaded messages in a bound channel, the thread inherits the parent channel's binding.
 - The skill is loaded only at session start (new session or after auto-reset). If you change the binding, run `/new` or wait for the session to auto-reset for it to take effect.
 - Combine with `channel_prompts` for per-channel tone/constraints on top of the skill's instructions.

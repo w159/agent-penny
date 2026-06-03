@@ -200,7 +200,7 @@ def emit_llms_index() -> str:
     lines.append("# Hermes Agent")
     lines.append("")
     lines.append(
-        "> The self-improving AI agent built by Nous Research. A terminal-native "
+        "> The self-improving AI agent built by w159. A terminal-native "
         "autonomous coding and task agent with persistent memory, agent-created skills, "
         "and a messaging gateway that lives on 21+ messaging platforms — 19 native to "
         "the gateway plus IRC and Microsoft Teams via plugins (Telegram, Discord, Slack, "
@@ -215,7 +215,7 @@ def emit_llms_index() -> str:
         "(Linux, macOS, WSL2, Termux)"
     )
     lines.append("")
-    lines.append("Repo: https://github.com/NousResearch/hermes-agent")
+    lines.append("Repo: https://github.com/w159/agent-penny")
     lines.append("")
 
     for section, items in SECTIONS:

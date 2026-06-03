@@ -31,7 +31,7 @@ Pick whichever fits the moment. They share state, so you can start a session in 
 Add `--include-desktop` to the regular install script.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --include-desktop
+curl -fsSL https://raw.githubusercontent.com/w159/agent-penny/main/scripts/install.sh | bash -s -- --include-desktop
 ```
 
 ### With an existing Hermes installation

@@ -293,6 +293,7 @@ docker run -d \
 - **[`s6-overlay`](https://github.com/just-containers/s6-overlay) v3** 作为 PID 1（替代旧版 `tini`）——监管 dashboard 和各 profile gateway，崩溃后自动重启，回收僵尸子进程，并转发信号
 
 容器的 `ENTRYPOINT` 是 s6-overlay 的 `/init`。启动时：
+
 1. 以 root 身份运行 `/etc/cont-init.d/01-hermes-setup`（即 `docker/stage2-hook.sh`）：可选的 UID/GID 重映射、修复卷所有权、首次启动时初始化 `.env` / `config.yaml` / `SOUL.md`、同步内置技能。
 2. 运行 `/etc/cont-init.d/02-reconcile-profiles`（即 `hermes_cli.container_boot`）：遍历 `$HERMES_HOME/profiles/<name>/`，在 `/run/service/gateway-<profile>/` 下重建各 profile 的 gateway s6 服务槽，并仅自动启动上次记录状态为 `running` 的 profile（参见 [Per-profile gateway 监管](#per-profile-gateway-supervision)）。
 3. 启动静态的 `main-hermes` 和 `dashboard` s6-rc 服务。
@@ -436,7 +437,7 @@ networks:
 
 ### 广泛有用的工具——提交 issue 或 pull request
 
-如果某个工具可能对大多数 Hermes Agent 用户有用，考虑将其贡献到上游，而不是在私有派生镜像中维护。在 [hermes-agent 仓库](https://github.com/NousResearch/hermes-agent)提交 issue 或 pull request，描述该工具及其使用场景。被纳入官方镜像的工具惠及所有用户，并避免了维护下游 fork 的开销。
+如果某个工具可能对大多数 Hermes Agent 用户有用，考虑将其贡献到上游，而不是在私有派生镜像中维护。在 [hermes-agent 仓库](https://github.com/w159/agent-penny)提交 issue 或 pull request，描述该工具及其使用场景。被纳入官方镜像的工具惠及所有用户，并避免了维护下游 fork 的开销。
 
 ## 连接本地推理服务器（vLLM、Ollama 等）
 
@@ -494,6 +495,7 @@ model:
 ```
 
 :::tip 关键点
+
 - 使用**容器名称**（`vllm`）作为主机名——而非 `localhost` 或 `127.0.0.1`，它们指向 Hermes 容器本身。
 - `model` 值必须与传给 vLLM 的 `--served-model-name` 一致。
 - 将 `api_key` 设为任意非空字符串（vLLM 要求该请求头，但默认不验证其值）。
@@ -576,6 +578,7 @@ model:
 ### 容器立即退出
 
 检查日志：`docker logs hermes`。常见原因：
+
 - `.env` 文件缺失或无效——先以交互方式运行以完成设置
 - 开放端口时存在端口冲突
 

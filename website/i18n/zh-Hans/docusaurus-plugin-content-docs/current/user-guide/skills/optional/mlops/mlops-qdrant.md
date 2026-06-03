@@ -4,7 +4,7 @@ sidebar_label: "Qdrant Vector Search"
 description: "用于 RAG 和语义搜索的高性能向量相似度搜索引擎"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Qdrant Vector Search
 
@@ -36,6 +36,7 @@ description: "用于 RAG 和语义搜索的高性能向量相似度搜索引擎"
 ## 何时使用 Qdrant
 
 **在以下情况下使用 Qdrant：**
+
 - 构建需要低延迟的生产级 RAG 系统
 - 需要混合搜索（向量 + 元数据过滤）
 - 需要通过分片/副本实现水平扩展
@@ -44,6 +45,7 @@ description: "用于 RAG 和语义搜索的高性能向量相似度搜索引擎"
 - 构建实时推荐系统
 
 **核心特性：**
+
 - **Rust 驱动**：内存安全，高性能
 - **丰富过滤**：在搜索时按任意 payload 字段过滤
 - **多向量**：每个点支持稠密、稀疏、多稠密向量
@@ -52,6 +54,7 @@ description: "用于 RAG 和语义搜索的高性能向量相似度搜索引擎"
 - **REST + gRPC**：两套 API 功能完全对等
 
 **以下情况请使用替代方案：**
+
 - **Chroma**：更简单的配置，嵌入式使用场景
 - **FAISS**：追求极致原始速度，研究/批处理场景
 - **Pinecone**：完全托管，零运维偏好
@@ -468,6 +471,7 @@ client.update_collection(
 ## 常见问题
 
 **带过滤的搜索速度慢：**
+
 ```python
 # 为过滤字段创建 payload 索引
 client.create_payload_index(
@@ -478,6 +482,7 @@ client.create_payload_index(
 ```
 
 **内存不足：**
+
 ```python
 # 启用量化和磁盘存储
 client.create_collection(
@@ -489,6 +494,7 @@ client.create_collection(
 ```
 
 **连接问题：**
+
 ```python
 # 使用超时和重试
 client = QdrantClient(
@@ -501,14 +507,14 @@ client = QdrantClient(
 
 ## 参考资料
 
-- **[高级用法](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/qdrant/references/advanced-usage.md)** — 分布式模式、混合搜索、推荐系统
-- **[故障排查](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/qdrant/references/troubleshooting.md)** — 常见问题、调试、性能调优
+- **[高级用法](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/qdrant/references/advanced-usage.md)** — 分布式模式、混合搜索、推荐系统
+- **[故障排查](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/qdrant/references/troubleshooting.md)** — 常见问题、调试、性能调优
 
 ## 资源
 
-- **GitHub**：https://github.com/qdrant/qdrant（22k+ stars）
-- **文档**：https://qdrant.tech/documentation/
-- **Python 客户端**：https://github.com/qdrant/qdrant-client
-- **Cloud**：https://cloud.qdrant.io
+- **GitHub**：<https://github.com/qdrant/qdrant（22k+> stars）
+- **文档**：<https://qdrant.tech/documentation/>
+- **Python 客户端**：<https://github.com/qdrant/qdrant-client>
+- **Cloud**：<https://cloud.qdrant.io>
 - **版本**：1.12.0+
 - **许可证**：Apache 2.0

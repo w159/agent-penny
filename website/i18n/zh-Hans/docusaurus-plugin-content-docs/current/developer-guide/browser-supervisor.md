@@ -11,7 +11,7 @@
 1. **对话框会阻塞 JS 线程。** 页面上的任何操作都会挂起，直到对话框被处理。在此工作之前，agent 无法感知对话框是否已打开——后续的工具调用会挂起或抛出不透明的错误。
 2. **iframe 不可见。** Agent 可以在 DOM 快照中看到 iframe 节点，但无法在其中点击、输入或执行 eval——尤其是运行在独立 Chromium 进程中的跨域（OOPIF）iframe。
 
-[PR #12550](https://github.com/NousResearch/hermes-agent/pull/12550) 提出了一个无状态的 `browser_dialog` 包装器。该方案无法解决检测问题——它只是在 agent 已经（通过症状）知道对话框已打开时，提供了一个更简洁的 CDP 调用。已作为被取代方案关闭。
+[PR #12550](https://github.com/w159/agent-penny/pull/12550) 提出了一个无状态的 `browser_dialog` 包装器。该方案无法解决检测问题——它只是在 agent 已经（通过症状）知道对话框已打开时，提供了一个更简洁的 CDP 调用。已作为被取代方案关闭。
 
 ## 后端能力矩阵（2026-04-23 实测验证）
 
@@ -41,6 +41,7 @@ Camofox 在本 PR 中暂不支持；计划在 `jo-inc/camofox-browser` 提交上
 - **近期控制台错误** — 最近 50 条的环形缓冲区（用于 PR 2 诊断）
 
 附加时订阅：
+
 - `Page.enable` — `javascriptDialogOpening`、`frameAttached`、`frameNavigated`、`frameDetached`
 - `Runtime.enable` — `executionContextCreated`、`consoleAPICalled`、`exceptionThrown`
 - `Target.setAutoAttach {autoAttach: true, flatten: true}` — 暴露子 OOPIF target；supervisor 在每个上启用 `Page`+`Runtime`
@@ -122,6 +123,7 @@ browser_dialog(action, prompt_text=None, dialog_id=None)
 ## Camofox（后续跟进）
 
 计划向 `jo-inc/camofox-browser` 提交 issue，添加：
+
 - 每个会话的 Playwright `page.on('dialog', handler)`
 - `GET /tabs/:tabId/dialogs` 轮询端点
 - `POST /tabs/:tabId/dialogs/:id` 用于接受/关闭

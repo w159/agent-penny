@@ -4,7 +4,7 @@ sidebar_label: "Pytorch Lightning"
 description: "High-level PyTorch framework with Trainer class, automatic distributed training (DDP/FSDP/DeepSpeed), callbacks system, and minimal boilerplate"
 ---
 
-{/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
+{/*This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page.*/}
 
 # Pytorch Lightning
 
@@ -36,6 +36,7 @@ The following is the complete skill definition that Hermes loads when this skill
 PyTorch Lightning organizes PyTorch code to eliminate boilerplate while maintaining flexibility.
 
 **Installation**:
+
 ```bash
 pip install lightning
 ```
@@ -78,6 +79,7 @@ trainer.fit(model, train_loader)
 ```
 
 **That's it!** Trainer handles:
+
 - GPU/TPU/CPU switching
 - Distributed training (DDP, FSDP, DeepSpeed)
 - Mixed precision (FP16, BF16)
@@ -91,6 +93,7 @@ trainer.fit(model, train_loader)
 ### Workflow 1: From PyTorch to Lightning
 
 **Original PyTorch code**:
+
 ```python
 model = MyModel()
 optimizer = torch.optim.Adam(model.parameters())
@@ -106,6 +109,7 @@ for epoch in range(max_epochs):
 ```
 
 **Lightning version**:
+
 ```python
 class LitModel(L.LightningModule):
     def __init__(self):
@@ -167,6 +171,7 @@ trainer.test(model, test_loader)
 ```
 
 **Automatic features**:
+
 - Validation runs every epoch by default
 - Metrics logged to TensorBoard
 - Best model checkpointing based on val_loss
@@ -188,12 +193,14 @@ trainer.fit(model, train_loader)
 ```
 
 **Launch**:
+
 ```bash
 # Single command, Lightning handles the rest
 python train.py
 ```
 
 **No changes needed**:
+
 - Automatic data distribution
 - Gradient synchronization
 - Multi-node support (just set `num_nodes=2`)
@@ -229,6 +236,7 @@ trainer.fit(model, train_loader, val_loader)
 ```
 
 **Result**:
+
 - Auto-saves best 3 models
 - Stops early if no improvement for 5 epochs
 - Logs learning rate to TensorBoard
@@ -266,6 +274,7 @@ trainer.fit(model, train_loader)
 ## When to use vs alternatives
 
 **Use PyTorch Lightning when**:
+
 - Want clean, organized code
 - Need production-ready training loops
 - Switching between single GPU, multi-GPU, TPU
@@ -273,6 +282,7 @@ trainer.fit(model, train_loader)
 - Team collaboration (standardized structure)
 
 **Key advantages**:
+
 - **Organized**: Separates research code from engineering
 - **Automatic**: DDP, FSDP, DeepSpeed with 1 line
 - **Callbacks**: Modular training extensions
@@ -280,6 +290,7 @@ trainer.fit(model, train_loader)
 - **Tested**: 1M+ downloads/month, battle-tested
 
 **Use alternatives instead**:
+
 - **Accelerate**: Minimal changes to existing code, more flexibility
 - **Ray Train**: Multi-node orchestration, hyperparameter tuning
 - **Raw PyTorch**: Maximum control, learning purposes
@@ -290,6 +301,7 @@ trainer.fit(model, train_loader)
 **Issue: Loss not decreasing**
 
 Check data and model setup:
+
 ```python
 # Add to training_step
 def training_step(self, batch, batch_idx):
@@ -303,6 +315,7 @@ def training_step(self, batch, batch_idx):
 **Issue: Out of memory**
 
 Reduce batch size or use gradient accumulation:
+
 ```python
 trainer = L.Trainer(
     accumulate_grad_batches=4,  # Effective batch = batch_size × 4
@@ -313,6 +326,7 @@ trainer = L.Trainer(
 **Issue: Validation not running**
 
 Ensure you pass val_loader:
+
 ```python
 # WRONG
 trainer.fit(model, train_loader)
@@ -324,6 +338,7 @@ trainer.fit(model, train_loader, val_loader)
 **Issue: DDP spawns multiple processes unexpectedly**
 
 Lightning auto-detects GPUs. Explicitly set devices:
+
 ```python
 # Test on CPU first
 trainer = L.Trainer(accelerator='cpu', devices=1)
@@ -334,11 +349,11 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 
 ## Advanced topics
 
-**Callbacks**: See [references/callbacks.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/pytorch-lightning/references/callbacks.md) for EarlyStopping, ModelCheckpoint, custom callbacks, and callback hooks.
+**Callbacks**: See [references/callbacks.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/pytorch-lightning/references/callbacks.md) for EarlyStopping, ModelCheckpoint, custom callbacks, and callback hooks.
 
-**Distributed strategies**: See [references/distributed.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/pytorch-lightning/references/distributed.md) for DDP, FSDP, DeepSpeed ZeRO integration, multi-node setup.
+**Distributed strategies**: See [references/distributed.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/pytorch-lightning/references/distributed.md) for DDP, FSDP, DeepSpeed ZeRO integration, multi-node setup.
 
-**Hyperparameter tuning**: See [references/hyperparameter-tuning.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/pytorch-lightning/references/hyperparameter-tuning.md) for integration with Optuna, Ray Tune, and WandB sweeps.
+**Hyperparameter tuning**: See [references/hyperparameter-tuning.md](https://github.com/w159/agent-penny/blob/main/optional-skills/mlops/pytorch-lightning/references/hyperparameter-tuning.md) for integration with Optuna, Ray Tune, and WandB sweeps.
 
 ## Hardware requirements
 
@@ -350,6 +365,7 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 - **Apple MPS**: Supported
 
 **Precision options**:
+
 - FP32 (default)
 - FP16 (V100, older GPUs)
 - BF16 (A100/H100, recommended)
@@ -357,9 +373,9 @@ trainer = L.Trainer(accelerator='gpu', devices=1)
 
 ## Resources
 
-- Docs: https://lightning.ai/docs/pytorch/stable/
-- GitHub: https://github.com/Lightning-AI/pytorch-lightning ⭐ 29,000+
+- Docs: <https://lightning.ai/docs/pytorch/stable/>
+- GitHub: <https://github.com/Lightning-AI/pytorch-lightning> ⭐ 29,000+
 - Version: 2.5.5+
-- Examples: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples
-- Discord: https://discord.gg/lightning-ai
+- Examples: <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples>
+- Discord: <https://discord.gg/lightning-ai>
 - Used by: Kaggle winners, research labs, production teams
