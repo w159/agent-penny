@@ -11,6 +11,7 @@ import base64
 import binascii
 import hashlib
 import hmac
+import importlib
 import json
 import logging
 import os
@@ -37,6 +38,50 @@ from gateway.platforms.webhook_filters import DEFAULT_SCRIPT_TIMEOUT_SECONDS, We
 from gateway.response_filters import is_autonomous_silence_response
 
 logger = logging.getLogger(__name__)
+
+
+# Route-level card builders. A route opts in with ``card: <name>``; the named
+# builder rewrites the agent's reply into prose plus a Python-built Adaptive
+# Card fence, using the ticket facts the route script already produced.
+#
+# Why this exists: when the ROUTE PROMPT asked the model to author the card
+# JSON itself, 7 of 22 stored card deliveries (32%) carried JSON the Teams
+# adapter could not parse — a dropped "value": key, a body array closed one
+# bracket early — and each one silently degraded to raw JSON posted in front
+# of help-desk techs. ``json.dumps`` cannot emit a syntax error, so building
+# the card here removes the failure class rather than reducing it.
+_ROUTE_CARD_BUILDERS = {"cw_ticket": "plugins.platforms.teams.ticket_card:render_triage_message"}
+
+
+def _apply_route_card(content: str, delivery: dict) -> str:
+    """Rebuild the route's card in Python, or leave the content alone.
+
+    Never raises and never suppresses, but the two failure modes differ.
+    An unknown builder, a missing Teams plugin, or a builder that raises all
+    return the model's own text unchanged. A missing or unusable ticket
+    payload does NOT: the builder still runs, and returns its own rendering
+    of the reply — the verdict token stripped off, no card attached — which
+    is shorter than what came in. Either way a message goes out.
+    Delivery-suppressing ``[SILENT]`` replies never reach here — ``send()``
+    checks for silence before calling this.
+    """
+    builder_name = (delivery or {}).get("card") or ""
+    target = _ROUTE_CARD_BUILDERS.get(builder_name)
+    if not target:
+        if builder_name:
+            logger.warning("[webhook] Unknown card builder: %s", builder_name)
+        return content
+    try:
+        module_path, func_name = target.split(":")
+        module = importlib.import_module(module_path)
+        return getattr(module, func_name)(content, delivery.get("payload") or {})
+    except Exception:
+        logger.exception(
+            "[webhook] card builder %s failed — delivering the model's text as-is",
+            builder_name,
+        )
+        return content
+
 
 # _resolve_request_profile sentinel: /p/<profile>/ names a profile this gateway does not serve (→ 404);
 # distinct from None (no prefix / default).
@@ -255,6 +300,10 @@ class WebhookAdapter(BasePlatformAdapter):
             return SendResult(success=True)
         delivery = self._delivery_info.get(chat_id, {})
         deliver_type = delivery.get("deliver", "log")
+
+        # After the silence check on purpose: a card must never resurrect a
+        # reply the route decided not to deliver.
+        content = _apply_route_card(content, delivery)
         if deliver_type == "log":
             logger.info("[webhook] Response for %s: %s", chat_id, content[:200])
             return SendResult(success=True)
@@ -571,9 +620,12 @@ class WebhookAdapter(BasePlatformAdapter):
         session_chat_id = f"webhook:{route_name}:{delivery_id}"
         # ``profile`` rides along so the reply leg (``send`` → ``_deliver_cross_platform``) egresses through
         # THIS profile's adapter, home channel and secrets — not the first profile that has the platform.
+        # ``card``/``payload`` are carried so send() can build the route's card from the same facts the
+        # prompt was rendered from (the deliver_only branch above already keeps the payload for the same reason).
         self._delivery_info[session_chat_id] = {
             "deliver": route_config.get("deliver", "log"), "profile": profile,
-            "deliver_extra": self._render_delivery_extra(route_config.get("deliver_extra", {}), payload)}
+            "deliver_extra": self._render_delivery_extra(route_config.get("deliver_extra", {}), payload),
+            "card": route_config.get("card"), "payload": payload}
         self._delivery_info_created[session_chat_id] = now
         self._delivery_info_order.append((now, session_chat_id))
         self._prune_delivery_info(now)

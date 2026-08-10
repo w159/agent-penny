@@ -228,10 +228,22 @@ def _env_enablement() -> dict | None:
 # arrived as one line (```adaptivecard {json}```) because the prompt example it
 # copied had been folded onto one line by YAML; the old ``\s*\n`` demanded a
 # newline, matched nothing, and the raw JSON went to Teams as text. ``\b`` still
-# pins the tag so ```adaptivecardish is not a card, and ``(.*?)`` stays lazy so
+# pins the tag so ```adaptivecardish is not a card, and the payload stays lazy so
 # the match stops at this card's closing fence and never eats a following block.
+#
+# Making the newline optional alone was not enough: an UNTERMINATED
+# ```adaptivecard opener earlier in a message then started a match that closed
+# on the REAL card's opening fence, producing one invalid card plus the real
+# card's JSON as raw text. Two guards make a stray opener fail instead of
+# stealing the next card:
+#   - the payload may not contain the start of another adaptivecard fence;
+#   - the closing ``` may not be immediately followed by the tag.
+# Together they mean the only way to close a fence is on a genuine closer, so a
+# stray opener matches nothing at all and the real card parses normally.
 _CARD_FENCE_RE = re.compile(
-    r"```(?:adaptivecard|adaptive[_-]?card)\b[ \t\r]*\n?(.*?)```",
+    r"```(?:adaptivecard|adaptive[_-]?card)\b[ \t\r]*\n?"
+    r"((?:(?!```(?:adaptivecard|adaptive[_-]?card)\b)[\s\S])*?)"
+    r"```(?!(?:adaptivecard|adaptive[_-]?card)\b)",
     re.DOTALL | re.IGNORECASE,
 )
 
