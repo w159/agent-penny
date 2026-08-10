@@ -127,3 +127,83 @@ class TestStandaloneActivityRendersFencedCards:
 
         assert len(activity["attachments"]) == 1
         assert activity["text"] == "Heads up."
+
+
+# ---------------------------------------------------------------------------
+# Fence-shape tolerance: _CARD_FENCE_RE / _split_card_segments
+# ---------------------------------------------------------------------------
+
+# Verbatim wire content from the 2026-08-10 incident (ticket 95140), recovered
+# from state.db delivery_obligations. The model copied a one-line fence out of
+# a YAML-folded prompt example, the newline-only regex saw no card, and all
+# 1118 characters of this went to the Teams channel as literal text.
+_WIRE_LEAD = (
+    "Karis Simpson's PC just blue-screened and is asking for a reco - looks "
+    "like the checkscanner's revenge tour continues, and it's still unassigned."
+)
+_WIRE_CARD_JSON = (
+    '{"type":"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",'
+    '"version":"1.4","body":[{"type":"Container","style":"attention","items":[{"type":"TextBlock",'
+    '"text":"Blocked - New Triage Ticket","weight":"Bolder","size":"Small","color":"attention",'
+    '"spacing":"None"},{"type":"TextBlock","text":"[#95140 - Karis Simpson\'s computer restarted '
+    "and has a blue screen when turned back on. It's asking for a reco](https://na.myconnectwise.net"
+    '/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid=95140)",'
+    '"wrap":true,"weight":"Bolder","size":"Medium"}]},{"type":"FactSet","facts":['
+    '{"title":"Company","value":"Henssler Financial"},{"title":"Contact","value":"Courtney Richardson"},'
+    '{"title":"Priority","value":"Priority 3 - Medium"},{"title":"Owner","value":"**UNASSIGNED**"}]}],'
+    '"actions":[{"type":"Action.Execute","title":"I\'ve got it","verb":"penny_cw_assign",'
+    '"data":{"penny_action":"cw_assign","ticket_id":95140}}]}'
+)
+_WIRE_CONTENT = _WIRE_LEAD + "\n\n```adaptivecard " + _WIRE_CARD_JSON + "```"
+
+
+def _cards(content):
+    return [p for kind, p in _teams_mod._split_card_segments(content) if kind == "card"]
+
+
+class TestFenceShapeTolerance:
+    def test_the_real_1118_char_wire_content_now_yields_a_card(self):
+        assert len(_WIRE_CONTENT) == 1118, "fixture must stay byte-identical to the incident"
+
+        cards = _cards(_WIRE_CONTENT)
+
+        assert len(cards) == 1
+        assert json.loads(cards[0])["type"] == "AdaptiveCard"
+        # The prose still travels as text, and the fence never does.
+        texts = [p for kind, p in _teams_mod._split_card_segments(_WIRE_CONTENT) if kind == "text"]
+        assert "".join(texts).strip() == _WIRE_LEAD
+
+    def test_one_line_fence_parses(self):
+        content = "```adaptivecard " + json.dumps(_CARD_JSON) + "```"
+
+        assert [json.loads(c) for c in _cards(content)] == [_CARD_JSON]
+
+    def test_newline_fence_still_parses_identically(self):
+        # The shape ticket_card.render_card_fence produces must not regress.
+        from plugins.platforms.teams.ticket_card import render_card_fence
+
+        assert [json.loads(c) for c in _cards(render_card_fence(_CARD_JSON))] == [_CARD_JSON]
+        assert [json.loads(c) for c in _cards(_FENCE)] == [_CARD_JSON]
+
+    def test_backticks_inside_a_json_string_value_survive(self):
+        card = dict(_CARD_JSON, body=[{"type": "TextBlock", "text": "run `ipconfig ``/all`` now"}])
+        content = "```adaptivecard\n" + json.dumps(card) + "\n```"
+
+        parsed = [json.loads(c) for c in _cards(content)]
+
+        assert parsed == [card]
+
+    def test_text_only_message_yields_no_card(self):
+        assert _cards("no fence here, just a sentence about adaptivecard stuff") == []
+
+    def test_a_following_plain_code_block_is_not_swallowed(self):
+        content = _FENCE + "\nthen\n```\nplain code\n```"
+
+        segments = _teams_mod._split_card_segments(content)
+
+        assert [k for k, _ in segments] == ["card", "text"]
+        assert json.loads(segments[0][1]) == _CARD_JSON
+        assert "plain code" in segments[1][1]
+
+    def test_a_lookalike_tag_is_not_treated_as_a_card(self):
+        assert _cards("```adaptivecardish {\"type\": \"AdaptiveCard\"}```") == []

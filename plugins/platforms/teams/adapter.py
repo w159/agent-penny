@@ -223,8 +223,15 @@ def _env_enablement() -> dict | None:
 # ``_standalone_send()`` (out-of-process cron path) parse fences with exactly
 # the same regex instead of two copies that could drift apart. The fence shape
 # is produced by ``ticket_card.render_card_fence`` — change one, check both.
+#
+# The separator after the tag is deliberately forgiving. A model-authored fence
+# arrived as one line (```adaptivecard {json}```) because the prompt example it
+# copied had been folded onto one line by YAML; the old ``\s*\n`` demanded a
+# newline, matched nothing, and the raw JSON went to Teams as text. ``\b`` still
+# pins the tag so ```adaptivecardish is not a card, and ``(.*?)`` stays lazy so
+# the match stops at this card's closing fence and never eats a following block.
 _CARD_FENCE_RE = re.compile(
-    r"```(?:adaptivecard|adaptive[_-]?card)\s*\n(.*?)```",
+    r"```(?:adaptivecard|adaptive[_-]?card)\b[ \t\r]*\n?(.*?)```",
     re.DOTALL | re.IGNORECASE,
 )
 
