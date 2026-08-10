@@ -227,6 +227,93 @@ def _prefix_within_utf16_limit(s: str, limit: int) -> str:
     return s[:_custom_unit_to_cp(s, limit, utf16_len)]
 
 
+# Metadata key marking a send as an UNSOLICITED push — a scheduled/event-driven
+# message nobody asked for and nobody is waiting on — as opposed to a reply to a
+# human who just spoke.  Stamped by the delivery lane that knows the difference
+# (gateway/delivery.py for cron output); read by adapters that cap autonomous
+# chatter.  Absent means "treat as interactive", so an unmarked lane keeps
+# today's behaviour rather than getting silently truncated.
+AUTONOMOUS_DELIVERY_METADATA_KEY = "autonomous_delivery"
+
+# An "item" in an autonomous summary is a blank-line-separated block.  Derived
+# from the real delivered triage messages (state.db messages.id=6945 and
+# cron/output/7ba4aa6a7262/*.md): every one of them separates its prose lead-in
+# and each linked ticket with a blank line, and nothing else is ever used as a
+# separator — no bullets, no numbering, no headers (the cron prompt bans them).
+_ITEM_SEPARATOR_RE = re.compile(r"\n[ \t]*\n")
+
+# A block that *is* a ticket, for counting what got held back.  Both the plain
+# form ("[#94325 - ...](url)") and the bolded form ("**[#94335 - ...](url)")
+# appear in the real outputs, so the leading "**" is optional.
+_TICKET_BLOCK_RE = re.compile(r"^\s*(?:\*\*)?\[#\d+")
+
+
+def _held_back_note(dropped_blocks: "list[str]") -> str:
+    """Build the "what you are not seeing" line for a trimmed message.
+
+    Counts ticket blocks specifically because that is what the reader acts on.
+    When the dropped tail holds no tickets (trailing prose, a roll-up line) the
+    note stays honest without inventing a count.
+    """
+    tickets = sum(1 for b in dropped_blocks if _TICKET_BLOCK_RE.match(b))
+    if tickets == 1:
+        return "+1 more ticket not shown"
+    if tickets > 1:
+        return f"+{tickets} more tickets not shown"
+    return "+more not shown"
+
+
+def trim_to_item_boundary(content: str, max_length: int) -> str:
+    """Cut *content* down to ONE message of at most *max_length* characters.
+
+    Unlike :meth:`BasePlatformAdapter.truncate_message`, which chunks and so
+    preserves every character across N posts, this drops the tail and says so.
+    It exists for unsolicited output where N posts is the actual problem.
+
+    The cut lands on an item boundary (blank line) so the last retained item is
+    whole — a half-quoted ticket is worse than an omitted one.  When even the
+    first item does not fit, it falls back to a word boundary, then to a hard
+    character cut, so a pathological input still returns something sane.
+
+    Content already within *max_length* is returned unchanged and unmarked.
+    """
+    if not content or not content.strip():
+        return content
+    if max_length <= 0 or len(content) <= max_length:
+        return content
+
+    blocks = [b for b in _ITEM_SEPARATOR_RE.split(content) if b.strip()]
+
+    # Greedily keep whole blocks, always reserving room for the note that
+    # tells the reader something was held back.
+    kept: "list[str]" = []
+    for index, block in enumerate(blocks):
+        candidate = "\n\n".join(kept + [block])
+        note = _held_back_note(blocks[index + 1:])
+        if len(candidate) + len("\n\n") + len(note) <= max_length:
+            kept.append(block)
+        else:
+            break
+
+    if kept:
+        note = _held_back_note(blocks[len(kept):])
+        return "\n\n".join(kept) + "\n\n" + note
+
+    # Degenerate: the very first item is itself over budget.  Nothing to keep
+    # whole, so cut inside it — on a word boundary when one exists.
+    note = _held_back_note(blocks)
+    budget = max_length - len("...") - len("\n\n") - len(note)
+    if budget <= 0:
+        # Cap so small even the note does not fit; a hard slice is all that is
+        # left, and it is still one message instead of nine.
+        return content[:max_length]
+    head = content[:budget]
+    cut = head.rstrip().rfind(" ")
+    if cut > 0:
+        head = head[:cut]
+    return head.rstrip() + "...\n\n" + note
+
+
 def is_network_accessible(host: str) -> bool:
     """True if *host* would expose the server beyond loopback (incl. IPv4-mapped
     ::ffff:127.0.0.1); hostnames are resolved and DNS failure fails closed (True)."""

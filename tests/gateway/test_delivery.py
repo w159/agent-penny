@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from gateway.config import GatewayConfig, HomeChannel, Platform, PlatformConfig
 from gateway.delivery import DeliveryRouter, DeliveryTarget
-from gateway.platforms.base import SendResult
+from gateway.platforms.base import AUTONOMOUS_DELIVERY_METADATA_KEY, SendResult
 from gateway.relay.adapter import RelayAdapter
 from gateway.relay.descriptor import CONTRACT_VERSION, CapabilityDescriptor
 from gateway.session import SessionSource
@@ -126,7 +126,13 @@ async def test_relay_fronted_target_delivers_without_prior_inbound_chat_state(tm
     action, wire_platform = transport.sent[0]
     assert wire_platform == "slack"
     assert action["chat_id"] == "D123"
-    assert action["metadata"] == {"job_id": "cron-1", "user_id": "U123"}
+    # job_id marks this as scheduler output, so the router also flags it
+    # autonomous for adapters that cap unsolicited messages.
+    assert action["metadata"] == {
+        "job_id": "cron-1",
+        "user_id": "U123",
+        AUTONOMOUS_DELIVERY_METADATA_KEY: True,
+    }
 
 
 class RecordingAdapter:

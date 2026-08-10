@@ -244,6 +244,43 @@ def _build_job_prompt(
         prompt = f"{notepad_section}{prompt}"
         has_injected_data = True
 
+    # Board-state delta (new / reopened / priority-escalated tickets).
+    # Scoped to jobs opted in via `"board_watch": true` rather than a
+    # hardcoded job id. This replaces board-watcher-001's old prompt
+    # instruction to run `cw_search_tickets with dateEntered >
+    # [last_check_timestamp]` — that placeholder was never substituted, so
+    # every 15-minute run re-found and re-reported the same still-open
+    # tickets (confirmed: ticket #94689 posted 7 times between 08:46-10:35
+    # ET on 2026-08-04). All dedup/age math now happens in
+    # cron/board_watch.py; the model only narrates the short list it's handed.
+    if job.get("board_watch"):
+        try:
+            from cron.board_watch import build_board_prompt_block, select_board_deltas
+            from cron.trend_detection import load_tickets_from_cw_log
+            from datetime import datetime as _dt, timezone as _tz
+
+            tickets = load_tickets_from_cw_log()
+            if tickets:
+                now = max(
+                    (t.updated_at for t in tickets if t.updated_at),
+                    default=_dt.now(_tz.utc),
+                )
+                delta_result = select_board_deltas(tickets, now)
+                # Stash on the job dict: this function only BUILDS the prompt —
+                # delivery happens two call frames later in _deliver_result(),
+                # with no other channel between them to carry the computed
+                # deltas across. _deliver_result pops this to send one
+                # Python-built Adaptive Card per fired ticket instead of
+                # letting the model narrate (and mis-JSON) the same tickets.
+                job["_board_watch_deltas"] = delta_result
+                delta_block = build_board_prompt_block(delta_result)
+                if delta_block:
+                    prompt = delta_block + "\n" + prompt
+                    has_injected_data = True
+        except Exception as e:
+            logger.warning("board_watch: failed to compute for job %r: %s", job.get("id"), e)
+            # non-fatal — a real change surfaces on the next cycle instead
+
     prompt = _CRON_HINT + prompt
     skill_names = _job_skill_names(job)
     if not skill_names:

@@ -14,6 +14,7 @@ from hermes_cli.config import get_hermes_home
 from .config import Platform, GatewayConfig, PlatformConfig
 from .session import SessionSource
 from .dead_targets import DeadTargetRegistry, classify_dead_error
+from .platforms.base import AUTONOMOUS_DELIVERY_METADATA_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -280,6 +281,13 @@ class DeliveryRouter:
         home = self.config.get_home_channel(target.platform) if transport.is_relay else None
         if home is not None and home.chat_id == target.chat_id:
             send_metadata.update({k: v for k, v in (("user_id", home.user_id), ("scope_id", home.scope_id)) if v})
+
+        # A job_id means this came off the scheduler: nobody asked for it and
+        # nobody is waiting on it.  Mark it so adapters that cap unsolicited
+        # chatter (Teams) can tell it apart from a reply to a human question,
+        # without having to know what a cron job is.
+        if send_metadata.get("job_id"):
+            send_metadata[AUTONOMOUS_DELIVERY_METADATA_KEY] = True
 
         # Caller-supplied thread routing always wins over target.thread_id.
         named_topic: Optional[str] = None  # named Telegram private topic created for this send

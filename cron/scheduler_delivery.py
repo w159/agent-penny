@@ -1667,6 +1667,58 @@ def _deliver_result(
     running) the live adapter is tried first (E2EE rooms can't use the standalone HTTP path), then
     standalone fallback. ``for_failure=True`` routes failure-category notices through the job's
     ``failure_deliver`` override when present (NS-788). Returns None on success, else an error."""
+    # Board-watch delta cards (r94689 fix): _build_job_prompt() stashed the
+    # computed BoardDeltaResult on the job dict because it has no other
+    # channel to reach delivery. Pop it (not peek) so a stale result can
+    # never be re-delivered on a later cron cycle regardless of outcome
+    # below. When there ARE fired tickets, send one Python-built Adaptive
+    # Card per ticket via deliver_board_deltas and RETURN — the model's
+    # narrative `content` would just repeat the same tickets in prose and
+    # must be suppressed, not sent alongside the cards.
+    delta_result = job.pop("_board_watch_deltas", None)
+    if delta_result is not None and delta_result.fired:
+        try:
+            from cron.board_watch import deliver_board_deltas
+
+            async def _send_card(message: str):
+                # Offload the sync _deliver_result() call to a worker thread
+                # via run_in_executor so it never blocks the event loop that
+                # is driving this coroutine (live gateway `loop` or the
+                # temporary loop asyncio.run() below creates) — a blocking
+                # call here would deadlock any live-adapter send inside it
+                # that itself schedules work back onto that same loop.
+                running_loop = asyncio.get_running_loop()
+                return await running_loop.run_in_executor(
+                    None, _deliver_result, job, message, adapters, loop,
+                )
+
+            if loop is not None and getattr(loop, "is_running", lambda: False)():
+                from agent.async_utils import safe_schedule_threadsafe
+
+                future = safe_schedule_threadsafe(
+                    deliver_board_deltas(delta_result, _send_card),
+                    loop,
+                    logger=logger,
+                    log_message="board_watch: failed to schedule card delivery",
+                )
+                sent = future.result(timeout=120) if future is not None else []
+            else:
+                sent = asyncio.run(deliver_board_deltas(delta_result, _send_card))
+
+            logger.info(
+                "Job '%s': board_watch delivered %d card(s) for %d fired ticket(s); "
+                "suppressing model narrative (%d chars)",
+                job.get("id", "?"), len(sent), len(delta_result.fired), len(content or ""),
+            )
+            return None
+        except Exception as e:
+            logger.error(
+                "Job '%s': board_watch card delivery failed (%s) — falling back "
+                "to text delivery so the update isn't silently dropped",
+                job.get("id", "?"), e,
+            )
+            # fall through to the normal text-delivery path below
+
     job.pop("_bot_chat_delivery_receipts", None)
     targets = _resolve_delivery_targets(job, for_failure=for_failure)
     if not targets:

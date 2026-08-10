@@ -112,6 +112,15 @@ def _ensure_teams_mock():
 
     # Cards mocks
     class MockAdaptiveCard:
+        # The real microsoft_teams.cards.AdaptiveCard is a pydantic model, so
+        # the adapter builds cards from fenced JSON via model_validate.
+        def __init__(self, data=None):
+            self._data = data or {}
+
+        @classmethod
+        def model_validate(cls, data):
+            return cls(data)
+
         def with_version(self, v):
             return self
 

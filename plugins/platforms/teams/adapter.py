@@ -18,6 +18,7 @@ import importlib.util
 import json
 import logging
 import os
+import random
 import re
 import sys
 from contextlib import contextmanager, suppress
@@ -55,10 +56,12 @@ HttpMethod = str  # type: ignore[assignment,misc]
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.helpers import MessageDeduplicator
 from gateway.platforms.base import (
-    gateway_trust_env, BasePlatformAdapter, SendResult, cache_image_from_url, cache_media_bytes_async,
+    AUTONOMOUS_DELIVERY_METADATA_KEY, gateway_trust_env, BasePlatformAdapter, SendResult,
+    cache_image_from_url, cache_media_bytes_async, trim_to_item_boundary,
 )
 from gateway.platforms.event import MessageEvent, MessageType
 from gateway.platforms._shared import coerce_port, get_scoped_secret as _get_scoped_secret
+from plugins.platforms.teams.ticket_card import guard_single_ticket_per_autonomous_message
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +104,25 @@ def _is_allowed_https_host(url: str, *, check_port: bool = False) -> bool:
 def _is_botframework_attachment_url(url: str) -> bool:
     """True if ``url`` is a Bot Framework connector attachment host (may carry the bot token)."""
     return _is_allowed_https_host(url, check_port=True)
+
+
+def _coerce_autonomous_cap(value: Any, default: int) -> int:
+    """Read the autonomous-message cap from config, falling back to *default*.
+
+    A malformed value falls back rather than raising: a typo in config.yaml
+    must not take the adapter down.  Negative values normalise to 0, which the
+    send path reads as "cap disabled".
+    """
+    if value is None:
+        return default
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        logger.warning(
+            "[teams] ignoring invalid autonomous_message_cap %r — using %d",
+            value, default,
+        )
+        return default
 
 
 def _validate_teams_service_url(raw: str) -> Optional[str]:
@@ -189,6 +211,78 @@ def _env_enablement() -> dict | None:
     return seed
 
 
+
+# Agent and cron replies may embed a rich Adaptive Card as a fenced block:
+#   ```adaptivecard
+#   { ...adaptive card json... }
+#   ```
+# Everything outside such fences is sent as normal markdown text, so prose
+# stays prose while structured content becomes an interactive Teams card.
+#
+# Module-level so both ``TeamsAdapter.send()`` (live gateway path) and
+# ``_standalone_send()`` (out-of-process cron path) parse fences with exactly
+# the same regex instead of two copies that could drift apart. The fence shape
+# is produced by ``ticket_card.render_card_fence`` — change one, check both.
+_CARD_FENCE_RE = re.compile(
+    r"```(?:adaptivecard|adaptive[_-]?card)\s*\n(.*?)```",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+def _split_card_segments(content: str):
+    """Split content into ordered ('text'|'card', payload) segments."""
+    segments = []
+    last = 0
+    for m in _CARD_FENCE_RE.finditer(content or ""):
+        if m.start() > last:
+            segments.append(("text", content[last:m.start()]))
+        segments.append(("card", m.group(1).strip()))
+        last = m.end()
+    if last < len(content or ""):
+        segments.append(("text", content[last:]))
+    return segments
+
+
+def _build_standalone_activity(message: str) -> Dict[str, Any]:
+    """Build a Bot Framework activity dict, parsing any fenced Adaptive Card.
+
+    The standalone sender posts one activity in one request, so card segments
+    collapse into ``attachments`` and text segments join into ``text``. Without
+    this the fence reached Teams verbatim and rendered as raw JSON. A malformed
+    fence is never fatal: it logs an ERROR and falls back to the original
+    plain-text activity so the message still arrives.
+    """
+    segments = _split_card_segments(message)
+    if not any(kind == "card" for kind, _ in segments):
+        return {"type": "message", "text": message, "textFormat": "markdown"}
+
+    attachments = []
+    text_parts = []
+    for kind, payload in segments:
+        if kind == "text":
+            if payload.strip():
+                text_parts.append(payload)
+            continue
+        try:
+            card_obj = json.loads(payload)
+        except (json.JSONDecodeError, ValueError) as parse_err:
+            logger.error(
+                "Teams standalone send: fenced Adaptive Card JSON failed to parse "
+                "(%s); falling back to plain text. Offending snippet: %r",
+                parse_err, payload[:300],
+            )
+            return {"type": "message", "text": message, "textFormat": "markdown"}
+        attachments.append({
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": card_obj,
+        })
+
+    activity: Dict[str, Any] = {"type": "message", "attachments": attachments}
+    joined_text = "\n\n".join(text_parts).strip()
+    if joined_text:
+        activity["text"] = joined_text
+    return activity
+
 async def _standalone_send(
     pconfig, chat_id: str, message: str, *,
     thread_id: Optional[str] = None, media_files: Optional[list] = None, force_document: bool = False,
@@ -230,8 +324,10 @@ async def _standalone_send(
             access_token = token_payload.get("access_token")
             if not access_token:
                 return {"error": "Teams standalone send: token response missing access_token"}
+
+            activity = _build_standalone_activity(message)
             async with session.post(
-                activities_url, json={"type": "message", "text": message, "textFormat": "markdown"},
+                activities_url, json=activity,
                 headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
                 timeout=per_request_timeout,
             ) as send_resp:
@@ -345,6 +441,24 @@ class TeamsAdapter(BasePlatformAdapter):
     MAX_MESSAGE_LENGTH = 28000  # Teams text message limit (~28 KB)
     splits_long_messages = True  # send() chunks via truncate_message()
 
+    # Unsolicited (cron/event-driven) output is trimmed to ONE post instead of
+    # being chunked into as many as it takes; a reply to a human is left alone,
+    # because someone who asks for the whole board should get it.  Operators
+    # tune this in config.yaml under
+    # ``platforms.teams.extra.autonomous_message_cap``; 0 disables the cap.
+    AUTONOMOUS_MESSAGE_CHAR_CAP = 1500
+
+    # A card failure used to vanish into a single WARNING and a silent
+    # downgrade to text (8 HTTP 429s did exactly this on 2026-07-27), so card
+    # sends now retry like any other external call.
+    _CARD_RETRY_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+    _CARD_MAX_RETRIES = 3
+
+    # Fence detection/parsing lives at module scope so this class and the
+    # out-of-process standalone sender share exactly one parser.
+    _CARD_FENCE_RE = _CARD_FENCE_RE
+    _split_card_segments = staticmethod(_split_card_segments)
+
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform("teams"))
         extra = config.extra or {}
@@ -354,6 +468,9 @@ class TeamsAdapter(BasePlatformAdapter):
         self._bf_token_cache: Optional[tuple] = None
         self._bf_token_lock: Optional[asyncio.Lock] = None
         self._port = coerce_port(extra.get("port") or os.getenv("TEAMS_PORT", str(_DEFAULT_PORT)), _DEFAULT_PORT)
+        self._autonomous_cap = _coerce_autonomous_cap(
+            extra.get("autonomous_message_cap"), self.AUTONOMOUS_MESSAGE_CHAR_CAP
+        )
         _raw_host = extra.get("host") or os.getenv("TEAMS_HOST", "") or _DEFAULT_HOST  # falsy → dual-stack None
         self._host: Optional[str] = str(_raw_host) if _raw_host else None
         self._app: Optional["App"] = None
@@ -554,6 +671,70 @@ class TeamsAdapter(BasePlatformAdapter):
                 logger.warning("[teams] Failed to cache attachment '%s' (%s): %s", att_name or content_url, content_type, e)
         return None
 
+    # These extractors are duck-typed against whatever exception the Teams
+    # SDK's HTTP client raises (httpx.HTTPStatusError-shaped, or any object
+    # carrying .status_code/.response), so retry and logging work without
+    # depending on the SDK's exact exception class.
+    @staticmethod
+    def _http_response_from_exc(exc: Exception) -> Any:
+        return getattr(exc, "response", None)
+
+    @classmethod
+    def _http_status_from_exc(cls, exc: Exception) -> Optional[int]:
+        status = getattr(exc, "status_code", None)
+        if status is not None:
+            return status
+        response = cls._http_response_from_exc(exc)
+        return getattr(response, "status_code", None) if response is not None else None
+
+    @classmethod
+    def _http_body_from_exc(cls, exc: Exception) -> Optional[str]:
+        response = cls._http_response_from_exc(exc)
+        if response is None:
+            return None
+        for attr in ("text", "content", "body"):
+            value = getattr(response, attr, None)
+            if value:
+                return value if isinstance(value, str) else str(value)
+        return None
+
+    @classmethod
+    def _retry_after_from_exc(cls, exc: Exception) -> Optional[float]:
+        response = cls._http_response_from_exc(exc)
+        headers = getattr(response, "headers", None) if response is not None else None
+        raw = headers.get("Retry-After") if headers else None
+        if raw is None:
+            return None
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+
+    async def _send_card_with_retry(self, chat_id: str, card: "AdaptiveCard") -> "Any":
+        """Send a card, retrying 429/5xx with capped exponential backoff + jitter.
+
+        One card per ticket multiplies the send rate, and 429 already broke
+        silently once, so a card send gets the same resilience as any other
+        external call instead of a single shot before degrading to text.
+        """
+        attempt = 0
+        while True:
+            try:
+                return await self._send_card(chat_id, card)
+            except Exception as exc:
+                status = self._http_status_from_exc(exc)
+                if status not in self._CARD_RETRY_STATUS_CODES or attempt >= self._CARD_MAX_RETRIES:
+                    raise
+                delay = self._retry_after_from_exc(exc)
+                if delay is None:
+                    delay = (2 ** attempt) + random.uniform(0, 1)
+                attempt += 1
+                logger.warning(
+                    "[teams] card send got HTTP %s, retrying (%d/%d) in %.1fs",
+                    status, attempt, self._CARD_MAX_RETRIES, delay,
+                )
+                await asyncio.sleep(delay)
+
     async def _send_card(self, chat_id: str, card: "AdaptiveCard") -> "Any":
         """Send an AdaptiveCard, using a stored ConversationReference when available."""
         from microsoft_teams.api import MessageActivityInput
@@ -651,26 +832,133 @@ class TeamsAdapter(BasePlatformAdapter):
             logger.error("[teams] send_exec_approval failed: %s", e, exc_info=True)
             return SendResult(success=False, error=str(e), retryable=True)
 
+    async def _send_text(
+        self, chat_id: str, text: str, reply_to: Optional[str] = None
+    ) -> Optional[str]:
+        """Send markdown text (chunked), threaded reply when possible.
+
+        Raises on send failure so callers decide how to report it.
+        """
+        last_message_id = None
+        for chunk in self.truncate_message(self.format_message(text)):
+            if reply_to and reply_to.isdigit() and reply_to != "0":
+                try:
+                    result = await self._app.reply(chat_id, reply_to, chunk)
+                except Exception as reply_err:
+                    # Group chats 400 on threaded sends; the Teams SDK doesn't
+                    # expose typed HTTP errors, so fall back on any exception
+                    # and log for diagnostics.
+                    logger.debug(
+                        "Teams reply() failed, falling back to flat send: %s",
+                        reply_err,
+                    )
+                    result = await self._app.send(chat_id, chunk)
+            else:
+                result = await self._app.send(chat_id, chunk)
+            last_message_id = getattr(result, "id", None)
+        return last_message_id
+
+    def _cap_autonomous_message(
+        self, content: str, metadata: Optional[Dict[str, Any]]
+    ) -> str:
+        """Trim an unsolicited message to one post; leave replies to humans alone.
+
+        Without this, ``truncate_message()`` in ``_send_text`` splits a long
+        autonomous report into as many posts as it takes (a measured 33 KB
+        sweep became nine).  Only sends explicitly marked autonomous by the
+        delivery lane are affected.
+        """
+        if not (metadata or {}).get(AUTONOMOUS_DELIVERY_METADATA_KEY):
+            return content
+        cap = self._autonomous_cap
+        if cap <= 0:
+            return content
+        trimmed = trim_to_item_boundary(content, cap)
+        if trimmed is not content:
+            logger.info(
+                "[teams] autonomous message trimmed to one post: %d -> %d chars (cap=%d)",
+                len(content), len(trimmed), cap,
+            )
+        return trimmed
+
     async def send(
         self, chat_id: str, content: str, reply_to: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None
     ) -> SendResult:
         if not self._app:
             return SendResult(success=False, error="Teams app not initialized")
-        last_message_id = None
-        for chunk in self.truncate_message(self.format_message(content)):
+
+        # Structural guarantee, not a prompting convention: an autonomous
+        # (cron/unsolicited) send naming 2+ distinct tickets is rejected
+        # outright rather than silently trimmed down to one.
+        try:
+            guard_single_ticket_per_autonomous_message(content, metadata)
+        except Exception as guard_err:
+            logger.error("[teams] blocked autonomous multi-ticket send: %s", guard_err)
+            raise
+
+        segments = self._split_card_segments(content)
+        has_card = AdaptiveCard is not None and any(k == "card" for k, _ in segments)
+
+        # Plain-text fast path (unchanged behaviour when no card is present).
+        if not has_card:
+            content = self._cap_autonomous_message(content, metadata)
             try:
-                if reply_to and reply_to.isdigit() and reply_to != "0":
-                    try:
-                        result = await self._app.reply(chat_id, reply_to, chunk)
-                    except Exception as reply_err:
-                        # Group chats 400 on threaded sends; the SDK has no typed HTTP errors → fall back on any.
-                        logger.debug("Teams reply() failed, falling back to flat send: %s", reply_err)
-                        result = await self._app.send(chat_id, chunk)
-                else:
-                    result = await self._app.send(chat_id, chunk)
-                last_message_id = getattr(result, "id", None)
+                last_message_id = await self._send_text(chat_id, content, reply_to)
             except Exception as e:
                 return SendResult(success=False, error=str(e), retryable=True)
+            return SendResult(success=True, message_id=last_message_id)
+
+        # Mixed text + Adaptive Card path. Autonomous sends with a card send
+        # ONLY the card: the narrative text around the fence used to go out as
+        # separate messages, duplicating the same ticket as card-then-text.
+        # Interactive sends keep the original prose-plus-card behavior.
+        suppress_narrative = bool((metadata or {}).get(AUTONOMOUS_DELIVERY_METADATA_KEY))
+        suppressed_count = 0
+        suppressed_chars = 0
+
+        last_message_id = None
+        for kind, payload in segments:
+            if kind == "card":
+                try:
+                    card = AdaptiveCard.model_validate(json.loads(payload))
+                    result = await self._send_card_with_retry(chat_id, card)
+                    last_message_id = getattr(result, "id", None) if result else last_message_id
+                    continue
+                except Exception as card_err:
+                    # Never drop a reply over a malformed/failing card — degrade
+                    # to a code block as a LAST resort, after retries are
+                    # exhausted. ERROR, not WARNING: it means real content
+                    # reached the user as plain text instead of a card. This
+                    # fallback always sends, even when narrative text is
+                    # otherwise suppressed, because it carries the only copy of
+                    # the card's content.
+                    logger.error(
+                        "[teams] card send failed after retries (status=%s, body=%s), "
+                        "sending as text: %s",
+                        self._http_status_from_exc(card_err),
+                        self._http_body_from_exc(card_err),
+                        card_err,
+                        exc_info=True,
+                    )
+                    payload = f"```\n{payload}\n```"
+            text = (payload or "").strip()
+            if not text:
+                continue
+            if suppress_narrative and kind == "text":
+                suppressed_count += 1
+                suppressed_chars += len(text)
+                continue
+            try:
+                last_message_id = await self._send_text(chat_id, text, reply_to) or last_message_id
+            except Exception as e:
+                return SendResult(success=False, error=str(e), retryable=True)
+
+        if suppressed_count:
+            logger.info(
+                "[teams] autonomous card send: suppressed %d narrative text segment(s), %d chars",
+                suppressed_count, suppressed_chars,
+            )
+
         return SendResult(success=True, message_id=last_message_id)
 
     async def send_typing(self, chat_id: str, metadata: Optional[Dict[str, Any]] = None) -> None:
