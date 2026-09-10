@@ -70,6 +70,26 @@ class MicrosoftGraphClient:
         items: list[Any] = []
         # Query params go on the first request only; @odata.nextLink already embeds them.
         next_url, next_params = self._resolve_url(path), dict(params or {})
+
+    async def send_mail(
+        self,
+        sender: str,
+        message: dict[str, Any],
+        *,
+        save_to_sent_items: bool = False,
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """POST /users/{sender}/sendMail. Returns on any 2xx -- sendMail
+        replies with an empty 202 body, unlike the JSON-returning verbs
+        above, so this doesn't route through ``post_json``'s decoder.
+        """
+        response = await self._request(
+            "POST",
+            f"/users/{sender}/sendMail",
+            json_body={"message": message, "saveToSentItems": save_to_sent_items},
+            headers=headers,
+        )
+        return {"sent": True, "status_code": response.status_code}
         while next_url:
             payload = self._decode_json(await self._request("GET", next_url, params=next_params or None, headers=headers))
             if not isinstance(payload, dict):

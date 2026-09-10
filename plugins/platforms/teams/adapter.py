@@ -61,7 +61,12 @@ from gateway.platforms.base import (
 )
 from gateway.platforms.event import MessageEvent, MessageType
 from gateway.platforms._shared import coerce_port, get_scoped_secret as _get_scoped_secret
-from plugins.platforms.teams.ticket_card import guard_single_ticket_per_autonomous_message
+from plugins.platforms.teams.ticket_card import (
+    MultiTicketAutonomousError,
+    guard_single_ticket_per_autonomous_message,
+    split_autonomous_message_by_ticket,
+)
+from gateway.outbound_dedup import guard_outbound
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +128,43 @@ def _coerce_autonomous_cap(value: Any, default: int) -> int:
             value, default,
         )
         return default
+
+
+# A card that fails to send after retries used to degrade to a raw JSON code
+# fence -- a wall of AdaptiveCard internals dumped straight into the chat.
+# Cap the plain-text fallback well short of a Teams message limit.
+_CARD_FALLBACK_MAX_CHARS = 300
+_CARD_FALLBACK_GENERIC_TEXT = "A card could not be displayed here. Check the Triage board directly."
+
+
+def _card_send_failure_fallback_text(card_json: str) -> str:
+    """Derive a short human-readable line for a card that failed to send.
+
+    Never returns the raw card JSON. Prefers the card's own ``fallbackText``
+    field (every card built by ticket_card.py sets one, see render_card_fence
+    callers), falls back to the first TextBlock's ``text``, and falls back
+    further to a generic notice when neither can be parsed out.
+    """
+    try:
+        card = json.loads(card_json)
+    except (TypeError, ValueError):
+        return _CARD_FALLBACK_GENERIC_TEXT
+    if not isinstance(card, dict):
+        return _CARD_FALLBACK_GENERIC_TEXT
+
+    text = card.get("fallbackText")
+    if not text:
+        for item in card.get("body") or []:
+            if isinstance(item, dict) and item.get("type") == "TextBlock" and item.get("text"):
+                text = item["text"]
+                break
+
+    text = str(text).strip() if text else ""
+    if not text:
+        return _CARD_FALLBACK_GENERIC_TEXT
+    if len(text) > _CARD_FALLBACK_MAX_CHARS:
+        text = text[:_CARD_FALLBACK_MAX_CHARS].rstrip() + "..."
+    return text
 
 
 def _validate_teams_service_url(raw: str) -> Optional[str]:
@@ -325,6 +367,17 @@ async def _standalone_send(
         (not AIOHTTP_AVAILABLE, "aiohttp not installed")):
         if failed:
             return {"error": f"Teams standalone send: {error}"}
+
+    # Same repetition/tic/rate-limit guard as the live-adapter send() path
+    # (see gateway/outbound_dedup.py). This function only exists for the
+    # out-of-process cron path (see docstring above), which is always
+    # unsolicited — never a live reply to a human — so is_reply=False
+    # unconditionally.
+    dedup_result = guard_outbound(chat_id, message, is_reply=False)
+    if not dedup_result.allowed:
+        return {"success": True, "suppressed": dedup_result.reason}
+    message = dedup_result.text
+
     token_url, token_form = _bf_token_request(tenant_id, client_id, client_secret)
     activities_url = f"{service_url}v3/conversations/{chat_id}/activities"
     try:
@@ -465,7 +518,24 @@ class TeamsAdapter(BasePlatformAdapter):
     # because someone who asks for the whole board should get it.  Operators
     # tune this in config.yaml under
     # ``platforms.teams.extra.autonomous_message_cap``; 0 disables the cap.
-    AUTONOMOUS_MESSAGE_CHAR_CAP = 1500
+    #
+    # Raised from 1500 to 2800 on 2026-09-04: SOUL.md's MESSAGE SIZE rule and
+    # the triage-board-sweep job prompt both explicitly allow up to 6 tickets
+    # (each a bold markdown link with a ~140-char ConnectWise URL, company,
+    # status, and a clause of commentary) plus an intro line and a reconciling
+    # roll-up sentence in ONE autonomous message. A real, fully-compliant
+    # example measured 2203 chars (state.db message id 19733); 1500 was
+    # tight enough to guarantee that message got trimmed, discarding its own
+    # correct closing summary in favor of the generic "+N more" note. 2800
+    # gives headroom above the observed real-world size instead of merely
+    # matching it exactly.
+    AUTONOMOUS_MESSAGE_CHAR_CAP = 2800
+
+    # Interactive replies (a human asked, Penny answered) were previously
+    # uncapped, which is how a 2528-char wall of stale ticket narration made
+    # it into the IT group chat. Cut at an item/word boundary, never mid-
+    # sentence, and say so, instead of dropping content silently.
+    INTERACTIVE_MESSAGE_CHAR_CAP = 1200
 
     # A card failure used to vanish into a single WARNING and a silent
     # downgrade to text (8 HTTP 429s did exactly this on 2026-07-27), so card
@@ -611,10 +681,35 @@ class TeamsAdapter(BasePlatformAdapter):
         msg_id = getattr(activity, "id", None)
         if msg_id and self._dedup.is_duplicate(msg_id):
             return
+
         conv = activity.conversation
         conv_id = getattr(conv, "id", None)
         if conv_id:  # cache the conversation reference for proactive sends (approval cards, etc.)
             self._conv_refs[conv_id] = ctx.conversation_ref
+
+        # The trend card's ACKNOWLEDGE TREND button is Action.Submit, not
+        # Action.Execute -- Teams delivers Action.Submit as a plain `message`
+        # activity carrying `value`, not the `adaptiveCard/action` invoke
+        # `_on_card_action` (@self._app.on_card_action) handles. So it is
+        # routed here instead of there.
+        #
+        # `card_submit_value` is captured generically (not just for the
+        # ack_trend case handled inline below) and threaded into the
+        # MessageEvent's `metadata` dict further down, so a plugin's
+        # `pre_gateway_dispatch` hook can react to ANY Adaptive Card
+        # Action.Submit button without adapter.py knowing what that plugin
+        # does with it -- see MessageEvent.metadata's docstring in
+        # gateway/platforms/base.py ("Adapters may set platform-specific
+        # signals here"). Without this, any Action.Submit payload other
+        # than the hardcoded ack_trend shape was silently dropped: the
+        # activity carries no usable `text`, so it fell through to an
+        # empty-text MessageEvent no plugin could ever see.
+        submit_value = getattr(activity, "value", None)
+        card_submit_value = submit_value if isinstance(submit_value, dict) else None
+        if card_submit_value and card_submit_value.get("action") == "ack_trend":
+            await self._on_trend_ack_submit(activity, conv_id)
+            return
+
         text = activity.text if hasattr(activity, "text") and activity.text else ""
         if "<at>" in text:  # strip the <at>BotName</at> tags Teams prepends for @mentions
             text = re.sub(r"<at>[^<]*</at>\s*", "", text).strip()
@@ -632,7 +727,8 @@ class TeamsAdapter(BasePlatformAdapter):
         msg_type = next((t for kind, t in _MEDIA_KIND_PRECEDENCE if kind in media_kinds), MessageType.TEXT)
         await self.handle_message(MessageEvent(
             text=text, source=source, message_type=msg_type, message_id=msg_id,
-            media_urls=[path for path, _, _ in media], media_types=[mt for _, mt, _ in media]))
+            media_urls=[path for path, _, _ in media], media_types=[mt for _, mt, _ in media],
+            metadata={"teams_card_submit": card_submit_value} if card_submit_value else {}))
 
     async def _cache_attachment(self, att: Any) -> Optional[tuple]:
         """Download + cache one inbound attachment → ``(path, media_type, kind)`` or ``None``."""
@@ -689,6 +785,57 @@ class TeamsAdapter(BasePlatformAdapter):
             except Exception as e:
                 logger.warning("[teams] Failed to cache attachment '%s' (%s): %s", att_name or content_url, content_type, e)
         return None
+
+    async def _on_trend_ack_submit(self, activity: "Any", chat_id: str) -> None:
+        """Handle the trend card's ACKNOWLEDGE TREND button (Action.Submit).
+
+        Any channel member may acknowledge a trend -- this is deliberately
+        NOT behind the TEAMS_ALLOWED_USERS gate that ``_on_card_action``
+        enforces, since that gate protects privileged command approval, not
+        this. Never raises: an ack that fails to build a reply must not take
+        the message loop down with it.
+        """
+        data = activity.value or {}
+        trend_id = str(data.get("trend_id") or "").strip()
+        from_account = activity.from_
+        user_id = str(getattr(from_account, "aad_object_id", None) or getattr(from_account, "id", "") or "")
+        user_name = getattr(from_account, "name", None) or user_id or "someone"
+
+        if not trend_id:
+            logger.error("[teams] ack_trend submit missing trend_id: %r", data)
+            await self.send(chat_id, "Could not acknowledge: that button did not carry a trend ID.")
+            return
+
+        try:
+            from cron.trend_state import record_acknowledgement
+        except ImportError as e:
+            # Lazy import on purpose: another workstream owns adding this
+            # symbol, so a not-yet-landed function must not break adapter
+            # import at startup -- only this one button handler.
+            logger.error(
+                "[teams] ack_trend: cron.trend_state.record_acknowledgement is unavailable: %s", e
+            )
+            await self.send(
+                chat_id, f"Trend {trend_id}: acknowledgement failed (internal error). Try again shortly."
+            )
+            return
+
+        try:
+            acked = record_acknowledgement(trend_id, user_id, user_name)
+        except Exception as e:
+            logger.error("[teams] ack_trend: record_acknowledgement(%s) raised: %s", trend_id, e)
+            await self.send(
+                chat_id, f"Trend {trend_id}: acknowledgement failed (internal error). Try again shortly."
+            )
+            return
+
+        if acked:
+            from datetime import datetime as _datetime
+
+            local_time = _datetime.now().astimezone().strftime("%-I:%M %p %Z")
+            await self.send(chat_id, f"Trend {trend_id} acknowledged by {user_name} at {local_time}.")
+        else:
+            await self.send(chat_id, f"Trend {trend_id} is no longer being tracked (already resolved or expired).")
 
     # These extractors are duck-typed against whatever exception the Teams
     # SDK's HTTP client raises (httpx.HTTPStatusError-shaped, or any object
@@ -780,13 +927,44 @@ class TeamsAdapter(BasePlatformAdapter):
     async def _on_card_action(
         self, ctx: "ActivityContext[AdaptiveCardInvokeActivity]"
     ) -> "InvokeResponse[AdaptiveCardActionMessageResponse]":
-        from tools.approval import resolve_gateway_approval, has_blocking_approval
+        """Handle an Adaptive Card Action.Execute button click."""
+        from tools.approval import (
+            resolve_gateway_approval,
+            has_blocking_approval,
+            get_pending_gateway_approval,
+        )
 
         data = ctx.activity.value.action.data or {}
         hermes_action = data.get("hermes_action", "")
         session_key = data.get("session_key", "")
         if not hermes_action or not session_key:
             return self._invoke_message("Unknown action.")
+
+        from_account = ctx.activity.from_
+        clicker_id = str(getattr(from_account, "aad_object_id", None) or getattr(from_account, "id", "") or "")
+
+        # MSP connector ACTION tools carry a stricter, PERSON-scoped gate on
+        # top of the ordinary chat-scoped TEAMS_ALLOWED_USERS check below:
+        # any of those chat-authorized people can click a normal dangerous-
+        # command approval, but only a named connector approver (Ernesto,
+        # Jerry, Scarlet — resolved via connector_action_gate's config-driven
+        # allowlist) may approve a connector write. Checked BEFORE the
+        # general allowlist check so a connector approval can never fall
+        # through on the broader TEAMS_ALLOWED_USERS/TEAMS_ALLOW_ALL_USERS
+        # opt-in — those authorize talking to Penny, not approving a write.
+        pending_data = get_pending_gateway_approval(session_key)
+        if pending_data and pending_data.get("requires_connector_approver"):
+            from tools.connector_action_gate import is_authorized_approver
+            if not is_authorized_approver(clicker_id):
+                logger.warning(
+                    "[teams] connector-action approval rejected: clicker %s "
+                    "is not on the connector approver allowlist",
+                    clicker_id,
+                )
+                return self._invoke_message(
+                    "⛔ You are not an authorized approver for this connector action."
+                )
+
         denied = self._card_action_denied(ctx.activity.from_)
         if denied:
             return self._invoke_message(denied)
@@ -795,7 +973,18 @@ class TeamsAdapter(BasePlatformAdapter):
             return self._invoke_message("Unknown action.")
         if not has_blocking_approval(session_key):
             return self._invoke_card([TextBlock(text="⚠️ Approval already resolved or expired.", wrap=True)])
-        resolve_gateway_approval(session_key, choice)
+
+        # For a connector-action approval, thread the approver's identity
+        # through as `reason` (the only free-text channel resolve_gateway_
+        # approval carries) so the audit log can record who clicked approve,
+        # not just that someone did.
+        approver_reason = None
+        if pending_data and pending_data.get("requires_connector_approver"):
+            from tools.connector_action_gate import approver_name_for_id
+            approver_label = approver_name_for_id(clicker_id) or clicker_id
+            approver_reason = f"approved_by:{approver_label}"
+
+        resolve_gateway_approval(session_key, choice, reason=approver_reason)
         body = _approval_body(data.get("cmd", ""), data.get("desc", ""))
         body.append(TextBlock(text=_APPROVAL_LABELS[choice], wrap=True, weight="Bolder"))
         return self._invoke_card(body)
@@ -900,6 +1089,27 @@ class TeamsAdapter(BasePlatformAdapter):
             )
         return trimmed
 
+    def _cap_interactive_message(
+        self, content: str, metadata: Optional[Dict[str, Any]]
+    ) -> str:
+        """Trim a reply to a human so one turn cannot become a wall of text.
+
+        Skips autonomous (cron/unsolicited) sends, which already went through
+        ``_cap_autonomous_message`` above under its own cap.
+        """
+        if (metadata or {}).get(AUTONOMOUS_DELIVERY_METADATA_KEY):
+            return content
+        cap = self.INTERACTIVE_MESSAGE_CHAR_CAP
+        if cap <= 0:
+            return content
+        trimmed = trim_to_item_boundary(content, cap)
+        if trimmed is not content:
+            logger.info(
+                "[teams] interactive reply trimmed: %d -> %d chars (cap=%d)",
+                len(content), len(trimmed), cap,
+            )
+        return trimmed
+
     async def send(
         self, chat_id: str, content: str, reply_to: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None
     ) -> SendResult:
@@ -907,13 +1117,53 @@ class TeamsAdapter(BasePlatformAdapter):
             return SendResult(success=False, error="Teams app not initialized")
 
         # Structural guarantee, not a prompting convention: an autonomous
-        # (cron/unsolicited) send naming 2+ distinct tickets is rejected
-        # outright rather than silently trimmed down to one.
+        # (cron/unsolicited) send naming more tickets than its job's limit
+        # allows is never shipped as one oversized message. First choice is
+        # to split it into one message per ticket (real fix for the
+        # 2026-09-04 triage-nag incident: the model already wrote three
+        # clean blank-line-separated per-ticket paragraphs in one turn --
+        # rejecting the whole send discarded three good messages because
+        # Python never split them apart). Only when the content can't be
+        # split safely (see split_autonomous_message_by_ticket's docstring)
+        # does this fall back to the original hard rejection.
         try:
             guard_single_ticket_per_autonomous_message(content, metadata)
+        except MultiTicketAutonomousError as guard_err:
+            split_messages = split_autonomous_message_by_ticket(content)
+            if not split_messages:
+                logger.error("[teams] blocked autonomous multi-ticket send: %s", guard_err)
+                raise
+            logger.info(
+                "[teams] autonomous send named too many tickets at once (%s); "
+                "split into %d one-ticket-per-message sends instead of rejecting",
+                guard_err, len(split_messages),
+            )
+            last_result: Optional[SendResult] = None
+            for part in split_messages:
+                last_result = await self.send(chat_id, part, reply_to, metadata)
+                if not getattr(last_result, "success", False):
+                    # Surface the first failure rather than reporting overall
+                    # success when only some of the split messages went out.
+                    return last_result
+            return last_result
         except Exception as guard_err:
             logger.error("[teams] blocked autonomous multi-ticket send: %s", guard_err)
             raise
+
+        # Repetition/tic/rate-limit guard, enforced in Python at the send
+        # boundary so no prompt drift can defeat it. is_reply follows the
+        # same autonomous/interactive distinction gateway/delivery.py already
+        # uses to cap unsolicited chatter (AUTONOMOUS_DELIVERY_METADATA_KEY
+        # absent == a reply to a human, which is always exempt from the rate
+        # limit). See gateway/outbound_dedup.py.
+        dedup_result = guard_outbound(
+            chat_id,
+            content,
+            is_reply=not bool((metadata or {}).get(AUTONOMOUS_DELIVERY_METADATA_KEY)),
+        )
+        if not dedup_result.allowed:
+            return SendResult(success=True, error=None, raw_response={"suppressed": dedup_result.reason})
+        content = dedup_result.text
 
         segments = self._split_card_segments(content)
         has_card = AdaptiveCard is not None and any(k == "card" for k, _ in segments)
@@ -921,6 +1171,7 @@ class TeamsAdapter(BasePlatformAdapter):
         # Plain-text fast path (unchanged behaviour when no card is present).
         if not has_card:
             content = self._cap_autonomous_message(content, metadata)
+            content = self._cap_interactive_message(content, metadata)
             try:
                 last_message_id = await self._send_text(chat_id, content, reply_to)
             except Exception as e:
@@ -938,19 +1189,35 @@ class TeamsAdapter(BasePlatformAdapter):
         last_message_id = None
         for kind, payload in segments:
             if kind == "card":
+                # Parsing/validating is kept separate from sending so the
+                # except below can tell the two failure modes apart: fence
+                # content that never was an Adaptive Card (an ordinary code
+                # block that happened to open the fence) is not the same
+                # problem as a real card that failed to reach Teams.
+                # ``AdaptiveCard.model_validate`` IS the card-shape check the
+                # rest of this method already relies on -- reuse it rather
+                # than inventing a second predicate.
+                is_card_shaped = True
                 try:
                     card = AdaptiveCard.model_validate(json.loads(payload))
+                except Exception:
+                    is_card_shaped = False
+                    card = None
+
+                try:
+                    if not is_card_shaped:
+                        raise ValueError("fence content is not an Adaptive Card")
                     result = await self._send_card_with_retry(chat_id, card)
                     last_message_id = getattr(result, "id", None) if result else last_message_id
                     continue
                 except Exception as card_err:
                     # Never drop a reply over a malformed/failing card — degrade
-                    # to a code block as a LAST resort, after retries are
-                    # exhausted. ERROR, not WARNING: it means real content
-                    # reached the user as plain text instead of a card. This
-                    # fallback always sends, even when narrative text is
-                    # otherwise suppressed, because it carries the only copy of
-                    # the card's content.
+                    # to text as a LAST resort, after retries are exhausted.
+                    # ERROR, not WARNING: it means real content reached the
+                    # user as plain text instead of a card. This fallback
+                    # always sends, even when narrative text is otherwise
+                    # suppressed, because it carries the only copy of the
+                    # card's content.
                     logger.error(
                         "[teams] card send failed after retries (status=%s, body=%s), "
                         "sending as text: %s",
@@ -959,7 +1226,16 @@ class TeamsAdapter(BasePlatformAdapter):
                         card_err,
                         exc_info=True,
                     )
-                    payload = f"```\n{payload}\n```"
+                    if is_card_shaped:
+                        # A real Adaptive Card that failed to send: a raw
+                        # JSON dump is unreadable noise, so degrade to a
+                        # short human-readable line instead.
+                        payload = _card_send_failure_fallback_text(payload)
+                    else:
+                        # Not a card at all -- the fence content is the
+                        # user's actual message (e.g. a code block). Send it
+                        # unchanged, fenced, exactly as before.
+                        payload = f"```\n{payload}\n```"
             text = (payload or "").strip()
             if not text:
                 continue
@@ -967,6 +1243,7 @@ class TeamsAdapter(BasePlatformAdapter):
                 suppressed_count += 1
                 suppressed_chars += len(text)
                 continue
+            text = self._cap_interactive_message(text, metadata)
             try:
                 last_message_id = await self._send_text(chat_id, text, reply_to) or last_message_id
             except Exception as e:
@@ -1047,7 +1324,7 @@ _SETUP_CREDENTIALS = (
 _SETUP_INTRO = (  # "" → blank line
     "You'll need the Teams CLI. If you haven't already:", "  npm install -g @microsoft/teams.cli@preview",
     "  teams login", "", "Then expose port 3978 publicly (devtunnel / ngrok / cloudflared),", "and create your bot:",
-    '  teams app create --name "Hermes" --endpoint "https://<tunnel>/api/messages"', "",
+    '  teams app create --name "<your bot\'s name>" --endpoint "https://<tunnel>/api/messages"', "",
     "The CLI will print CLIENT_ID, CLIENT_SECRET, and TENANT_ID. Paste them below.", "")
 
 

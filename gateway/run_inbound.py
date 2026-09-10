@@ -189,7 +189,18 @@ class GatewayInboundMixin:
                 # posts, sender_chat): can't be paired but may be authorized via a chat allowlist.
                 logger.debug("Ignoring message with no user_id from %s", source.platform.value)
                 return None
-            logger.warning("Unauthorized user: %s (%s) on %s", source.user_id, source.user_name, source.platform.value)
+            # Include chat_id/chat_type so an operator can tell which chat was
+            # denied -- a group-chat allowlist gap (e.g. missing
+            # TEAMS_GROUP_ALLOWED_CHATS entry) looks identical to a genuine
+            # unauthorized DM without this.
+            logger.warning(
+                "Unauthorized user: %s (%s) on %s (chat_type=%s chat_id=%s)",
+                source.user_id,
+                source.user_name,
+                source.platform.value,
+                source.chat_type,
+                source.chat_id,
+            )
             # DMs get a pairing code, groups are ignored. A bot cannot pair, and answering one mid-cooldown is outbound traffic.
             if (
                 source.chat_type == "dm"

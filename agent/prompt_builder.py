@@ -204,6 +204,18 @@ def build_memory_guidance(
 MEMORY_GUIDANCE = build_memory_guidance(True, True)
 USER_PROFILE_GUIDANCE = build_memory_guidance(False, True)
 
+BEHAVIOR_CHANGE_GUIDANCE = (
+    "When a teammate asks you to change how you behave (a setting or a standing "
+    "instruction), call propose_behavior_change instead of changing anything "
+    "silently -- it records what you understood and posts the exact diff to the "
+    "chat as a PENDING proposal with a BEH-<n> id. It has no effect until an "
+    "authorized teammate approves it. When a reply names a proposal id with an "
+    "approving word (e.g. 'approve BEH-12', 'BEH-12 approved', 'yes to BEH-12'), "
+    "call approve_behavior_change with that id. Never call approve_behavior_change "
+    "for a bare 'yes' with no BEH-<n> id -- it is ambiguous when more than one "
+    "proposal is open, and the store rejects an unauthorized approver anyway."
+)
+
 SESSION_SEARCH_GUIDANCE = (
     "When the user references something from a past conversation or you suspect relevant cross-session "
     "context exists, use session_search to recall it before asking them to repeat themselves."

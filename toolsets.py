@@ -37,6 +37,9 @@ _HERMES_CORE_TOOLS = [
     "computer_use",
     # Service-gated connector account status and authorization links.
     "manage_connections",
+    # Self-improvement visibility: propose/approve a change to Penny's own
+    # behavior, with the request, diff, and result posted to the chat.
+    "propose_behavior_change", "approve_behavior_change",
 ]
 
 # Webhook payloads are untrusted third-party content: no file/system execution.
@@ -125,6 +128,8 @@ TOOLSETS = {
     "tts": _ts("Text-to-speech: convert text to audio with Edge TTS (free), ElevenLabs, OpenAI, or xAI", ["text_to_speech"]),
     "todo": _ts("Task planning and tracking for multi-step work", ["todo_list"]),
     "memory": _ts("Persistent memory across sessions (personal notes + user profile)", ["memory"]),
+    "behavior": _ts("Propose and approve changes to the agent's own behavior, visibly, in chat",
+                    ["propose_behavior_change", "approve_behavior_change"]),
     "context_engine": _ts("Runtime tools exposed by the active context engine"),
     "session_search": _ts("Search and recall past conversations with summarization", ["session_search"]),
     "connections": _ts("Remote connector discovery, execution, and account authorization", ["manage_connections"]),

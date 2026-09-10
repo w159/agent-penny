@@ -1229,6 +1229,14 @@ def _live_route_metadata(t: _TargetDelivery) -> tuple[Optional[str], dict, dict]
     if t.origin_target and t.origin.get("scope_id"):
         route_metadata.setdefault("scope_id", str(t.origin["scope_id"]))
         media_metadata.setdefault("scope_id", str(t.origin["scope_id"]))
+    # Opt-in per-job ticket-count ceiling for the Teams autonomous multi-ticket guard
+    # (plugins/platforms/teams/ticket_card.py's AUTONOMOUS_TICKET_LIMIT_METADATA_KEY,
+    # "autonomous_ticket_limit"). Absent for every job except ones that have explicitly
+    # reviewed and opted into sending more than one ticket per autonomous message (e.g.
+    # the Triage board sweep, per SOUL.md's MESSAGE SIZE rule). Not imported by name here
+    # to keep this module platform-agnostic; the string must stay in sync if renamed.
+    if job.get("autonomous_ticket_limit"):
+        route_metadata["autonomous_ticket_limit"] = job["autonomous_ticket_limit"]
     return route_thread_id, route_metadata, media_metadata
 
 
@@ -1444,15 +1452,30 @@ def _deliver_via_live_adapter(
 def _standalone_send(
     t: _TargetDelivery, content: str, media_files: list) -> tuple[Any, Optional[str]]:
     """Run the standalone sender for one target: ``(result, None)`` or ``(None, error)`` (already
-    logged — WARNING for a shutdown race, ERROR with traceback otherwise)."""
+    logged — WARNING for a shutdown race, ERROR with traceback otherwise).
+
+    Preserves the same delivery-lane metadata the live-adapter path stamps via
+    ``_live_route_metadata``/gateway/delivery.py, so a fallback here (e.g. after
+    ``guard_single_ticket_per_autonomous_message`` rejected an oversized live send) is
+    not silently downgraded from "autonomous" to "interactive" — that downgrade is what
+    let a correct 6-ticket sweep message get trimmed under the much smaller interactive
+    cap and shipped with a generic "+N more" tail instead of its own reconciling summary
+    (2026-09-04 Madison Todd incident). Mirrors plugins/platforms/teams/ticket_card.py's
+    AUTONOMOUS_TICKET_LIMIT_METADATA_KEY string ("autonomous_ticket_limit"), not imported
+    here to keep this module platform-agnostic.
+    """
+    from gateway.platforms.base import AUTONOMOUS_DELIVERY_METADATA_KEY
     from tools.send_message_tool import _send_to_platform
     job = t.job
     shutdown_msg = f"delivery to {t.where} skipped — interpreter is shutting down"
+    standalone_metadata: dict = {"job_id": job["id"], AUTONOMOUS_DELIVERY_METADATA_KEY: True}
+    if job.get("autonomous_ticket_limit"):
+        standalone_metadata["autonomous_ticket_limit"] = job["autonomous_ticket_limit"]
 
     def _send():
         return _send_to_platform(
             t.platform, t.pconfig, t.chat_id, content, thread_id=t.thread_id,
-            media_files=media_files)
+            media_files=media_files, metadata=standalone_metadata)
 
     def _warned(msg: str) -> tuple[None, str]:
         logger.warning("Job '%s': %s", job["id"], msg)

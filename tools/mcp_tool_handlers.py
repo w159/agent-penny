@@ -464,10 +464,65 @@ def _make_tool_handler(server_name: str, tool_name: str, tool_timeout: float):
     op = f"tools/call {tool_name}"
 
     def _handler(args: dict, **kwargs) -> str:
+        # MSP connector security gate: reads run freely, every ACTION-class
+        # connector tool blocks on a named approver before the call is made.
+        # Fail closed on any error in the gate itself -- the opposite of the
+        # outbound dedup guard, because here failing open would mean
+        # performing an unapproved connector action.
+        try:
+            from tools.connector_action_gate import (
+                classify_connector_tool,
+                request_connector_action_approval,
+                ACTION,
+            )
+            _verdict = classify_connector_tool(tool_name)
+        except Exception as _gate_exc:
+            logger.error(
+                "connector_action_gate import/classify failed for %s/%s: %s "
+                "-- failing closed",
+                server_name, tool_name, _gate_exc,
+            )
+            return tool_error(
+                f"Tool '{tool_name}' blocked: the connector security gate "
+                f"failed to evaluate this call and fails closed on error."
+            )
+
+        if _verdict == ACTION:
+            try:
+                from tools.approval import get_current_session_key
+                _session_key = get_current_session_key(default="")
+            except Exception:
+                _session_key = ""
+
+            try:
+                _approved, _outcome = request_connector_action_approval(
+                    session_key=_session_key,
+                    server_name=server_name,
+                    tool_name=tool_name,
+                    arguments=args or {},
+                )
+            except Exception as _approval_exc:
+                logger.error(
+                    "connector_action_gate approval request raised for %s/%s: %s "
+                    "-- failing closed",
+                    server_name, tool_name, _approval_exc,
+                )
+                return tool_error(
+                    f"Tool '{tool_name}' blocked: the approval request "
+                    f"failed unexpectedly and fails closed on error."
+                )
+
+            if not _approved:
+                return tool_error(
+                    f"Tool '{tool_name}' requires express approval from a "
+                    f"named approver before it can run and was not "
+                    f"approved (outcome: {_outcome}). Do not retry without "
+                    f"a human approving it."
+                )
+            # Approved -- fall through to the normal call path below.
+
         # Security boundary: untrusted-server write tools need approval before ANY transport work (incl. lazy spawn).
         error = _trust_gate_check(server_name, tool_name) or _check_circuit_breaker(server_name)
-        if error is not None:
-            return error
         server, error = _acquire_call_server(server_name, tool_timeout)
         if server is None:
             return error

@@ -11,7 +11,46 @@ edge cases — call ``monkeypatch.delenv("HERMES_MODEL", raising=False)``
 inside the test, which overrides this fixture's value for that scope.
 """
 
+import hashlib
+
 import pytest
+
+# Fixed dimensionality for the fake hashing-trick embedding below. Any test
+# corpus produces vectors of this width regardless of vocabulary size, so
+# cosine_similarity never sees a dimension mismatch across separate calls.
+_FAKE_EMBED_DIMS = 64
+
+
+def _fake_embed_texts(texts, *, model="bge-m3", **_kwargs):
+    """Deterministic, network-free stand-in for cron/trend_vectors.py's
+    embed_texts(): a hashing-trick bag-of-words vector per text. Same words
+    land in the same buckets (high cosine similarity); disjoint vocabulary
+    lands in disjoint buckets (low similarity) - close enough to a real
+    embedding model's behavior for cron/trend_cluster_embed.py's merge
+    tests without ever touching the network."""
+    vectors = []
+    for text in texts:
+        vector = [0.0] * _FAKE_EMBED_DIMS
+        for word in text.lower().split():
+            bucket = int(hashlib.sha256(word.encode("utf-8")).hexdigest(), 16) % _FAKE_EMBED_DIMS
+            vector[bucket] += 1.0
+        vectors.append(vector)
+    return vectors
+
+
+@pytest.fixture(autouse=True)
+def _fake_embeddings(monkeypatch, tmp_path):
+    """No cron test may hit a live embedding endpoint. Stubs
+    cron/trend_cluster_embed.py's embed_texts with the deterministic fake
+    above and points the vector cache at a per-test tmp file so tests never
+    share or persist real embedding state (mirrors the pattern of the
+    HERMES_MODEL fixture below - hermetic by default, opt out per test)."""
+    import cron.trend_cluster_embed as trend_cluster_embed
+    import cron.trend_vectors as trend_vectors
+
+    monkeypatch.setattr(trend_cluster_embed, "embed_texts", _fake_embed_texts)
+    monkeypatch.setattr(trend_vectors, "VECTOR_STORE_FILE", tmp_path / "trend_vectors.json")
+    yield
 
 
 @pytest.fixture()

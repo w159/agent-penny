@@ -1,0 +1,56 @@
+[
+  {
+    "id": "triage-card-slim",
+    "status": "verified",
+    "verdict": "CONFIRMED",
+    "claim": "The ConnectWise Triage adaptive card was slimmed per user decision: issue note capped at 300 chars with inline images stripped, FactSet reduced to Contact/Priority/Owner, and the model-authored prose note removed from the card entirely.",
+    "verified_by": "atlas:verifier (fresh context, adversarial)",
+    "evidence": {
+      "file": "plugins/platforms/teams/ticket_card.py",
+      "issue_cap": "_ISSUE_MAX_CHARS = 300 at :223, applied at :270",
+      "image_strip": "_MD_IMAGE_RE at :233 handles nested-bracket ![[Image.png]](url); runs at :266, BEFORE the cap at :270 (proven by execution, not inspection)",
+      "no_stale_caller": "tree-wide grep: no caller passes note= to build_triage_card",
+      "factset": "exactly Contact/Priority/Owner at :359-363",
+      "cron_lane_untouched": "build_ticket_card :100-174 retains its Status fact",
+      "single_fence": "render_triage_message :451-477 has one return path; prose cannot escape the fence",
+      "degradation": "build_triage_card({}) returns placeholders without raising",
+      "tests_not_weakened": "git diff on test_teams_card_fence_hardening.py shows assertions updated to new shape, none deleted"
+    },
+    "gate": {
+      "command": "cd /home/yoda/.hermes/hermes-agent && venv/bin/python -m pytest tests/plugins/test_teams_triage_card_real_failures.py tests/plugins/test_teams_triage_card.py tests/gateway/test_webhook_route_card.py tests/gateway/test_teams_card_fence_hardening.py -q",
+      "result": "129 passed"
+    },
+    "deployed": "hermes-gateway.service restarted 13:51:09 UTC, MainPID 848730"
+  },
+  {
+    "id": "silent-marker-misdiagnosis",
+    "status": "verified",
+    "verdict": "REFUTED - not a regression",
+    "claim": "Initially read as: removing the card note broke Teams delivery (four callbacks logged response=8 chars with no send).",
+    "verified_by": "atlas:explorer map + log evidence",
+    "evidence": {
+      "marker": "8 chars is the [SILENT] marker, gateway/response_filters.py:1",
+      "suppression": "gateway/run.py:18120 blanks the turn, upstream of and independent from the card lane",
+      "prompt_contract": "config.yaml route prompt: 'When you have nothing worth saying, reply with exactly [SILENT] ... Most events should end this way.'",
+      "control": "callback at 13:22:02 on the OLD code was also silent"
+    },
+    "note": "Structural observation, not a bug today: the card is Python-authored so the model cannot malform it, but the model can still veto delivery entirely by going silent. Intervention point if that is ever unwanted: gateway/run.py:18119."
+  },
+  {
+    "id": "triage-nag-probe-tech-availability",
+    "surface": "backend",
+    "category": "correctness",
+    "severity": "medium",
+    "title": "probe_tech_availability falsely names real techs free while actively working",
+    "evidence": [
+      "cron/triage_nag.py:249-276 (_hands_off_time_entry_reason, ignores active status when summary matches a keyword substring, and asserts 'only open ticket' without checking); cron/triage_nag.py:207-226 (_schedule_busy_now, single client.get() call with pageSize=200, no page loop, unlike client.paged() used two lines away); reproduced with /tmp/claude-1000/-home-yoda--hermes/d71dc31c-eb4c-42a6-b29b-4926670cd1bb/scratchpad/probe_defect1.py, probe_defect2.py, probe_defect3.py"
+    ],
+    "doc_refs": [],
+    "reproduction": "uv run --extra dev --extra anthropic -p 3.12 python /tmp/claude-1000/-home-yoda--hermes/d71dc31c-eb4c-42a6-b29b-4926670cd1bb/scratchpad/probe_defect1.py (and probe_defect2.py, probe_defect3.py)",
+    "proposed_fix": "",
+    "blast_radius": "module",
+    "status": "rejected",
+    "verified_at": "2026-08-25T21:12:08+00:00",
+    "verified_by": "atlas:verifier"
+  }
+]

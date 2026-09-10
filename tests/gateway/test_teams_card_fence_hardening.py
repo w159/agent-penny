@@ -142,9 +142,7 @@ class TestPoisonedTicketFields:
     def test_webhook_lane_survives_a_code_fence_in_any_field(self, field):
         ticket = _triage_ticket(field)
         message = render_triage_message("BLOCKED\nno tech free", ticket)
-        assert _assert_exactly_one_clean_card(message) == build_triage_card(
-            ticket, blocked=True
-        )
+        assert _assert_exactly_one_clean_card(message) == build_triage_card(ticket, blocked=True)
         assert "```" not in message.replace("```adaptivecard", "").replace("\n```", "")
 
     def test_escaped_payload_round_trips_to_the_original_text(self):
@@ -174,10 +172,25 @@ class TestNeverEmpty:
         assert render_triage_message(content, ticket).strip()
 
     def test_verdict_only_on_a_closed_event_delivers_the_summary(self):
-        message = render_triage_message(
-            "BLOCKED", {"event": "closed", "ticket_id": 95140, "summary": "disk full"}
+        """A card, with the summary in the title even when the model wrote nothing.
+
+        Closed events used to return bare prose; they now carry the same card
+        as every other event, so what is asserted is the title text rather
+        than the whole message being one line of text.
+        """
+        card = _assert_exactly_one_clean_card(
+            render_triage_message(
+                "BLOCKED", {"event": "closed", "ticket_id": 95140, "summary": "disk full"}
+            )
         )
-        assert message == "disk full"
+        assert card["body"][0]["columns"][1]["items"][0]["text"] == (
+            "BLOCKED - Ticket #95140 : disk full"
+        )
 
     def test_missing_summary_still_delivers_something(self):
-        assert render_triage_message("BLOCKED", {"event": "closed"}) == "(no summary)"
+        card = _assert_exactly_one_clean_card(
+            render_triage_message("BLOCKED", {"event": "closed"})
+        )
+        assert card["body"][0]["columns"][1]["items"][0]["text"] == (
+            "BLOCKED - Ticket #? : (no summary)"
+        )

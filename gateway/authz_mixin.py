@@ -443,6 +443,15 @@ class GatewayAuthorizationMixin:
         # sender_chat posts, channel broadcasts).
         if is_group and source.chat_id:
             chat_allowlist_env = _GROUP_CHAT_ENV.get(source.platform, "")
+            if not chat_allowlist_env and getattr(source.platform, "value", None) == "teams":
+                # Teams is a plugin platform, not a built-in Platform enum
+                # member (no Platform.TEAMS attribute exists), so it can't be
+                # a key in _GROUP_CHAT_ENV -- match on the string value
+                # instead. Group/channel chats are authorized by chat ID so
+                # every member of an admitted chat (e.g. the IT group chat)
+                # can reach the bot, without opening TEAMS_ALLOWED_USERS to
+                # the whole tenant.
+                chat_allowlist_env = "TEAMS_GROUP_ALLOWED_CHATS"
             if chat_allowlist_env and _allows(_coerce_allow_set(_platform_gate_env(chat_allowlist_env)), source.chat_id):
                 return True
             # config.yaml fallback (``extra.group_allowed_chats``): Telegram observe-unmentioned mode

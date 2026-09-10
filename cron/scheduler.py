@@ -30,6 +30,7 @@ except ImportError:
         msvcrt = None
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Protocol
+from zoneinfo import ZoneInfo
 
 # Must precede repo-level imports: standalone invocations (e.g. module reload after
 # `hermes update`) otherwise fail with ModuleNotFoundError for hermes_time et al.
@@ -38,7 +39,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from hermes_constants import get_hermes_home
 from hermes_cli._subprocess_compat import windows_hide_flags
 from hermes_cli.config import (
-    _expand_env_vars, load_config, resolve_cron_model_drift_defaults)
+    _expand_env_vars,
+    cfg_get,
+    load_config,
+    resolve_cron_model_drift_defaults,
+)
 from hermes_cli.fallback_config import get_fallback_chain
 from hermes_time import now as _hermes_now
 from agent.interrupt_compat import request_hard_interrupt
@@ -437,6 +442,7 @@ def _resolve_cron_enabled_toolsets(job: dict, cfg: dict) -> list[str] | None:
         return None
 
 
+
 def _resolve_job_reasoning_config(job: dict, cfg: dict, model: str) -> dict | None:
     """Effective reasoning config for a cron run. A per-job ``reasoning_effort`` pin beats global
     and per-model config and is model-independent by design (also governs an auth-fallback swap);
@@ -472,6 +478,7 @@ from cron.executions import (
 SILENT_MARKER = "[SILENT]"
 
 
+
 def _is_cron_silence_response(text: str) -> bool:
     """True when a cron final response should suppress delivery: ``[SILENT]`` (or SILENT /
     NO_REPLY / NO REPLY) as the whole response OR its own first/last line — NOT mid-sentence.
@@ -487,6 +494,22 @@ def _is_cron_silence_response(text: str) -> bool:
     return is_autonomous_silence_response(text)
 
 # Persistent pool for parallel cron jobs: tick() submits and returns; long jobs never block it.
+
+
+def _is_fragment_response(text: str) -> bool:
+    """Return True for a truncated non-answer like ``]`` or ``[``.
+
+    Some models truncate ``[SILENT]`` mid-emission (observed twice on
+    2026-09-01: the final response was the single character ``]``), which
+    is non-empty and matches no silence marker, so it was posted to Teams
+    verbatim. A real response - even a terse one like "ok" or "3 tickets
+    moved" - has at least one alphanumeric character; anything under 4
+    characters with none is not a message, it's wreckage.
+    """
+    stripped = text.strip()
+    if len(stripped) >= 4:
+        return False
+    return not any(ch.isalnum() for ch in stripped)
 _parallel_pool: Optional[concurrent.futures.ThreadPoolExecutor] = None
 _parallel_pool_max_workers: Optional[int] = None
 _running_job_ids: set = set()
@@ -1051,6 +1074,7 @@ def _is_fd_exhaustion_text(text: str) -> bool:
     """Text half of _is_fd_exhaustion (shared with the CLI hint)."""
     lowered = text.lower()
     return "too many open files" in lowered or "emfile" in lowered
+
 
 
 def _is_fd_exhaustion(exc: BaseException) -> bool:
@@ -1975,7 +1999,7 @@ def _prepare_job_prompt(
                 f"# Cron Job: {job_name}\n\n"
                 f"**Job ID:** {job_id}\n"
                 f"**Run Time:** {_hermes_now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                "Script gate returned `wakeAgent=false` — agent skipped.\n"
+                "Script gate returned `wakeAgent=false`  - agent skipped.\n"
             )
             return (True, silent_doc, SILENT_MARKER, None), None
 
@@ -2652,6 +2676,12 @@ def _save_compose_deliver(
         # and wrongly swallowed a real report that merely quoted "[SILENT]" mid-sentence (#51438, #46917).
         logger.info("Job '%s': agent returned %s — skipping delivery", job["id"], SILENT_MARKER)
         d.should_deliver = False
+    elif d.should_deliver and d.success and _is_fragment_response(deliver_content):
+        logger.info(
+            "Job '%s': agent returned fragment %r — treating as %s",
+            job["id"], deliver_content.strip(), SILENT_MARKER,
+        )
+        d.should_deliver = False
 
     if d.should_deliver and fence.lost():
         d.should_deliver = False
@@ -2789,7 +2819,6 @@ def _run_one_job_body(
     fire_owner = fence.owner
     _side_effect_fence = fence.side_effect_fence
     _fire_claim_ownership_lost = fence.lost
-
     execution_id = job.get("execution_id")
     if not execution_id:
         execution_id = create_execution(
@@ -3663,6 +3692,209 @@ def _sweep_mcp_orphans_when_all_done(futures: list) -> None:
         _f.add_done_callback(_on_done)
 
 
+# Scheduled trend pass (cron/trend_pass.py's run_trend_pass) - not a jobs.json
+# entry like board_watch, since it needs no model narration and has no
+# owning origin chat to route through. Reuses board_watch's own delivery
+# primitive (_deliver_result) with a synthetic deliver="origin" job so
+# home-channel fallback resolution (_iter_home_target_platforms /
+# _get_home_target_chat_id) is the SAME code path board_watch's cards use,
+# not a second one. See run_trend_pass's own docstring for the
+# cron.trend.* config keys; this block only decides WHEN to call it.
+_TREND_PASS_LOCK = threading.Lock()
+
+
+def _trend_pass_state_path() -> Path:
+    """State file recording the last calendar day the trend pass ran.
+
+    Same OPS_DIR convention as board_watch_state.json / escalation_state.json.
+    """
+    from cron.escalation import OPS_DIR
+    return OPS_DIR / "trend_pass_schedule.json"
+
+
+_TREND_WEEKDAY_NAMES = {
+    "mon": 0, "monday": 0,
+    "tue": 1, "tuesday": 1,
+    "wed": 2, "wednesday": 2,
+    "thu": 3, "thursday": 3,
+    "fri": 4, "friday": 4,
+    "sat": 5, "saturday": 5,
+    "sun": 6, "sunday": 6,
+}
+
+
+def _normalize_trend_days(days) -> set:
+    """Accepts weekday names ("mon"/"monday", any case) or ints (0=Monday,
+    matching datetime.weekday()); unrecognized entries are skipped rather
+    than raising, so a typo in config degrades to "never due" instead of
+    crashing the scheduler tick."""
+    out = set()
+    for d in days:
+        if isinstance(d, bool):
+            continue
+        if isinstance(d, int):
+            out.add(d % 7)
+        else:
+            out.add(_TREND_WEEKDAY_NAMES.get(str(d).strip().lower()))
+    out.discard(None)
+    return out
+
+
+def _trend_pass_tz(cfg) -> ZoneInfo:
+    """cron.trend.timezone, falling back to America/New_York on a missing
+    or invalid IANA name -- never crashes the tick on a config typo."""
+    tz_name = cfg_get(cfg, "cron", "trend", "timezone", default="America/New_York")
+    try:
+        return ZoneInfo(tz_name)
+    except Exception:
+        logger.warning("trend_pass: invalid cron.trend.timezone %r - using America/New_York", tz_name)
+        return ZoneInfo("America/New_York")
+
+
+def _trend_pass_due(now, cfg=None) -> bool:
+    """Weekly cadence gate: due on a configured weekday (cron.trend.days,
+    default mon/wed/fri) at or after a configured local time (cron.trend.hour
+    / minute, default 07:00), evaluated in cron.trend.timezone (default
+    America/New_York via zoneinfo, so DST transitions are handled correctly
+    rather than via a fixed UTC offset).
+
+    ``now`` may be tz-aware in any zone (e.g. the gateway's configured
+    HERMES_TIMEZONE) -- it is converted to the trend-pass timezone before
+    the weekday/time comparison so the pass always follows its own
+    schedule regardless of the server's default clock.
+
+    Fires at most once per configured *local* calendar date: the state
+    file (see _mark_trend_pass_ran) records the last local date the pass
+    ran, so repeated ticks within the same scheduled day after a
+    successful run are not due again.
+    """
+    if cfg is None:
+        from hermes_cli.config import load_config_readonly
+        cfg = load_config_readonly()
+
+    tz = _trend_pass_tz(cfg)
+    local_now = now.astimezone(tz)
+
+    days_cfg = cfg_get(cfg, "cron", "trend", "days", default=["mon", "wed", "fri"])
+    if local_now.weekday() not in _normalize_trend_days(days_cfg):
+        return False
+
+    hour = cfg_get(cfg, "cron", "trend", "hour", default=7)
+    minute = cfg_get(cfg, "cron", "trend", "minute", default=0)
+    if (local_now.hour, local_now.minute) < (hour, minute):
+        return False
+
+    path = _trend_pass_state_path()
+    try:
+        last = json.loads(path.read_text(encoding="utf-8")).get("last_run_date")
+    except (OSError, json.JSONDecodeError):
+        last = None
+    return last != local_now.date().isoformat()
+
+
+def _mark_trend_pass_ran(now, cfg=None) -> None:
+    """Claim the scheduled LOCAL date (cron.trend.timezone) BEFORE running so
+    a crash mid-pass does not retry-storm on every subsequent tick within
+    the same scheduled day, and so the marker lines up with the local-date
+    comparison _trend_pass_due makes."""
+    if cfg is None:
+        from hermes_cli.config import load_config_readonly
+        cfg = load_config_readonly()
+    local_date = now.astimezone(_trend_pass_tz(cfg)).date().isoformat()
+    path = _trend_pass_state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"last_run_date": local_date}), encoding="utf-8")
+
+
+def _resolve_trend_pass_target() -> tuple:
+    """First configured home-channel platform+chat_id, board_watch's own
+    deliver=origin-with-no-origin fallback (see _resolve_single_delivery_target).
+    Returns ("", "") when no platform has a home channel configured."""
+    for platform_name in _iter_home_target_platforms():
+        chat_id = _get_home_target_chat_id(platform_name)
+        if chat_id:
+            return platform_name, chat_id
+    return "", ""
+
+
+def _dispatch_trend_pass(adapters, loop) -> None:
+    """Run one trend pass. Failure-isolated: any exception is logged and
+    swallowed here so a bad daily pass never takes the scheduler down or
+    blocks other jobs - the next scheduled day tries again."""
+    try:
+        from cron.trend_pass import run_trend_pass
+
+        platform_name, chat_id = _resolve_trend_pass_target()
+        if not chat_id:
+            logger.info(
+                "trend_pass: no home delivery channel configured - "
+                "running dry/local only, nothing to deliver to"
+            )
+        # Synthetic job for _deliver_result's own delivery-target resolution -
+        # the exact mechanism board_watch's _send_card closure uses, not a
+        # second delivery path.
+        pseudo_job = {"id": "trend_pass", "name": "Trend Pass", "deliver": "origin"}
+
+        async def _send(message: str):
+            running_loop = asyncio.get_running_loop()
+            return await running_loop.run_in_executor(
+                None, _deliver_result, pseudo_job, message, adapters, loop,
+            )
+
+        # State-keying string only (see select_alerts' chat_id param) - actual
+        # routing happens inside _send/_deliver_result above.
+        state_chat_id = f"{platform_name}:{chat_id}" if chat_id else "trend_pass"
+
+        if loop is not None and getattr(loop, "is_running", lambda: False)():
+            from agent.async_utils import safe_schedule_threadsafe
+
+            future = safe_schedule_threadsafe(
+                run_trend_pass(send_fn=_send, chat_id=state_chat_id),
+                loop,
+                logger=logger,
+                log_message="trend_pass: failed to schedule pass",
+            )
+            result = future.result(timeout=900) if future is not None else None
+        else:
+            result = asyncio.run(run_trend_pass(send_fn=_send, chat_id=state_chat_id))
+
+        logger.info("trend_pass: pass complete: %s", result)
+    except Exception as e:
+        logger.error("trend_pass: scheduled pass failed (%s) - will retry next scheduled day", e, exc_info=True)
+
+
+def maybe_run_trend_pass(adapters=None, loop=None, now=None) -> None:
+    """Fire cron/trend_pass.py's run_trend_pass at most once per scheduled day.
+
+    cron.trend.enabled is checked HERE, before any due-check or lock - when
+    it is false (the default) this call costs exactly one config read and
+    nothing else: no state file touched, no lock taken, run_trend_pass never
+    imported or called. Called from tick() unconditionally (independent of
+    jobs.json, unlike board_watch) so it fires on its own configured cadence
+    regardless of what other jobs are due.
+    """
+    # load_config_readonly(), not load_config() -- this runs on every tick,
+    # including idle ones with no due jobs, and load_config() is the exact
+    # per-tick config load #33612 removed from the idle path (see
+    # tests/cron/test_idle_tick_config_skip.py). The readonly variant is
+    # documented for hot-path feature-flag reads like this one.
+    from hermes_cli.config import load_config_readonly
+    cfg = load_config_readonly()
+    if not cfg_get(cfg, "cron", "trend", "enabled", default=False):
+        return
+    now = now or _hermes_now()
+    if not _trend_pass_due(now, cfg=cfg):
+        return
+    if not _TREND_PASS_LOCK.acquire(blocking=False):
+        logger.info("trend_pass: previous run still in flight - skipping this tick")
+        return
+    try:
+        _mark_trend_pass_ran(now, cfg=cfg)
+        _dispatch_trend_pass(adapters, loop)
+    finally:
+        _TREND_PASS_LOCK.release()
+
+
 def tick(
     verbose: bool = True, adapters=None, loop=None, sync: bool = True, *, can_dispatch=None):
     """Check and run all due jobs. File-locked so only one tick runs at a time (gateway ticker vs
@@ -3699,6 +3931,10 @@ def tick(
             _maybe_run_worktree_maintenance()
         except Exception as _wt_exc:
             logger.debug("Worktree maintenance dispatch failed: %s", _wt_exc)
+        # Independent of jobs.json's due-job set below  - fires on its own
+        # daily cadence even on an otherwise-idle tick. No-ops entirely when
+        # cron.trend.enabled is false (the shipped default).
+        maybe_run_trend_pass(adapters=adapters, loop=loop)
 
         due_jobs = get_due_jobs()
         _sweep_stale_inflight_for_tick(due_jobs)

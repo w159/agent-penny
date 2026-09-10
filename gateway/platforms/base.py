@@ -263,6 +263,42 @@ def _held_back_note(dropped_blocks: "list[str]") -> str:
     return "+more not shown"
 
 
+def _trim_preserving_tail(blocks: "list[str]", max_length: int) -> "str | None":
+    """Try to keep the intro plus as many head tickets as fit, PLUS the
+    trailing roll-up block, dropping middle ticket blocks first.
+
+    Returns ``None`` (never a partial/invalid result) when even the first
+    head block plus the roll-up does not fit, so the caller can fall back to
+    the original head-only trim rather than risk shipping something broken.
+    """
+    head_blocks, tail_block = blocks[:-1], blocks[-1]
+    kept_head: "list[str]" = []
+    for index, block in enumerate(head_blocks):
+        candidate_head = kept_head + [block]
+        dropped = head_blocks[index + 1:]
+        note = _held_back_note(dropped) if dropped else ""
+        pieces = ["\n\n".join(candidate_head)]
+        if note:
+            pieces.append(note)
+        pieces.append(tail_block)
+        candidate = "\n\n".join(pieces)
+        if len(candidate) <= max_length:
+            kept_head.append(block)
+        else:
+            break
+
+    if not kept_head:
+        return None
+
+    dropped = head_blocks[len(kept_head):]
+    note = _held_back_note(dropped) if dropped else ""
+    pieces = ["\n\n".join(kept_head)]
+    if note:
+        pieces.append(note)
+    pieces.append(tail_block)
+    return "\n\n".join(pieces)
+
+
 def trim_to_item_boundary(content: str, max_length: int) -> str:
     """Cut *content* down to ONE message of at most *max_length* characters.
 
@@ -275,6 +311,14 @@ def trim_to_item_boundary(content: str, max_length: int) -> str:
     first item does not fit, it falls back to a word boundary, then to a hard
     character cut, so a pathological input still returns something sane.
 
+    When the LAST block is not itself a ticket — the model's own reconciling
+    roll-up sentence, per SOUL.md's MESSAGE SIZE rule ("3 moved to NOC, 2 to
+    SOC, ... rest are quietly fine") — that block is preferentially preserved
+    over ticket blocks in the middle, so a trim never silently swaps the
+    model's real, specific summary for the generic "+N more" note. See
+    ``_trim_preserving_tail`` for that path; this function falls back to the
+    original head-only trim when even the roll-up does not fit.
+
     Content already within *max_length* is returned unchanged and unmarked.
     """
     if not content or not content.strip():
@@ -283,6 +327,11 @@ def trim_to_item_boundary(content: str, max_length: int) -> str:
         return content
 
     blocks = [b for b in _ITEM_SEPARATOR_RE.split(content) if b.strip()]
+
+    if len(blocks) > 2 and not _TICKET_BLOCK_RE.match(blocks[-1]):
+        preserved = _trim_preserving_tail(blocks, max_length)
+        if preserved is not None:
+            return preserved
 
     # Greedily keep whole blocks, always reserving room for the note that
     # tells the reader something was held back.

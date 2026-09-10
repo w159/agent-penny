@@ -349,6 +349,7 @@ class SessionDB(
         "cli", "cron", "kanban", "acp", "api_server", "subagent", "tool",
     )
 
+
     # ── Write-contention tuning ──
     # SQLite's deterministic busy handler convoys under many hermes processes: keep its
     # timeout short (1s) and retry with random jitter. Patience is TIME-based (a sibling

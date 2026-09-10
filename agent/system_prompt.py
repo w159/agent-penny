@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from agent.prompt_builder import (
-    DEFAULT_AGENT_IDENTITY, EXECUTION_GUIDANCE_MODELS, GOOGLE_MODEL_OPERATIONAL_GUIDANCE,
+    BEHAVIOR_CHANGE_GUIDANCE, DEFAULT_AGENT_IDENTITY, EXECUTION_GUIDANCE_MODELS, GOOGLE_MODEL_OPERATIONAL_GUIDANCE,
     HERMES_AGENT_HELP_GUIDANCE, HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS, KANBAN_GUIDANCE,
     PARALLEL_TOOL_CALL_GUIDANCE, PLATFORM_HINTS, SESSION_SEARCH_GUIDANCE,
     SKILLS_GUIDANCE, STEER_CHANNEL_NOTE, TASK_COMPLETION_GUIDANCE, TELEGRAM_RICH_MESSAGES_HINT,
@@ -35,6 +35,12 @@ _PLUGIN_SECTION_FRAME_RE = re.compile(
     re.MULTILINE,
 )
 _GATE_WORDS = {**dict.fromkeys(("true", "always", "yes", "on"), True), **dict.fromkeys(("false", "never", "no", "off"), False)}
+
+# Combined cap for the learned-context tier (behavior rules + ops memory).
+# Keeps a growing knowledge base from crowding out the rest of the prompt;
+# see _build_learned_context_parts for how the budget is split and how
+# truncation is signalled rather than done silently.
+MAX_LEARNED_CONTEXT_CHARS = 4000
 
 
 def _model_gate(setting: Any, model: Optional[str], default_models) -> bool:
@@ -72,6 +78,107 @@ _TUI_EMBEDDED_PANE_CLARIFIER = (
     "select your output (Option-drag on macOS, Shift-drag elsewhere) and press "
     "Cmd/Ctrl+L to send it to the chat composer."
 )
+
+
+def _render_behavior_rules_section(*, max_chars: int) -> str:
+    """Render approved behavior rules as a labeled prompt section.
+
+    Lazy import so a missing/broken behavior_store module can never break
+    agent startup (import happens per-call, not at module load). Only
+    approved, active rules render -- render_active_rules() itself excludes
+    PENDING proposals, which is the security boundary (ticket/chat text
+    must never write its own instructions without human approval).
+    """
+    from cron import behavior_store
+
+    count = behavior_store.count_active()
+    if count == 0:
+        return ""
+    rendered = behavior_store.render_active_rules(max_chars=max_chars)
+    if not rendered:
+        return ""
+    return (
+        "## LEARNED BEHAVIOR RULES (approved by your team)\n"
+        "The following rules were proposed and approved by an authorized "
+        "teammate. Apply them without being asked again.\n\n"
+        f"{rendered}"
+    )
+
+
+def _render_ops_memory_section(*, max_chars: int) -> str:
+    """Render operational memory (roster/tickets/events/outages/lessons).
+
+    Lazy import for the same reason as _render_behavior_rules_section --
+    a broken ops_memory module must never block prompt assembly. Truncates
+    with an explicit notice rather than silently cutting content, matching
+    render_active_rules()'s contract.
+    """
+    from cron import ops_memory
+
+    memory = ops_memory.load_prompt_memory()
+    if not memory:
+        return ""
+    block = ops_memory.format_memory_for_prompt(memory)
+    if len(block) <= max_chars:
+        return block.strip()
+    notice = "\n\n[ops memory truncated to fit prompt budget]"
+    cut = max_chars - len(notice)
+    return block[:max(cut, 0)].rstrip() + notice
+
+
+_RECENCY_GUARDRAIL_SECTION = (
+    "## RECENCY GUARDRAIL\n"
+    "Conversation history is stale by default. Before stating a ticket's "
+    "status, or calling it open, current, or trending, re-query "
+    "ConnectWise for it in this turn -- never assert that from memory of "
+    "an earlier turn alone. Do not resurface tickets from earlier in the "
+    "conversation unless the user asked about them in the current "
+    "message. Keep replies short: lead with the answer, not a dump."
+)
+
+
+def _build_learned_context_parts(agent: Any) -> List[str]:
+    """Build the learned-context tier: approved behavior rules + ops memory.
+
+    Both sources are self-learned (written by past runs or approved by a
+    human) rather than hand-authored, which is why they render as their
+    own clearly-labeled sections next to identity instead of being folded
+    into SOUL.md's text -- a prompt dump should let a reader tell
+    hand-authored identity apart from what the system learned on its own.
+
+    Fails safe: any exception from either source is logged as a WARNING
+    and that source is simply omitted -- a broken behavior store or a
+    corrupt ops-memory file must never prevent the agent from responding.
+    """
+    parts: List[str] = [_RECENCY_GUARDRAIL_SECTION]
+    total_rule_chars = 0
+    active_rule_count = 0
+
+    try:
+        behavior_section = _render_behavior_rules_section(max_chars=MAX_LEARNED_CONTEXT_CHARS)
+        if behavior_section:
+            parts.append(behavior_section)
+            total_rule_chars += len(behavior_section)
+            from cron import behavior_store
+            active_rule_count = behavior_store.count_active()
+    except Exception:
+        logger.warning("behavior rules section failed to build; omitting", exc_info=True)
+
+    remaining = max(MAX_LEARNED_CONTEXT_CHARS - total_rule_chars, 0)
+    try:
+        if remaining > 0:
+            ops_section = _render_ops_memory_section(max_chars=remaining)
+            if ops_section:
+                parts.append(ops_section)
+                total_rule_chars += len(ops_section)
+    except Exception:
+        logger.warning("ops memory section failed to build; omitting", exc_info=True)
+
+    logger.info(
+        "learned-context prompt section: %d char(s), %d active behavior rule(s)",
+        total_rule_chars, active_rule_count,
+    )
+    return parts
 
 
 def _tui_embedded_pane_clarifier(hint: str) -> str:
@@ -291,6 +398,7 @@ def _tool_guidance_block(agent: Any) -> Optional[str]:
         memory_guidance,
         SESSION_SEARCH_GUIDANCE if "session_search" in names else None,
         SKILLS_GUIDANCE if "skill_manage" in names else None,
+        BEHAVIOR_CHANGE_GUIDANCE if "propose_behavior_change" in names else None,
         _kanban_guidance,
     ]
     return " ".join(g for g in tool_guidance if g) or None
@@ -615,6 +723,11 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     _ctx_len = _cc_len if isinstance(_cc_len, int) and _cc_len > 0 else None
     # ── Stable tier ────────────────────────────────────────────────
     stable_parts, _soul_loaded = _identity_parts(agent, _ctx_len)
+    # Learned context: approved behavior rules + operational memory. Kept as its own
+    # section(s) right after identity, never merged into SOUL.md's text, so a prompt
+    # dump can distinguish hand-authored identity from what the system learned on its
+    # own. See _build_learned_context_parts for the fail-safe / truncation contract.
+    stable_parts.extend(_build_learned_context_parts(agent))
     # The skill_view() pointer dangles without skill tools OR without the
     # hermes-agent skill installed, so the variant is chosen after the skills
     # index is built; this slot holds its position.

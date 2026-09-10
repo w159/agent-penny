@@ -39,6 +39,28 @@ from unittest.mock import MagicMock
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _isolate_outbound_dedup_history(tmp_path, monkeypatch):
+    """Give every gateway test its own outbound_dedup history file.
+
+    ``gateway.outbound_dedup.OPS_DIR``/``HISTORY_FILE`` are module-level
+    constants bound at import time from ``get_hermes_home()`` (same
+    pattern as ``cron/escalation.py``'s ``OPS_DIR``). The top-level
+    ``_hermetic_environment`` fixture repoints ``HERMES_HOME`` per test,
+    but that only affects code that calls ``get_hermes_home()`` at
+    runtime -- module-level constants already bound at first import keep
+    pointing at whichever tempdir was live during collection, shared by
+    every test in the session. Without this fixture, unrelated Teams
+    adapter tests that send near-identical text across different test
+    functions get spuriously suppressed as "repeats" of each other.
+    """
+    from gateway import outbound_dedup
+
+    history_file = tmp_path / "outbound_dedup_history.json"
+    monkeypatch.setattr(outbound_dedup, "OPS_DIR", tmp_path)
+    monkeypatch.setattr(outbound_dedup, "HISTORY_FILE", history_file)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _bind_lark_sdk_globals_when_installed():
     """Bind the feishu adapter's lark SDK globals once per test session.

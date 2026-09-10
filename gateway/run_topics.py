@@ -35,7 +35,7 @@ _TOPIC_RESTORE_STEPS = (
 
 
 def _collapse_title(title: str) -> str:
-    return re.sub(r"\s+", " ", str(title or "")).strip() or "Hermes Chat"
+    return re.sub(r"\s+", " ", str(title or "")).strip() or "Chat"
 
 
 class GatewayTopicThreadsMixin:
@@ -266,7 +266,7 @@ class GatewayTopicThreadsMixin:
             return
         try:
             send_result = await adapter.send(
-                source.chat_id, "System topic for Hermes commands and status.", metadata={"thread_id": str(thread_id)},
+                source.chat_id, "System topic for commands and status.", metadata={"thread_id": str(thread_id)},
             )
             message_id = getattr(send_result, "message_id", None)
         except Exception:

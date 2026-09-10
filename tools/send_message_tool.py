@@ -445,14 +445,26 @@ async def _dispatch_on_gateway_loop(runner, make_coro, log_message):
 
 
 async def _send_via_adapter(platform, pconfig, chat_id, chunk, *, thread_id=None, media_files=None,
-                            force_document=False):
+                            force_document=False, metadata=None):
     """Live in-process gateway adapter first, else the plugin's ``standalone_sender_fn`` (cron),
-    else an error naming both; media uses the adapter's native media APIs under the same rules."""
+    else an error naming both; media uses the adapter's native media APIs under the same rules.
+
+    ``metadata``, when given, is a caller-supplied dict (e.g. cron's
+    ``{"job_id": ..., AUTONOMOUS_DELIVERY_METADATA_KEY: True}``) merged UNDER the
+    locally-computed ``thread_id``/ntfy keys below. Without this, a cron job whose
+    live-adapter send failed and fell back to this function (cron's standalone path)
+    would have its autonomous marker silently dropped, making the retry look like an
+    ordinary interactive reply to caps/guards that key off that marker (confirmed root
+    cause of the 2026-09-04 Madison Todd incident: a correct 6-ticket sweep message was
+    rejected as autonomous, fell back to this function with no metadata, and got
+    trimmed under the much smaller interactive cap instead).
+    """
     platform_name = platform.value if hasattr(platform, "value") else str(platform)
     runner, adapter = _live_adapter(platform)
     if adapter is not None:
         try:
-            metadata = {**({"thread_id": thread_id} if thread_id else {}),
+            metadata = {**(metadata or {}),
+                        **({"thread_id": thread_id} if thread_id else {}),
                         **({"publish_topic": chat_id} if platform_name == "ntfy" and chat_id else {})} or None
             if media_files:  # always a dict result, returned as-is below
                 make_coro = lambda: _send_live_adapter_media(  # noqa: E731
@@ -553,8 +565,9 @@ async def _send_plugin_standalone(platform_name, pconfig, chat_id, message, chun
         pconfig, chat_id, chunk, thread_id=thread_id, media_files=media_files if is_last else empty_media, **extra))
 
 
-def _via_adapter_route(p, pc, cid, chunk, media, tid, fd):
-    return _send_via_adapter(p, pc, cid, chunk, thread_id=tid, media_files=media, force_document=fd)
+def _via_adapter_route(p, pc, cid, chunk, media, tid, fd, metadata=None):
+    return _send_via_adapter(p, pc, cid, chunk, thread_id=tid, media_files=media, force_document=fd,
+                             metadata=metadata)
 
 
 # Native-media chunked routes for built-in platforms; media rides on the final chunk, non-final
@@ -585,10 +598,18 @@ _TEXT_SENDERS = {
 _MEDIA_PLATFORMS_NOTE = "telegram, discord, matrix, weixin, signal, yuanbao, feishu, whatsapp and slack"
 
 
-async def _send_to_platform(platform, pconfig, chat_id, message, thread_id=None, media_files=None, force_document=False, args=None):
+async def _send_to_platform(platform, pconfig, chat_id, message, thread_id=None, media_files=None,
+                            force_document=False, args=None, metadata=None):
     """Route to the platform sender, chunking long text with the adapters' splitter. Order matters:
     Weixin first (its native helper must not be blocked by unrelated optional imports such as
-    lark-oapi), Telegram (chunks itself), plugin standalone media, native chunked, generic text."""
+    lark-oapi), Telegram (chunks itself), plugin standalone media, native chunked, generic text.
+
+    ``metadata``, when given, is forwarded to the generic plugin-platform path (which is what
+    Teams uses) so a caller like cron's standalone fallback can preserve delivery-lane markers
+    (e.g. the autonomous/cron flag) instead of silently dropping them. Platforms with their own
+    dedicated branch above this point (Telegram, Discord, Matrix, etc.) are unaffected — they
+    have no such marker-dependent caps today.
+    """
     from gateway.config import Platform
     platform_name = platform.value if hasattr(platform, "value") else str(platform)
     media_files = media_files or []
@@ -635,7 +656,8 @@ async def _send_to_platform(platform, pconfig, chat_id, message, thread_id=None,
                 return {"error": f"Plugin send_message handler failed: {e}"}
         # Plugin platform: live gateway adapter if available, else standalone_sender_fn.
         send_one = lambda chunk, is_last: _via_adapter_route(  # noqa: E731
-            platform, pconfig, chat_id, chunk, media_files if is_last else [], thread_id, force_document)
+            platform, pconfig, chat_id, chunk, media_files if is_last else [], thread_id, force_document,
+            metadata=metadata)
     last_result = await _send_chunks(chunks, send_one)
     if (warning and isinstance(last_result, dict) and last_result.get("success")
             and not last_result.get("media_delivered")):

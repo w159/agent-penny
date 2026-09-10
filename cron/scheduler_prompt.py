@@ -281,6 +281,58 @@ def _build_job_prompt(
             logger.warning("board_watch: failed to compute for job %r: %s", job.get("id"), e)
             # non-fatal — a real change surfaces on the next cycle instead
 
+    # Triage-nag fact injection was removed 2026-09-09: it fed the model a
+    # fact block whose only purpose was to narrate an aging ticket's age
+    # as a content-free complaint ("this ticket is old"), which the
+    # product owner rejected as pure burden with no action attached. The
+    # `"triage_nag": true` job flag is now inert - cron/triage_nag.py's
+    # select_triage_nags() and tech-availability proof logic are still
+    # live, but only as a library the agent-penny-assist plugin's offer
+    # detectors call directly (see that plugin's cli.py / schedule.py);
+    # nothing here injects a fact block into the model's prompt any more.
+
+    # Automated outage routing: move/close machine-generated NOC/SOC tickets
+    # off the Triage board using the reviewed decision table in
+    # cron/outage_dry_run.py. Scoped to jobs opted in via
+    # `"outage_routing": true`, mirroring board_watch/triage_nag above.
+    # Python performs the actual writes (run_routing(apply=True)) - the
+    # owner reviewed the dry-run table on 2026-09-01 and approved automated
+    # move_and_close/move_and_track for machine noise; the model is never
+    # trusted to call cw_update_ticket itself, it only narrates what Python
+    # already did (see the "## Board routing" block injected below).
+    if job.get("outage_routing"):
+        try:
+            from cron.outage_dry_run import run_routing
+
+            routing_table = run_routing(apply=True)
+            routed_rows = [row for row in routing_table if row.get("action") != "leave"]
+            for row in routed_rows:
+                if row.get("error"):
+                    logger.warning(
+                        "outage_routing: ticket %s %s -> %s FAILED: %s",
+                        row.get("ticket_id"), row.get("action"), row.get("destination"), row.get("error"),
+                    )
+                else:
+                    logger.info(
+                        "outage_routing: ticket %s %s -> %s (%s)",
+                        row.get("ticket_id"), row.get("action"), row.get("destination"), row.get("reason"),
+                    )
+            if routed_rows:
+                lines = ["## Board routing (done by Python this run)"]
+                for row in routed_rows:
+                    status = "failed" if row.get("error") else "done"
+                    lines.append(
+                        f"- ticket {row.get('ticket_id')}: {row.get('action')} -> "
+                        f"{row.get('destination')} ({row.get('reason')}) [{status}]"
+                    )
+                prompt = "\n".join(lines) + "\n" + prompt
+                has_injected_data = True
+            # If routed_rows is empty, inject nothing so the model can stay
+            # [SILENT] when there is genuinely nothing to report.
+        except Exception as e:
+            logger.warning("outage_routing: failed to run for job %r: %s", job.get("id"), e)
+            # non-fatal - the next hourly tick tries again
+
     prompt = _CRON_HINT + prompt
     skill_names = _job_skill_names(job)
     if not skill_names:

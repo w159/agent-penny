@@ -6361,7 +6361,7 @@ def _write_slack_manifest_and_instruct() -> None:
         from hermes_cli.slack_cli import _build_full_manifest
         from hermes_constants import get_hermes_home
         manifest = _build_full_manifest(
-            bot_name="Hermes", bot_description="Your Hermes agent on Slack")
+            bot_name="Assistant", bot_description="Your AI assistant on Slack")
         target = _Path(get_hermes_home()) / "slack-manifest.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(
@@ -6373,7 +6373,7 @@ def _write_slack_manifest_and_instruct() -> None:
             "reinstall if scopes or slash commands changed.")
         print_info(
             "   Re-run `hermes slack manifest --write` anytime to refresh after "
-            "Hermes adds new commands.")
+            "new commands are added.")
     except Exception as e:
         print_warning(f"Could not write Slack manifest: {e}")
 
