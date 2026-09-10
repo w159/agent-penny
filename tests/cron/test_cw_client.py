@@ -22,6 +22,7 @@ import pytest
 from cron.cw_client import (
     CWClient,
     CWError,
+    ScheduleMoveRejected,
     _MAX_ATTEMPTS_RATE_LIMIT,
     _MAX_TOTAL_RATE_LIMIT_WAIT_SECONDS,
     _RATE_LIMIT_FLOOR_SECONDS,
@@ -308,6 +309,86 @@ class TestPrivateKeyRedaction:
         assert ENV_VALUES["CW_MANAGE_PRIVATE_KEY"] not in message
         assert exc_info.value.body is not None
         assert ENV_VALUES["CW_MANAGE_PRIVATE_KEY"] not in exc_info.value.body
+
+
+class TestScheduleEntryMoveGuard:
+    """A schedule entry's dateStart/dateEnd is never PATCHed in place.
+
+    Regression coverage for the 2026-09-09 incident: a freeform tool call
+    PATCHed an entry's date/time directly instead of going through the
+    close+create pattern in plugins/agent-penny-assist/schedule.py.
+    """
+
+    def test_json_patch_datestart_is_rejected_before_any_network_call(self, tmp_path, monkeypatch):
+        client = _client(tmp_path, monkeypatch)
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            with pytest.raises(ScheduleMoveRejected, match="close.*create|close the old"):
+                client.send(
+                    "PATCH",
+                    "/schedule/entries/34016",
+                    [{"op": "replace", "path": "/dateStart", "value": "2026-09-10T13:00:00Z"}],
+                )
+        mock_urlopen.assert_not_called()
+
+    def test_json_patch_dateend_is_rejected(self, tmp_path, monkeypatch):
+        client = _client(tmp_path, monkeypatch)
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            with pytest.raises(ScheduleMoveRejected):
+                client.send(
+                    "PATCH",
+                    "/schedule/entries/34016",
+                    [{"op": "replace", "path": "/dateEnd", "value": "2026-09-10T14:00:00Z"}],
+                )
+        mock_urlopen.assert_not_called()
+
+    def test_flat_dict_payload_with_date_field_is_also_rejected(self, tmp_path, monkeypatch):
+        client = _client(tmp_path, monkeypatch)
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            with pytest.raises(ScheduleMoveRejected):
+                client.send("PATCH", "/schedule/entries/34016", {"dateStart": "2026-09-10T13:00:00Z"})
+        mock_urlopen.assert_not_called()
+
+    def test_scheduleentryrejected_is_a_cwerror_subclass(self):
+        assert issubclass(ScheduleMoveRejected, CWError)
+
+    def test_doneflag_only_patch_still_goes_through(self, tmp_path, monkeypatch):
+        client = _client(tmp_path, monkeypatch)
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = _fake_response({"id": 34016, "doneFlag": True})
+            result = client.send(
+                "PATCH",
+                "/schedule/entries/34016",
+                [{"op": "replace", "path": "/doneFlag", "value": True}],
+            )
+        assert result == {"id": 34016, "doneFlag": True}
+        assert mock_urlopen.call_count == 1
+
+    def test_post_of_new_entry_with_dates_is_allowed(self, tmp_path, monkeypatch):
+        """POST is the create half of the pattern - only PATCH is guarded."""
+        client = _client(tmp_path, monkeypatch)
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = _fake_response({"id": 34017})
+            result = client.send(
+                "POST",
+                "/schedule/entries",
+                {"dateStart": "2026-09-10T13:00:00Z", "dateEnd": "2026-09-10T14:00:00Z", "doneFlag": False},
+            )
+        assert result == {"id": 34017}
+        assert mock_urlopen.call_count == 1
+
+    def test_date_patch_on_a_non_schedule_endpoint_is_unaffected(self, tmp_path, monkeypatch):
+        """The guard is scoped to schedule/entries - a ticket PATCH with a
+        coincidentally-named field elsewhere must not be blocked."""
+        client = _client(tmp_path, monkeypatch)
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = _fake_response({"id": 1})
+            result = client.send(
+                "PATCH",
+                "/service/tickets/1",
+                [{"op": "replace", "path": "/dateStart", "value": "2026-09-10T13:00:00Z"}],
+            )
+        assert result == {"id": 1}
+        assert mock_urlopen.call_count == 1
 
 
 class TestTicketHelpers:

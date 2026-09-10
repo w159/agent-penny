@@ -133,6 +133,67 @@ def _redact(text: str, private_key: str) -> str:
     return text.replace(private_key, "***REDACTED***")
 
 
+class ScheduleMoveRejected(CWError):
+    """Raised when send() is asked to PATCH a schedule entry's start/end in place.
+
+    A resource never moves a schedule entry to a new date/time by editing it -
+    they mark it done and create a new one, because that's how a real
+    technician works and it's the only way the calendar keeps an honest
+    history. build_reschedule_offer() in
+    plugins/agent-penny-assist/schedule.py implements that pattern (a doneFlag
+    PATCH on the old entry, then a fresh POST). This guard exists because an
+    incident on 2026-09-09 showed a freeform tool call PATCHing dateStart/
+    dateEnd on a live entry directly, bypassing that resolver entirely.
+    """
+
+
+_SCHEDULE_ENTRY_PATH = "schedule/entries"
+_FORBIDDEN_DATE_FIELDS = {"datestart", "dateend"}
+
+
+def _patch_field_names(payload: Any) -> set[str]:
+    """Field names a PATCH payload touches, lowercased, regardless of shape.
+
+    CW Manage PATCHes are JSON-Patch op arrays: [{"op": "replace",
+    "path": "/dateStart", "value": ...}, ...]. A flat dict is also accepted
+    defensively in case a caller ever sends one directly.
+    """
+    if isinstance(payload, dict):
+        return {str(key).lower() for key in payload}
+    if isinstance(payload, (list, tuple)):
+        fields: set[str] = set()
+        for op in payload:
+            if isinstance(op, dict) and "path" in op:
+                fields.add(str(op["path"]).lstrip("/").lower())
+        return fields
+    return set()
+
+
+def _reject_inplace_schedule_move(method: str, path: str, payload: Any) -> None:
+    """Hard-reject any PATCH that moves a schedule entry's date/time in place.
+
+    This is a code-level guardrail, not a prompted one: prompting alone
+    already failed to stop this once. Only date fields are blocked - a
+    doneFlag-only PATCH (the "close" half of the correct pattern) still
+    goes through this same method untouched.
+    """
+    if method != "PATCH":
+        return
+    if _SCHEDULE_ENTRY_PATH not in path.lower():
+        return
+
+    touched = _patch_field_names(payload)
+    if touched & _FORBIDDEN_DATE_FIELDS:
+        raise ScheduleMoveRejected(
+            "Blocked: PATCH to a schedule entry's dateStart/dateEnd is not "
+            "allowed. A reschedule is never a PATCH-in-place move - close the "
+            "old entry (PATCH doneFlag=true) and POST a new one instead. Use "
+            "plugins/agent-penny-assist/schedule.py's build_reschedule_offer() "
+            "or its resolver functions rather than calling CWClient.send() "
+            "with a date field directly."
+        )
+
+
 def _load_env_file(env_path: Path) -> dict[str, str]:
     """Parse KEY=VALUE lines from a .env file. Missing file yields an empty dict."""
     values: dict[str, str] = {}
@@ -338,6 +399,8 @@ class CWClient:
         """
         if method not in ("POST", "PATCH"):
             raise ValueError(f"unsupported write method: {method}")
+
+        _reject_inplace_schedule_move(method, path, payload)
 
         url = f"{self._api_root}/{path.lstrip('/')}"
         headers = self._headers()
