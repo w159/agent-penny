@@ -2936,6 +2936,20 @@ def _run_one_job_body(
             d.success = False
             d.error = "Agent completed but produced empty response (model error, timeout, or misconfiguration)"
 
+        # Learn from this run's own output (see cron/ops_memory.py). Scoped
+        # to jobs opted in via `"operational_memory": true`, same flag the
+        # read side above checks. Only runs on a successful, non-empty
+        # response - there's nothing real to extract from a failed/silent
+        # run, and extraction must never affect delivery or job status, so
+        # any failure here is logged and swallowed.
+        if d.success and job.get("operational_memory") and final_response.strip():
+            try:
+                from cron.ops_memory import extract_operational_memory
+
+                extract_operational_memory(job["id"], final_response, job.get("name", job["id"]))
+            except Exception as e:
+                logger.warning("operational_memory: extraction failed for job %r: %s", job.get("id"), e)
+
         if _consume_interrupted_flag(job["id"], execution_token):
             _finish_interrupted_run(job, execution_id, delivery_error)
             return True

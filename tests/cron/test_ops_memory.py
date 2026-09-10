@@ -10,6 +10,7 @@ respect the size cap/rotation, and the newly-injected files (active
 outages, ROLE.md lessons) must actually reach a built job prompt.
 """
 import re
+from datetime import datetime, timezone
 
 import pytest
 
@@ -29,6 +30,8 @@ def _isolated_ops_files(tmp_path, monkeypatch):
     monkeypatch.setattr(ops_memory, "OUTAGES_FILE", tmp_path / "active_outages.md")
     monkeypatch.setattr(ops_memory, "SECURITY_FILE", tmp_path / "security_watch.md")
     monkeypatch.setattr(ops_memory, "ROLE_FILE", tmp_path / "ROLE.md")
+    monkeypatch.setattr(ops_memory, "PATTERNS_FILE", tmp_path / "patterns.md")
+    monkeypatch.setattr(ops_memory, "LOCK_FILE", tmp_path / ".ops.lock")
     monkeypatch.setattr(ops_memory, "ARCHIVE_DIR", archive_dir)
     # Trend detection hits a real log file / real tickets — neutralize it so
     # these tests isolate the extraction path under test.
@@ -176,13 +179,59 @@ class TestPromptMemoryInjection:
             "### Lessons Learned (cumulative)\n\n1. Nudge stalled tickets.\n\n---\n",
             encoding="utf-8",
         )
-        monkeypatch.setattr(scheduler_mod, "_warn_if_escalations_flag_missing", lambda: None)
+        # raising=False: this helper is guardrail-team territory and doesn't
+        # exist yet in this codebase. Keeping the monkeypatch (rather than
+        # deleting it) means the test stays correct once that helper lands.
+        monkeypatch.setattr(
+            scheduler_mod, "_warn_if_escalations_flag_missing", lambda: None, raising=False
+        )
 
         job = {"id": "any-id", "prompt": "Check the board", "operational_memory": True}
         result = scheduler_mod._build_job_prompt(job)
 
         assert "Test Outage" in result
         assert "Nudge stalled tickets" in result
+
+    def test_tickets_appear_in_built_job_prompt(self, tmp_path, monkeypatch):
+        """The outages/ROLE.md test above predates tickets.md injection --
+        this covers the actual remembered-ticket-lore path from the design
+        doc (item 2 in the task: reads wired into the job/detector prompt).
+        """
+        import cron.scheduler as scheduler_mod
+
+        ops_memory.TICKETS_FILE.write_text(
+            "## #90653 — Printer bounces\n"
+            f"- **Last activity:** {datetime.now(timezone.utc).date().isoformat()} — bounced again\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            scheduler_mod, "_warn_if_escalations_flag_missing", lambda: None, raising=False
+        )
+
+        job = {"id": "any-id", "prompt": "Check the board", "operational_memory": True}
+        result = scheduler_mod._build_job_prompt(job)
+
+        assert "#90653" in result
+        assert "NOT live state" in result  # format_memory_for_prompt's caveat wrapper
+
+    def test_operational_memory_off_by_default(self, tmp_path, monkeypatch):
+        """A job that never sets `operational_memory` must not see any of
+        this - the flag is explicit opt-in (mirrors board_watch/outage_routing).
+        """
+        import cron.scheduler as scheduler_mod
+
+        ops_memory.TICKETS_FILE.write_text(
+            "## #90653 — Printer bounces\n- **Last activity:** 2026-08-28 — bounced again\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            scheduler_mod, "_warn_if_escalations_flag_missing", lambda: None, raising=False
+        )
+
+        job = {"id": "any-id", "prompt": "Check the board"}
+        result = scheduler_mod._build_job_prompt(job)
+
+        assert "#90653" not in result
 
 
 class TestEntryExpiry:
@@ -294,3 +343,115 @@ class TestRosterUntouched:
         # Deliberate scope limit: roster is human/weekly-audit maintained,
         # never auto-written from freeform prose.
         assert not ops_memory.ROSTER_FILE.exists()
+
+
+class TestBehaviorPatterns:
+    """record_behavior_pattern() - the append-only, human-readable log for
+    a workflow correction a real technician's action revealed (design doc
+    item 4). Deliberately not an LLM summary: every field is caller-supplied
+    verbatim, same discipline as ticket-mention extraction.
+    """
+
+    def test_records_a_pattern_with_all_fields(self):
+        ops_memory.record_behavior_pattern(
+            "schedule_reschedule",
+            observed="Tech closed appt #4821 and created #4822 instead of moving it.",
+            assumed="PATCH the existing appointment's time in place.",
+            why="PATCHing in place destroys calendar history.",
+            source="ticket #93102",
+        )
+        content = ops_memory.PATTERNS_FILE.read_text(encoding="utf-8")
+        assert "schedule_reschedule" in content
+        assert "closed appt #4821" in content
+        assert "PATCH the existing appointment" in content
+        assert "destroys calendar history" in content
+        assert "#93102" in content
+
+    def test_rerun_with_identical_fields_does_not_duplicate(self):
+        kwargs = dict(
+            observed="Tech closed appt #1 and created #2.",
+            assumed="PATCH in place.",
+            why="Preserves history.",
+            source="ticket #1",
+        )
+        ops_memory.record_behavior_pattern("schedule_reschedule", **kwargs)
+        first = ops_memory.PATTERNS_FILE.read_text(encoding="utf-8")
+        ops_memory.record_behavior_pattern("schedule_reschedule", **kwargs)
+        second = ops_memory.PATTERNS_FILE.read_text(encoding="utf-8")
+        assert first == second
+
+    def test_missing_required_field_is_not_written(self):
+        ops_memory.record_behavior_pattern("x", observed="", assumed="a", why="", source="s")
+        assert not ops_memory.PATTERNS_FILE.exists()
+
+    def test_pattern_appears_in_prompt_memory_and_is_not_age_filtered(self):
+        ops_memory.record_behavior_pattern(
+            "schedule_reschedule",
+            observed="Old observation from a while back.",
+            assumed="PATCH in place.",
+            why="Preserves history.",
+            source="ticket #1",
+        )
+        # Backdate the entry well past every other file's expiry window to
+        # prove patterns.md is deliberately exempt from filter_stale_entries.
+        content = ops_memory.PATTERNS_FILE.read_text(encoding="utf-8")
+        content = content.replace(datetime.now(timezone.utc).date().isoformat(), "2020-01-01")
+        ops_memory.PATTERNS_FILE.write_text(content, encoding="utf-8")
+
+        memory = ops_memory.load_prompt_memory()
+        assert "Learned Workflow Patterns" in memory
+        assert "Preserves history" in memory
+
+
+def _concurrent_mention_worker(ticket_id: str, ops_dir: str) -> None:
+    """Module-level (picklable) worker body for the multiprocessing test
+    below - re-points a fresh import of ops_memory at the shared tmp dir,
+    since monkeypatch state never crosses a process boundary.
+    """
+    import cron.ops_memory as om
+    from pathlib import Path
+
+    base = Path(ops_dir)
+    om.OPS_DIR = base
+    om.TICKETS_FILE = base / "tickets.md"
+    om.EVENTS_FILE = base / "events.md"
+    om.ARCHIVE_DIR = base / "archive"
+    om.LOCK_FILE = base / ".ops.lock"
+    om._apply_ticket_mention(ticket_id, "2026-09-10", "concurrent-sweep", f"seen #{ticket_id}")
+
+
+class TestConcurrentWrites:
+    """_ops_lock() guards the read -> dedup-check -> write section against
+    two SEPARATE PROCESSES racing the same file - cron jobs fire as
+    subprocesses, not threads, so the regression this guards is only
+    reproducible with multiprocessing, not a threading test.
+    """
+
+    def test_concurrent_ticket_mentions_from_separate_processes_all_survive(
+        self, tmp_path
+    ):
+        import multiprocessing
+
+        procs = []
+        n = 8
+        for i in range(n):
+            ticket_id = f"7{i:04d}"
+            p = multiprocessing.Process(
+                target=_concurrent_mention_worker, args=(ticket_id, str(tmp_path))
+            )
+            procs.append(p)
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=30)
+            assert p.exitcode == 0
+
+        content = (tmp_path / "tickets.md").read_text(encoding="utf-8")
+        entries = re.findall(r"## #(\d+)", content)
+        expected = {f"7{i:04d}" for i in range(n)}
+        # Every process's ticket must survive - none lost to a lost-update
+        # race between concurrent read-modify-write cycles.
+        assert set(entries) == expected, (
+            f"expected all {n} tickets, got {sorted(entries)} "
+            f"(missing: {expected - set(entries)})"
+        )

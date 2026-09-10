@@ -2,12 +2,25 @@
 """
 Operational Memory for Agent Penny - read/load + extraction helpers.
 """
+import contextlib
 import re
 import sys
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from hermes_constants import get_hermes_home
+from utils import atomic_write_text
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - non-Unix
+    fcntl = None
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - non-Windows
+    msvcrt = None
 
 OPS_DIR = get_hermes_home() / "memories" / "ops"
 ROSTER_FILE = OPS_DIR / "roster.md"
@@ -16,6 +29,15 @@ EVENTS_FILE = OPS_DIR / "events.md"
 OUTAGES_FILE = OPS_DIR / "active_outages.md"
 SECURITY_FILE = OPS_DIR / "security_watch.md"
 ROLE_FILE = OPS_DIR / "ROLE.md"
+PATTERNS_FILE = OPS_DIR / "patterns.md"
+LOCK_FILE = OPS_DIR / ".ops.lock"
+_LOCK_TIMEOUT_SECONDS = 10
+
+# In-process mutual exclusion (threads within this process) layered under
+# the cross-process flock (separate cron-fired processes) - mirrors
+# cron/jobs.py's _jobs_file_lock / _jobs_lock_state split.
+_ops_thread_lock = threading.RLock()
+_ops_lock_state = threading.local()
 
 # File size caps (bytes)
 MAX_FILE_SIZE = 100 * 1024  # 100 KB per file
@@ -229,6 +251,17 @@ def load_prompt_memory() -> str:
     lessons = _load_role_lessons()
     if lessons:
         parts.append(f"## Lessons Learned (from ROLE.md)\n{lessons}")
+
+    if PATTERNS_FILE.exists():
+        patterns = PATTERNS_FILE.read_text(encoding="utf-8").strip()
+        if patterns:
+            # Not age-filtered like tickets/outages/security above: a learned
+            # workflow rule ("techs always close-old+create-new, never PATCH
+            # in place") describes how humans work, not the live state of one
+            # ticket, so it does not go stale just because nobody re-observed
+            # it this week.
+            parts.append(f"## Learned Workflow Patterns\n{patterns}")
+
     return "\n\n".join(parts) if parts else ""
 
 
@@ -309,53 +342,58 @@ def extract_operational_memory(job_id: str, agent_output: str, job_name: str) ->
         human-reviewed (weekly audit) concern.
     """
     try:
-        ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        # One lock acquisition for the whole pass (see _ops_lock docstring):
+        # this run's ticket mentions and trend event/stall updates all land
+        # atomically with respect to any other process's concurrent pass,
+        # rather than racing file-by-file.
+        with _ops_lock():
+            ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        mentions = _extract_ticket_mentions(agent_output) if agent_output else []
-        for mention in mentions:
+            mentions = _extract_ticket_mentions(agent_output) if agent_output else []
+            for mention in mentions:
+                try:
+                    _apply_ticket_mention(mention["id"], today, job_name, mention["context"])
+                except Exception as e:
+                    print(
+                        f"[ops_memory] ticket mention apply error for #{mention['id']}: {e}",
+                        file=sys.stderr,
+                    )
+
+            # Deterministic trend detection — counting/clustering/age-math, no
+            # model call. Best-effort: uses the recorded CW callback log since
+            # live ConnectWise ingress is down. Re-running against the same
+            # historical data is safe: event updates key by date+name and
+            # replace in place rather than duplicating (see _apply_event_update),
+            # and stall flags are only appended once (see apply_stall_flags).
+            event_count = 0
+            stall_count = 0
             try:
-                _apply_ticket_mention(mention["id"], today, job_name, mention["context"])
+                from cron.trend_detection import run_trend_detection
+
+                trend = run_trend_detection()
+                trend_events = trend.get("event_updates", [])
+                for update in trend_events:
+                    _apply_event_update(update)
+                event_count = len(trend_events)
+
+                stall_findings = trend.get("stall_findings", [])
+                apply_stall_flags(stall_findings)
+                stall_count = len(stall_findings)
             except Exception as e:
-                print(
-                    f"[ops_memory] ticket mention apply error for #{mention['id']}: {e}",
-                    file=sys.stderr,
-                )
+                print(f"[ops_memory] trend detection error: {e}", file=sys.stderr)
 
-        # Deterministic trend detection — counting/clustering/age-math, no
-        # model call. Best-effort: uses the recorded CW callback log since
-        # live ConnectWise ingress is down. Re-running against the same
-        # historical data is safe: event updates key by date+name and
-        # replace in place rather than duplicating (see _apply_event_update),
-        # and stall flags are only appended once (see apply_stall_flags).
-        event_count = 0
-        stall_count = 0
-        try:
-            from cron.trend_detection import run_trend_detection
+            # Rotate archives if files exceed size cap
+            _rotate_archives()
 
-            trend = run_trend_detection()
-            trend_events = trend.get("event_updates", [])
-            for update in trend_events:
-                _apply_event_update(update)
-            event_count = len(trend_events)
-
-            stall_findings = trend.get("stall_findings", [])
-            apply_stall_flags(stall_findings)
-            stall_count = len(stall_findings)
-        except Exception as e:
-            print(f"[ops_memory] trend detection error: {e}", file=sys.stderr)
-
-        # Rotate archives if files exceed size cap
-        _rotate_archives()
-
-        # Observability: make zero-capture visible in logs instead of
-        # silently "succeeding" the way the stub did for weeks.
-        print(
-            f"[ops_memory] captured {len(mentions)} ticket mention(s), "
-            f"{event_count} event update(s), {stall_count} stall flag(s), "
-            f"0 roster update(s) for job={job_name!r} ({job_id})",
-            file=sys.stderr,
-        )
+            # Observability: make zero-capture visible in logs instead of
+            # silently "succeeding" the way the stub did for weeks.
+            print(
+                f"[ops_memory] captured {len(mentions)} ticket mention(s), "
+                f"{event_count} event update(s), {stall_count} stall flag(s), "
+                f"0 roster update(s) for job={job_name!r} ({job_id})",
+                file=sys.stderr,
+            )
 
     except Exception as e:
         # Log but don't fail the job
@@ -369,21 +407,22 @@ def _apply_roster_update(update: dict) -> None:
     if not name or not entry:
         return
 
-    # Read current content
-    content = ROSTER_FILE.read_text(encoding="utf-8") if ROSTER_FILE.exists() else ""
+    with _ops_lock():
+        # Read current content
+        content = ROSTER_FILE.read_text(encoding="utf-8") if ROSTER_FILE.exists() else ""
 
-    # Check if entry exists (by ## Name header)
-    if f"## {name}" in content:
-        # Replace existing section
-        pattern = rf"(## {re.escape(name)}\n.*?)(?=\n## |\Z)"
-        content = re.sub(pattern, entry, content, flags=re.DOTALL)
-    else:
-        # Append
-        if content:
-            content += "\n\n---\n\n"
-        content += entry
+        # Check if entry exists (by ## Name header)
+        if f"## {name}" in content:
+            # Replace existing section
+            pattern = rf"(## {re.escape(name)}\n.*?)(?=\n## |\Z)"
+            content = re.sub(pattern, entry, content, flags=re.DOTALL)
+        else:
+            # Append
+            if content:
+                content += "\n\n---\n\n"
+            content += entry
 
-    _write_with_cap(ROSTER_FILE, content)
+        _write_with_cap(ROSTER_FILE, content)
 
 
 def _apply_ticket_update(update: dict) -> None:
@@ -393,20 +432,21 @@ def _apply_ticket_update(update: dict) -> None:
     if not ticket_id or not entry:
         return
 
-    content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
+    with _ops_lock():
+        content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
 
-    # Check if ticket exists (by ## #<id> header)
-    if f"## #{ticket_id}" in content:
-        # Replace existing
-        pattern = rf"(## #{re.escape(ticket_id)} .*?)(?=\n## #|\n---\n|\Z)"
-        content = re.sub(pattern, entry, content, flags=re.DOTALL)
-    else:
-        # Append
-        if content:
-            content += "\n\n---\n\n"
-        content += entry
+        # Check if ticket exists (by ## #<id> header)
+        if f"## #{ticket_id}" in content:
+            # Replace existing
+            pattern = rf"(## #{re.escape(ticket_id)} .*?)(?=\n## #|\n---\n|\Z)"
+            content = re.sub(pattern, entry, content, flags=re.DOTALL)
+        else:
+            # Append
+            if content:
+                content += "\n\n---\n\n"
+            content += entry
 
-    _write_with_cap(TICKETS_FILE, content)
+        _write_with_cap(TICKETS_FILE, content)
 
 
 def _apply_ticket_mention(ticket_id: str, date: str, job_name: str, context_line: str) -> None:
@@ -419,35 +459,41 @@ def _apply_ticket_mention(ticket_id: str, date: str, job_name: str, context_line
     ticket not yet tracked, creates a minimal stub — there's nothing
     richer to preserve, and the stub carries only what was literally
     observed (id, date, job, the line it appeared in).
+
+    The read → dedup-check → write is wrapped in ``_ops_lock()`` so two
+    cron processes racing this function for the same ticket cannot both
+    read the pre-update content and both append their own "Seen" note —
+    without the lock, the second write would silently clobber the first.
     """
     ticket_id = str(ticket_id).strip()
     if not ticket_id:
         return
 
-    content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
-    header = f"## #{ticket_id}"
-    note = f"- **Seen:** {date} in {job_name} — \"{context_line}\"\n"
+    with _ops_lock():
+        content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
+        header = f"## #{ticket_id}"
+        note = f"- **Seen:** {date} in {job_name} — \"{context_line}\"\n"
 
-    if header in content:
-        if note.strip() in content:
-            return  # already recorded, avoid duplicate append
-        pattern = rf"({re.escape(header)} .*?)(?=\n## #|\n---\n|\Z)"
-        new_content = re.sub(
-            pattern, lambda m: m.group(1).rstrip("\n") + "\n" + note, content, count=1, flags=re.DOTALL
-        )
-        if new_content == content:
-            # Header matched the substring check but not the section regex
-            # (e.g. it's the last entry with no trailing section boundary
-            # right after it) — fall back to a straight append of the note
-            # rather than silently dropping the mention.
-            new_content = content.rstrip("\n") + "\n" + note
-        _write_with_cap(TICKETS_FILE, new_content)
-    else:
-        entry = f"## #{ticket_id} — (auto-captured)\n- **First seen:** {date} in {job_name}\n{note}"
-        if content:
-            content += "\n\n---\n\n"
-        content += entry
-        _write_with_cap(TICKETS_FILE, content)
+        if header in content:
+            if note.strip() in content:
+                return  # already recorded, avoid duplicate append
+            pattern = rf"({re.escape(header)} .*?)(?=\n## #|\n---\n|\Z)"
+            new_content = re.sub(
+                pattern, lambda m: m.group(1).rstrip("\n") + "\n" + note, content, count=1, flags=re.DOTALL
+            )
+            if new_content == content:
+                # Header matched the substring check but not the section regex
+                # (e.g. it's the last entry with no trailing section boundary
+                # right after it) — fall back to a straight append of the note
+                # rather than silently dropping the mention.
+                new_content = content.rstrip("\n") + "\n" + note
+            _write_with_cap(TICKETS_FILE, new_content)
+        else:
+            entry = f"## #{ticket_id} — (auto-captured)\n- **First seen:** {date} in {job_name}\n{note}"
+            if content:
+                content += "\n\n---\n\n"
+            content += entry
+            _write_with_cap(TICKETS_FILE, content)
 
 
 def _apply_event_update(update: dict) -> None:
@@ -458,19 +504,20 @@ def _apply_event_update(update: dict) -> None:
     if not date or not name or not entry:
         return
 
-    content = EVENTS_FILE.read_text(encoding="utf-8") if EVENTS_FILE.exists() else ""
+    with _ops_lock():
+        content = EVENTS_FILE.read_text(encoding="utf-8") if EVENTS_FILE.exists() else ""
 
-    header = f"## {date} — {name}"
-    if header in content:
-        # Replace existing
-        pattern = rf"({re.escape(header)}\n.*?)(?=\n## \d{{4}}-\d{{2}}-\d{{2}} — |\Z)"
-        content = re.sub(pattern, entry, content, flags=re.DOTALL)
-    else:
-        # Prepend (newest events first)
-        if content:
-            entry += "\n\n" + content
+        header = f"## {date} — {name}"
+        if header in content:
+            # Replace existing
+            pattern = rf"({re.escape(header)}\n.*?)(?=\n## \d{{4}}-\d{{2}}-\d{{2}} — |\Z)"
+            content = re.sub(pattern, entry, content, flags=re.DOTALL)
+        else:
+            # Prepend (newest events first)
+            if content:
+                entry += "\n\n" + content
 
-    _write_with_cap(EVENTS_FILE, entry)
+        _write_with_cap(EVENTS_FILE, entry)
 
 
 def apply_stall_flags(stall_findings: list) -> None:
@@ -483,33 +530,173 @@ def apply_stall_flags(stall_findings: list) -> None:
     """
     if not stall_findings:
         return
-    content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
-    if not content:
+
+    with _ops_lock():
+        content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
+        if not content:
+            return
+
+        changed = False
+        for finding in stall_findings:
+            ticket_id = str(getattr(finding, "ticket_id", ""))
+            header = f"## #{ticket_id}"
+            if header not in content:
+                continue  # don't invent tickets we haven't already tracked
+            note = (
+                f"- **Auto-flag:** stalled {finding.hours_stale}h "
+                f"(threshold {finding.threshold_hours}h for {finding.priority}), "
+                f"no activity since last update.\n"
+            )
+            if note.strip() in content:
+                continue  # already flagged, avoid duplicate append
+            pattern = rf"({re.escape(header)} .*?)(?=\n## #|\n---\n|\Z)"
+            content = re.sub(pattern, lambda m: m.group(1).rstrip("\n") + "\n" + note, content, flags=re.DOTALL)
+            changed = True
+
+        if changed:
+            _write_with_cap(TICKETS_FILE, content)
+
+
+def record_behavior_pattern(action_type: str, observed: str, assumed: str, why: str, source: str) -> None:
+    """Append-only, human-readable record of a workflow pattern a real
+    technician's action revealed - the "learn and grow" mechanism from the
+    design doc's item 4 (behavior patterns), kept deliberately as a plain
+    dated log entry rather than a model or a black box: an examiner (or
+    Jerry) can read exactly what was observed and why it changed Penny's
+    assumption, the same auditability bar as roster/tickets/events.
+
+    Example: a technician always closes an old appointment and creates a
+    new one for a reschedule, never PATCHes the existing one in place -
+    Penny had assumed PATCH-in-place was fine and violated the pattern in
+    production. That correction becomes one call:
+    ``record_behavior_pattern("schedule_reschedule",
+    observed="Tech closed appt #4821 and created #4822 instead of moving "
+    "the existing appointment.",
+    assumed="PATCH the existing appointment's start/end time in place.",
+    why="PATCHing in place destroys the appointment's calendar history; "
+    "close-old+create-new preserves it.",
+    source="ticket #93102, 2026-08-14")``.
+
+    Idempotent by exact-entry-text check, same discipline as
+    ``_apply_ticket_mention``: re-observing the identical correction on a
+    later run appends nothing new.
+    """
+    action_type = action_type.strip()
+    observed = observed.strip()
+    assumed = assumed.strip()
+    why = why.strip()
+    source = source.strip()
+    if not action_type or not observed or not why:
         return
 
-    changed = False
-    for finding in stall_findings:
-        ticket_id = str(getattr(finding, "ticket_id", ""))
-        header = f"## #{ticket_id}"
-        if header not in content:
-            continue  # don't invent tickets we haven't already tracked
-        note = (
-            f"- **Auto-flag:** stalled {finding.hours_stale}h "
-            f"(threshold {finding.threshold_hours}h for {finding.priority}), "
-            f"no activity since last update.\n"
-        )
-        if note.strip() in content:
-            continue  # already flagged, avoid duplicate append
-        pattern = rf"({re.escape(header)} .*?)(?=\n## #|\n---\n|\Z)"
-        content = re.sub(pattern, lambda m: m.group(1).rstrip("\n") + "\n" + note, content, flags=re.DOTALL)
-        changed = True
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    entry = (
+        f"## {today} — {action_type}\n"
+        f"- **Observed:** {observed}\n"
+        f"- **Penny assumed:** {assumed or '(no prior assumption recorded)'}\n"
+        f"- **Why it matters:** {why}\n"
+        f"- **Source:** {source or '(not recorded)'}\n"
+    )
 
-    if changed:
-        _write_with_cap(TICKETS_FILE, content)
+    with _ops_lock():
+        content = PATTERNS_FILE.read_text(encoding="utf-8") if PATTERNS_FILE.exists() else ""
+        if entry.strip() in content:
+            return  # identical correction already recorded, avoid duplicate
+        if content:
+            content = content.rstrip("\n") + "\n\n---\n\n" + entry
+        else:
+            content = entry
+        _write_with_cap(PATTERNS_FILE, content)
+
+
+@contextlib.contextmanager
+def _ops_lock():
+    """Cross-process advisory lock guarding read-modify-write sections
+    against the ops files (roster/tickets/events/patterns).
+
+    These files are read → merged (dedup-by-substring) → written back by
+    both the 15-minute watcher and the hourly sweep, running as separate
+    cron-fired processes (not threads), so an in-process lock alone cannot
+    prevent two concurrent runs from both reading the pre-update content,
+    both appending their own note, and one write clobbering the other -
+    losing a real ticket mention with no error raised anywhere. One lock
+    file guards all four ops files together (rather than per-file) because
+    a single extraction pass touches tickets.md and events.md together and
+    must not be interleaved with another process's pass on either file.
+
+    Same pattern as cron/jobs.py's ``_jobs_lock``: fcntl on Unix, msvcrt on
+    Windows, degrading to no cross-process guarantee (logged) if neither is
+    available or the lock cannot be acquired before the timeout - a missed
+    lock must never take a cron job down.
+
+    Reentrant within one thread (depth counter, mirroring ``_jobs_lock``):
+    ``extract_operational_memory`` holds the lock for its whole pass and
+    calls into ``_apply_ticket_mention``/``_apply_event_update``, which each
+    also take the lock when called directly (e.g. by tests) - without reentry
+    that nesting would deadlock a process against its own held flock.
+    """
+    depth = getattr(_ops_lock_state, "depth", 0)
+    if depth:
+        _ops_lock_state.depth = depth + 1
+        try:
+            yield
+        finally:
+            _ops_lock_state.depth -= 1
+        return
+
+    with _ops_thread_lock:
+        _ops_lock_state.depth = 1
+        OPS_DIR.mkdir(parents=True, exist_ok=True)
+        lock_fd = None
+        try:
+            try:
+                lock_fd = open(LOCK_FILE, "a+", encoding="utf-8")
+                if fcntl is not None:
+                    deadline = time.monotonic() + _LOCK_TIMEOUT_SECONDS
+                    while True:
+                        try:
+                            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                            break
+                        except (OSError, IOError):
+                            if time.monotonic() >= deadline:
+                                print(
+                                    f"[ops_memory] timed out after {_LOCK_TIMEOUT_SECONDS}s waiting "
+                                    f"for ops lock ({LOCK_FILE}); proceeding unlocked",
+                                    file=sys.stderr,
+                                )
+                                lock_fd.close()
+                                lock_fd = None
+                                break
+                            time.sleep(0.05)
+                elif msvcrt is not None:
+                    getattr(msvcrt, "locking")(lock_fd.fileno(), getattr(msvcrt, "LK_LOCK"), 1)
+            except (OSError, IOError) as e:
+                print(f"[ops_memory] lock unavailable ({e}); proceeding unlocked", file=sys.stderr)
+            try:
+                yield
+            finally:
+                if lock_fd is not None:
+                    try:
+                        if fcntl is not None:
+                            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                        elif msvcrt is not None:
+                            getattr(msvcrt, "locking")(lock_fd.fileno(), getattr(msvcrt, "LK_UNLCK"), 1)
+                    except (OSError, IOError):
+                        pass
+                    finally:
+                        lock_fd.close()
+        finally:
+            _ops_lock_state.depth = 0
 
 
 def _write_with_cap(file_path: Path, content: str) -> None:
-    """Write file with size cap, archive if exceeded."""
+    """Write file with size cap, archive if exceeded.
+
+    Uses ``atomic_write_text`` (temp file + fsync + os.replace, see
+    utils.py) rather than a plain ``write_text`` so a crash mid-write can
+    never leave one of these files torn - it either holds the old content
+    or the new content, never a half-written mix.
+    """
     content_bytes = content.encode("utf-8")
     if len(content_bytes) > MAX_FILE_SIZE:
         # Archive current content before truncation
@@ -525,7 +712,7 @@ def _write_with_cap(file_path: Path, content: str) -> None:
             truncated = truncated[sep_idx + 5:]
         content = truncated.decode("utf-8", errors="ignore")
 
-    file_path.write_text(content, encoding="utf-8")
+    atomic_write_text(file_path, content)
 
 
 def _rotate_archives() -> None:

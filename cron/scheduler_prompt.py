@@ -333,6 +333,29 @@ def _build_job_prompt(
             logger.warning("outage_routing: failed to run for job %r: %s", job.get("id"), e)
             # non-fatal - the next hourly tick tries again
 
+    # Operational memory (people/tickets/events/patterns Penny has already
+    # learned, see cron/ops_memory.py and docs/design/penny-memory-design.md).
+    # Scoped to jobs opted in via `"operational_memory": true`, mirroring
+    # board_watch/outage_routing above. This is remembered context read back
+    # from ~/.hermes/memories/ops/*.md, not a live ConnectWise lookup -
+    # format_memory_for_prompt()'s own wording tells the model as much.
+    # has_injected_data=True because the block quotes verbatim ticket text
+    # and past agent output re-read from disk (the same trust class as
+    # board_watch/context_from above): the strict injection-scanner tier is
+    # for user-authored prompts, and a remembered ticket line that happens to
+    # contain a command-shape substring must not permanently kill this job.
+    if job.get("operational_memory"):
+        try:
+            from cron.ops_memory import load_prompt_memory, format_memory_for_prompt
+
+            memory = load_prompt_memory()
+            if memory:
+                prompt = format_memory_for_prompt(memory) + prompt
+                has_injected_data = True
+        except Exception as e:
+            logger.warning("operational_memory: failed to load for job %r: %s", job.get("id"), e)
+            # non-fatal - the job just runs without remembered context this cycle
+
     prompt = _CRON_HINT + prompt
     skill_names = _job_skill_names(job)
     if not skill_names:
