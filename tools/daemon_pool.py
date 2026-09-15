@@ -36,8 +36,10 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
         return super().submit(_run_with_context, *args, **kwargs)
 
     def _adjust_thread_count(self) -> None:
-        # Mirrors CPython's implementation (3.8–3.13) with two changes:
-        # daemon=True and no _threads_queues registration.
+        # Mirrors CPython's implementation (3.8-3.13, and separately 3.14+, which
+        # replaced the raw (initializer, initargs) pair with a WorkerContext
+        # produced by _create_worker_context()) with two changes: daemon=True
+        # and no _threads_queues registration.
         if self._idle_semaphore.acquire(timeout=0):
             return
 
@@ -48,9 +50,13 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
             thread_name = "%s_%d" % (self._thread_name_prefix or self, num_threads)
             # Carry the active profile into the review thread so MEMORY.md / skill review writes land in the
             # right profile (#54937).
+            if hasattr(self, "_create_worker_context"):
+                worker_args = (weakref.ref(self, weakref_cb), self._create_worker_context(), self._work_queue)
+            else:
+                worker_args = (weakref.ref(self, weakref_cb), self._work_queue, self._initializer, self._initargs)
             t = threading.Thread(
                 name=thread_name, target=_worker, daemon=True,
-                args=(weakref.ref(self, weakref_cb), self._work_queue, self._initializer, self._initargs),
+                args=worker_args,
             )
             t.start()
             self._threads.add(t)
