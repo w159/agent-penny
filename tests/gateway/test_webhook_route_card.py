@@ -44,6 +44,7 @@ def _adapter_with_delivery(delivery):
     target.send = AsyncMock(return_value=SendResult(success=True))
     runner = MagicMock()
     runner.adapters = {Platform("telegram"): target}
+    runner._authorization_adapter = MagicMock(return_value=target)
     runner.config.get_home_channel.return_value = None
     adapter.gateway_runner = runner
     return adapter, target
@@ -167,6 +168,7 @@ async def test_posting_the_route_stores_card_and_payload_for_send():
     target.send = AsyncMock(return_value=SendResult(success=True))
     runner = MagicMock()
     runner.adapters = {Platform("telegram"): target}
+    runner._authorization_adapter = MagicMock(return_value=target)
     runner.config.get_home_channel.return_value = None
     adapter.gateway_runner = runner
 

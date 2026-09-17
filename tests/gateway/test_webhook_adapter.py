@@ -29,7 +29,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import Platform, PlatformConfig
-from gateway.platforms.base import SendResult
+from gateway.platforms.base import AUTONOMOUS_DELIVERY_METADATA_KEY, SendResult
 from gateway.platforms.webhook import (
     WebhookAdapter,
     _INSECURE_NO_AUTH,
@@ -859,8 +859,11 @@ class TestDeliverCrossPlatformThreadId:
             }
         }
         await adapter._deliver_cross_platform("telegram", "hello", delivery)
+        # Every webhook send is an unsolicited push, so the metadata carries
+        # the autonomous-delivery marker alongside the thread id.
         mock_target.send.assert_awaited_once_with(
-            "12345", "hello", metadata={"thread_id": "999"}
+            "12345", "hello",
+            metadata={"thread_id": "999", AUTONOMOUS_DELIVERY_METADATA_KEY: True},
         )
 
 

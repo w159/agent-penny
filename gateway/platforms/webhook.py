@@ -22,6 +22,7 @@ import time
 from collections import deque
 from contextlib import nullcontext, suppress
 from typing import Any, Deque, Dict, List, Optional
+from urllib.parse import quote
 
 try:
     from aiohttp import web
@@ -32,7 +33,7 @@ except ImportError:
     web = None  # type: ignore[assignment]
 
 from gateway.config import Platform, PlatformConfig
-from gateway.platforms.base import BasePlatformAdapter, SendResult
+from gateway.platforms.base import AUTONOMOUS_DELIVERY_METADATA_KEY, BasePlatformAdapter, SendResult
 from gateway.platforms.event import MessageEvent, MessageType
 from gateway.platforms.webhook_filters import DEFAULT_SCRIPT_TIMEOUT_SECONDS, WebhookRouteProcessor
 from gateway.response_filters import is_autonomous_silence_response
@@ -99,6 +100,70 @@ _BUILTIN_DELIVER_PLATFORMS = {
 DEFAULT_HOST = None
 DEFAULT_PORT = 8644
 _INSECURE_NO_AUTH = "INSECURE_NO_AUTH"
+# Subject suppression (route ``dedupe`` block) lives in the gateway_routing
+# table under this scope. gateway_routing is namespaced by scope and the
+# session store only ever rewrites its own sessions_dir scope, so these rows
+# are invisible to — and untouched by — the routing index proper.
+_SUPPRESSION_SCOPE = "webhook-subject-suppression"
+# Six hours: long enough to collapse a subject's same-day churn (CW ticket
+# 94265 produced 10 callbacks in 51 minutes), short enough that the next
+# business day's genuinely new state still gets a voice.
+DEFAULT_SUPPRESSION_WINDOW_SECONDS = 21600
+# A turn holding a subject is exactly the case the full window does not cover:
+# it leaves a subject unguarded for the whole length of a turn, so two
+# callbacks about one ticket arriving seconds apart both passed the check and
+# both spoke.  Measured on this gateway's own runs ("response ready:
+# platform=webhook ... time=Xs", n=35 distinct turns): p50 11s, p95 41s, max
+# 63s.  Five minutes is ~4.8x the slowest turn ever observed here, so a normal
+# turn is always covered, and it is 1/72nd of the default window, so a process
+# that dies mid-turn holding a reservation costs the ticket five minutes of
+# silence rather than six hours.  Nothing renews it: a reservation always
+# expires on its own even if no code ever runs to release it.
+DEFAULT_INFLIGHT_RESERVATION_SECONDS = 300
+
+
+def _suppression_session_key(route_name: str, subject: str) -> str:
+    """Row key for one subject on one route.
+
+    Both halves are percent-encoded so the separator is the only bare colon
+    in the key.  Joining them raw let a route named ``a:b`` talking about
+    ``c`` share a row with a route named ``a`` talking about ``b:c`` — and a
+    shared row means one subject silences another.  Ticket ids and route
+    names are usually colon-free, so this is normally a no-op.
+    """
+    return f"{quote(route_name, safe='')}:{quote(subject, safe='')}"
+
+
+def _parse_suppression_row(raw: Any) -> Dict[str, Any]:
+    """Decode one suppression row, or ``{}`` for anything unreadable.
+
+    A corrupt row must not stop the lane: an empty dict reads as "this subject
+    has never spoken", which delivers.  Over-reporting is the cheaper wrong
+    answer here, same as everywhere else on this path.
+    """
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _spoken_breakthroughs(row: Dict[str, Any]) -> set:
+    """Escalation values this subject has already spent a message on.
+
+    ``breakthroughs`` is the authoritative list.  The single ``breakthrough``
+    field is the older row shape and is still read, so a row written before
+    this change keeps suppressing its own repeat instead of speaking twice on
+    the first event after an upgrade.
+    """
+    values = row.get("breakthroughs")
+    if isinstance(values, list):
+        return {str(v) for v in values if v}
+    single = row.get("breakthrough")
+    return {str(single)} if single else set()
+
 _DYNAMIC_ROUTES_FILENAME = "webhook_subscriptions.json"
 _RATE_WINDOW_SECONDS = 60.0
 # Hosts that only serve same-machine connections; anything else is a public bind.
@@ -225,6 +290,20 @@ class WebhookAdapter(BasePlatformAdapter):
         self._seen_deliveries: Dict[str, float] = {}
         self._idempotency_ttl: int = 3600  # 1 hour
         self._seen_deliveries_next_prune_at: float = 0.0
+        # Subject suppression: at most one delivery per subject (a ticket, an
+        # incident, an order) per window.  Solves a different problem than
+        # _seen_deliveries above — that one collapses HTTP retries of a single
+        # delivery attempt, this one collapses genuinely distinct events that
+        # are all about the same thing.  State lives in state.db so a gateway
+        # restart does not re-open every window.
+        self._suppression_window_default: int = int(
+            extra.get("suppression_window_seconds", DEFAULT_SUPPRESSION_WINDOW_SECONDS)
+        )
+        self._inflight_reservation_seconds: int = int(
+            extra.get("inflight_reservation_seconds", DEFAULT_INFLIGHT_RESERVATION_SECONDS)
+        )
+        self._suppression_db = None
+        self._suppression_db_unavailable = False
         self._rate_counts: Dict[str, Deque[float]] = {}  # per-route hit timestamps in a fixed window
         self._rate_limit: int = int(extra.get("rate_limit", 30))  # per minute
         self._max_body_bytes: int = int(extra.get("max_body_bytes", 1_048_576))  # 1MB
@@ -297,6 +376,10 @@ class WebhookAdapter(BasePlatformAdapter):
         # interactive exact-match rule would deliver.
         if is_autonomous_silence_response(content):
             logger.info("[webhook] Response for %s is a silence marker — not delivering", chat_id)
+            # The turn produced nothing to say, so the subject stops being
+            # held right here instead of waiting out the reservation — this is
+            # what keeps silence costing nothing for the NEXT event.
+            self._release_subject_reservation(self._delivery_info.get(chat_id), consume=False)
             return SendResult(success=True)
         delivery = self._delivery_info.get(chat_id, {})
         deliver_type = delivery.get("deliver", "log")
@@ -306,13 +389,23 @@ class WebhookAdapter(BasePlatformAdapter):
         content = _apply_route_card(content, delivery)
         if deliver_type == "log":
             logger.info("[webhook] Response for %s: %s", chat_id, content[:200])
+            self._commit_subject_delivery(delivery)
             return SendResult(success=True)
         if deliver_type == "github_comment":
-            return await self._deliver_github_comment(content, delivery)
-        if self.gateway_runner and _is_known_platform(deliver_type):
-            return await self._deliver_cross_platform(deliver_type, content, delivery)
-        logger.warning("[webhook] Unknown deliver type: %s", deliver_type)
-        return SendResult(success=False, error=f"Unknown deliver type: {deliver_type}")
+            result = await self._deliver_github_comment(content, delivery)
+        elif self.gateway_runner and _is_known_platform(deliver_type):
+            result = await self._deliver_cross_platform(deliver_type, content, delivery)
+        else:
+            logger.warning("[webhook] Unknown deliver type: %s", deliver_type)
+            return SendResult(success=False, error=f"Unknown deliver type: {deliver_type}")
+        # Only a target that accepted the message opens the subject's window.
+        # A rejected send left the channel just as quiet as a [SILENT] turn,
+        # so it frees the subject rather than holding it for the full run.
+        if result.success:
+            self._commit_subject_delivery(delivery)
+        else:
+            self._release_subject_reservation(delivery, consume=False)
+        return result
 
     def _prune_delivery_info(self, now: float) -> None:
         """Drop delivery_info entries older than the idempotency TTL (bounds the dict by ``rate_limit * TTL``
@@ -359,6 +452,344 @@ class WebhookAdapter(BasePlatformAdapter):
         if len(self._seen_deliveries) > max(self._rate_limit * 2, 128):
             self._prune_seen_deliveries(now)
         return True
+
+    def _suppression_store(self):
+        """SessionDB holding the subject-suppression index, or None.
+
+        Opened lazily so routes without a ``dedupe`` block never touch the
+        DB, and failure to open degrades to "deliver everything" — a noisy
+        lane is recoverable, a silently dropped lane is not.
+        """
+        if self._suppression_db is None and not self._suppression_db_unavailable:
+            try:
+                from hermes_state import SessionDB
+
+                self._suppression_db = SessionDB()
+            except Exception as e:
+                self._suppression_db_unavailable = True
+                logger.warning(
+                    "[webhook] subject suppression off, state.db unavailable: %s", e
+                )
+        return self._suppression_db
+
+    def _check_subject_suppression(
+        self,
+        route_name: str,
+        route_config: dict,
+        payload: dict,
+        now: float,
+        delivery_id: str = "",
+    ) -> tuple[bool, dict]:
+        """Decide whether this event may speak about its subject right now.
+
+        Route config (all optional — absent ``key`` leaves the route
+        completely unchanged)::
+
+            dedupe:
+              key: "{ticket_id}"          # prompt-template syntax
+              window_seconds: 21600
+              breakthrough_key: "{event}" # value that re-opens the window
+              breakthrough_values: [reopened]
+
+        The full window is still not opened until a message actually lands
+        (``_commit_subject_delivery``).  Most events on a lane like this end
+        in ``[SILENT]``; charging a silent turn for the window would suppress
+        the next real escalation before the agent ever saw it.
+
+        What this DOES write is a short in-flight reservation on the subject,
+        so a second event arriving while the first turn is still running is
+        held instead of starting a second turn about the same ticket.  The
+        reservation is released the moment that turn ends without speaking
+        (``_release_subject_reservation``), so silence still costs nothing.
+        The read and the reservation write happen with no ``await`` between
+        them, which on a single event loop makes the pair atomic against
+        every other request in flight.
+
+        Returns ``(allow, detail)``; ``detail`` carries subject, window and
+        remaining seconds so the caller can say out loud why it went quiet.
+        Every failure mode here (bad template, unreadable DB, corrupt row)
+        allows the delivery: over-reporting is the cheaper wrong answer.
+        """
+        cfg = route_config.get("dedupe") or {}
+        key_template = cfg.get("key")
+        if not key_template:
+            return True, {}
+
+        subject = self._render_prompt(key_template, payload, "", "").strip()
+        # An unresolved token renders as the literal "{ticket_id}" — that
+        # would collapse every event on the route into one subject.
+        if not subject or "{" in subject or subject.lower() in ("none", "null"):
+            logger.warning(
+                "[webhook] dedupe key %r did not resolve on route %s; delivering",
+                key_template,
+                route_name,
+            )
+            return True, {}
+
+        window = int(cfg.get("window_seconds", self._suppression_window_default))
+        if window <= 0:
+            return True, {}
+
+        db = self._suppression_store()
+        if db is None:
+            return True, {}
+
+        breakthrough = ""
+        bt_template = cfg.get("breakthrough_key")
+        if bt_template:
+            breakthrough = self._render_prompt(bt_template, payload, "", "").strip()
+        allowed_breakthroughs = {
+            str(v) for v in (cfg.get("breakthrough_values") or [])
+        }
+
+        session_key = _suppression_session_key(route_name, subject)
+        detail: Dict[str, Any] = {
+            "subject": subject,
+            "window": window,
+            "breakthrough": breakthrough,
+        }
+        try:
+            entries = db.load_gateway_routing_entries(scope=_SUPPRESSION_SCOPE)
+        except Exception as e:
+            logger.warning("[webhook] suppression read failed, delivering: %s", e)
+            return True, {}
+
+        previous = _parse_suppression_row(entries.get(session_key))
+
+        # A turn about this subject is already running.  It is reading the
+        # same ticket this event describes, so whatever this event carries is
+        # already in front of it — running a second turn just produces a
+        # second Teams message about one ticket, which is the duplication the
+        # window exists to prevent.
+        reserved_until = float(previous.get("reserved_until") or 0.0)
+        if reserved_until > now:
+            detail["remaining"] = reserved_until - now
+            detail["in_flight"] = True
+            return False, detail
+
+        delivered_at = float(previous.get("delivered_at") or 0.0)
+        elapsed = now - delivered_at
+        if delivered_at and 0 <= elapsed < window:
+            # Break through only for an escalation the route named, and only
+            # once per DISTINCT value — so a ticket that reopens twice still
+            # speaks once.  Comparing against every value already spoken for,
+            # not just the most recent one, is what makes that hold when a
+            # second allowed escalation lands in between the two reopens.
+            escalated = (
+                breakthrough
+                and breakthrough in allowed_breakthroughs
+                and breakthrough not in _spoken_breakthroughs(previous)
+            )
+            if not escalated:
+                detail["remaining"] = window - elapsed
+                return False, detail
+            detail["escalated"] = True
+
+        # Everything the commit needs, so the delivery path never has to
+        # re-render the templates against a payload it no longer holds.
+        # ``token`` identifies THIS turn's reservation, so a late finisher
+        # cannot release a hold that a newer turn has since taken.
+        pending = {
+            "session_key": session_key,
+            "subject": subject,
+            "route": route_name,
+            "breakthrough": breakthrough,
+            "window": window,
+            "token": delivery_id or f"{session_key}@{now}",
+        }
+        self._reserve_subject(db, session_key, previous, pending, now)
+        detail["pending"] = pending
+        return True, detail
+
+    def _reserve_subject(
+        self, db, session_key: str, previous: dict, pending: dict, now: float
+    ) -> None:
+        """Hold the subject for the length of one turn.
+
+        Merged onto the existing row rather than replacing it: an escalation
+        that just broke through must not erase ``delivered_at`` or the
+        escalations already spoken for, or the next repeat would speak again.
+        """
+        ttl = self._inflight_reservation_seconds
+        if ttl <= 0:
+            return
+        row = dict(previous)
+        row.update(
+            {
+                "subject": pending["subject"],
+                "route": pending["route"],
+                "window": pending["window"],
+                "reserved_until": now + ttl,
+                "reserved_by": pending["token"],
+            }
+        )
+        row.setdefault("delivered_at", 0.0)
+        try:
+            db.save_gateway_routing_entry(
+                session_key, json.dumps(row), scope=_SUPPRESSION_SCOPE
+            )
+        except Exception as e:
+            # Failing to reserve means a concurrent event runs rather than
+            # being held — noisy, not silent, which is the right failure.
+            logger.warning("[webhook] suppression reserve failed: %s", e)
+
+    def _delete_suppression_rows(self, db, keys: list) -> None:
+        """SessionDB exposes no per-key delete for a scope; an atomic scope
+        replace without the dropped keys is the equivalent."""
+        entries = db.load_gateway_routing_entries(scope=_SUPPRESSION_SCOPE)
+        remaining = {k: v for k, v in entries.items() if k not in set(keys)}
+        if len(remaining) != len(entries):
+            db.replace_gateway_routing_entries(remaining, scope=_SUPPRESSION_SCOPE)
+
+    def _commit_subject_delivery(self, delivery: Optional[dict]) -> None:
+        """Open the subject's window, now that a message has actually landed.
+
+        Popped rather than read: ``send()`` fires once per outgoing message
+        (interim status notices as well as the final answer), and the window
+        should start at the first one instead of being pushed forward by
+        each.  A turn that ends in silence never reaches here, so it costs
+        the subject nothing.
+        """
+        if not isinstance(delivery, dict):
+            return
+        pending = delivery.pop("suppression", None)
+        if not pending:
+            return
+        db = self._suppression_store()
+        if db is None:
+            return
+        self._record_subject_delivery(db, pending, time.time())
+
+    def _release_subject_reservation(
+        self, delivery: Optional[dict], *, consume: bool = True
+    ) -> None:
+        """Give the subject its voice back after a turn that said nothing.
+
+        Silence, a send the target rejected, and a run that raised all land
+        here.  Only the turn that took the hold may drop it (``reserved_by``),
+        so a zombie run finishing long after its reservation expired cannot
+        unlock a subject that a newer turn is currently holding.
+
+        ``consume=False`` frees the subject but leaves the pending entry in
+        place, for the mid-run callers: ``send()`` fires once per outgoing
+        message, and a rejected interim notice must not stop the real answer
+        that follows it from opening the window.  The end-of-run callers, for
+        which there is no "later message", consume it.
+
+        A process that dies never reaches this at all; that case is covered by
+        the reservation's own expiry, not by cleanup.
+        """
+        if not isinstance(delivery, dict):
+            return
+        pending = delivery.get("suppression")
+        if not pending:
+            return
+        if consume:
+            delivery.pop("suppression", None)
+        db = self._suppression_store()
+        if db is None:
+            return
+        session_key = pending["session_key"]
+        try:
+            entries = db.load_gateway_routing_entries(scope=_SUPPRESSION_SCOPE)
+        except Exception as e:
+            logger.warning("[webhook] suppression release skipped: %s", e)
+            return
+        row = _parse_suppression_row(entries.get(session_key))
+        if row.get("reserved_by") != pending.get("token"):
+            return
+        try:
+            if float(row.get("delivered_at") or 0.0) <= 0:
+                # The row exists only to carry this reservation — nothing was
+                # ever said about the subject, so leave no trace behind.
+                self._delete_suppression_rows(db, [session_key])
+                return
+            row.pop("reserved_until", None)
+            row.pop("reserved_by", None)
+            db.save_gateway_routing_entry(
+                session_key, json.dumps(row), scope=_SUPPRESSION_SCOPE
+            )
+        except Exception as e:
+            # Same failure direction as everywhere else here: a reservation
+            # left behind expires on its own within minutes.
+            logger.warning("[webhook] suppression release failed: %s", e)
+
+    def _record_subject_delivery(self, db, pending: dict, now: float) -> None:
+        """Upgrade the in-flight hold to a full window, and prune expired rows."""
+        session_key = pending["session_key"]
+        window = pending["window"]
+        # Read before writing so the escalations this subject has already
+        # spoken for survive the upgrade; dropping them is what let a ticket
+        # break through twice on the same value.
+        try:
+            current = _parse_suppression_row(
+                db.load_gateway_routing_entries(scope=_SUPPRESSION_SCOPE).get(
+                    session_key
+                )
+            )
+        except Exception as e:
+            logger.warning("[webhook] suppression read failed on commit: %s", e)
+            current = {}
+        spoken_for = _spoken_breakthroughs(current)
+        current_delivered_at = float(current.get("delivered_at") or 0.0)
+        current_window = float(current.get("window") or window)
+        if not current_delivered_at or now - current_delivered_at >= current_window:
+            # A new window: the escalations the last window spoke for do not
+            # carry into it, or a reopen after the window lapsed would be
+            # swallowed — the strongest signal this lane has.
+            spoken_for = set()
+        if pending["breakthrough"]:
+            spoken_for.add(str(pending["breakthrough"]))
+        entry = {
+            "subject": pending["subject"],
+            "route": pending["route"],
+            "delivered_at": now,
+            "breakthrough": pending["breakthrough"],
+            "breakthroughs": sorted(spoken_for),
+            "window": window,
+        }
+        try:
+            db.save_gateway_routing_entry(
+                session_key, json.dumps(entry), scope=_SUPPRESSION_SCOPE
+            )
+        except Exception as e:
+            # Failing to record means the next event repeats rather than
+            # suppressing — noisy, not silent, which is the right failure.
+            logger.warning("[webhook] suppression write failed: %s", e)
+            return
+
+        # Read the index back instead of reusing the snapshot taken at check
+        # time: a whole agent run sits between the two, and pruning against a
+        # stale view can delete a row written during it.
+        try:
+            entries = db.load_gateway_routing_entries(scope=_SUPPRESSION_SCOPE)
+        except Exception as e:
+            logger.warning("[webhook] suppression prune skipped: %s", e)
+            return
+
+        # Each row carries the window it was written under, so pruning stays
+        # correct when routes disagree about how long to stay quiet.
+        stale = []
+        for key, raw in entries.items():
+            if key == session_key:
+                continue
+            try:
+                row = json.loads(raw)
+                # A subject whose turn is still running has a row with no
+                # delivery on it yet; pruning by delivered_at alone would
+                # treat that as ancient and free the subject mid-turn.
+                if float(row.get("reserved_until") or 0.0) > now:
+                    continue
+                row_window = float(row.get("window") or window)
+                if now - float(row.get("delivered_at") or 0.0) >= row_window:
+                    stale.append(key)
+            except (ValueError, TypeError):
+                stale.append(key)
+        if stale:
+            try:
+                self._delete_suppression_rows(db, stale)
+            except Exception as e:
+                logger.warning("[webhook] suppression prune failed: %s", e)
 
     async def get_chat_info(self, chat_id: str) -> Dict[str, Any]:
         return {"name": chat_id, "type": "webhook"}
@@ -500,11 +931,14 @@ class WebhookAdapter(BasePlatformAdapter):
                 return _UNPARSEABLE
 
     async def _handle_deliver_only(self, prompt: str, payload: Any, route_config: dict, route_name: str,
-                                   event_type: str, delivery_id: str, profile: Optional[str] = None) -> "web.Response":
+                                   event_type: str, delivery_id: str, profile: Optional[str] = None,
+                                   suppression: Optional[dict] = None) -> "web.Response":
         """deliver_only: the rendered prompt IS the message — skip the agent, reuse the same
         auth/rate-limit/idempotency/template pipeline."""
         delivery = {"deliver": route_config.get("deliver", "log"), "payload": payload, "profile": profile,
-                    "deliver_extra": self._render_delivery_extra(route_config.get("deliver_extra", {}), payload)}
+                    "deliver_extra": self._render_delivery_extra(route_config.get("deliver_extra", {}), payload),
+                    # Consumed by the commit below when the target accepts.
+                    "suppression": suppression}
         logger.info("[webhook] direct-deliver event=%s route=%s target=%s msg_len=%d delivery=%s", event_type,
                     route_name, delivery["deliver"], len(prompt), delivery_id)
         failed = {"status": "error", "error": "Delivery failed", "delivery_id": delivery_id}
@@ -512,8 +946,12 @@ class WebhookAdapter(BasePlatformAdapter):
             result = await self._direct_deliver(prompt, delivery)
         except Exception:
             logger.exception("[webhook] direct-deliver failed route=%s delivery=%s", route_name, delivery_id)
+            # Nothing landed, so the subject must not stay held: this lane
+            # has no agent run and therefore no on_processing_complete.
+            self._release_subject_reservation(delivery)
             return web.json_response(failed, status=502)
         if result.success:
+            self._commit_subject_delivery(delivery)
             return web.json_response({"status": "delivered", "route": route_name, "target": delivery["deliver"],
                                       "delivery_id": delivery_id}, status=200)
         # Target rejected it — 502 with a generic error (don't leak adapter detail).
@@ -607,14 +1045,36 @@ class WebhookAdapter(BasePlatformAdapter):
         if not self._record_delivery_id(delivery_id, now):
             logger.info("[webhook] Skipping duplicate delivery %s", delivery_id)
             return web.json_response({"status": "duplicate", "delivery_id": delivery_id}, status=200)
+        # Subject suppression runs after the retry check so a provider retry can neither
+        # consume nor refresh a subject's window.  One subject speaks once per window
+        # however many distinct events it generates.
+        allow, suppression = self._check_subject_suppression(route_name, route_config, payload, now, delivery_id)
+        if not allow:
+            logger.info(
+                "[webhook] suppressed route=%s subject=%s window=%ds "
+                "quiet_for_another=%.0fs reason=%s delivery=%s",
+                route_name, suppression.get("subject"), suppression.get("window"),
+                suppression.get("remaining", 0.0),
+                "turn_in_flight" if suppression.get("in_flight") else "window", delivery_id)
+            return web.json_response(
+                {"status": "suppressed", "route": route_name, "subject": suppression.get("subject"),
+                 "retry_after": int(suppression.get("remaining", 0.0)), "delivery_id": delivery_id},
+                status=200)
+        if suppression.get("escalated"):
+            logger.info(
+                "[webhook] escalation broke suppression route=%s subject=%s "
+                "escalation=%s window=%ds delivery=%s",
+                route_name, suppression.get("subject"), suppression.get("breakthrough"),
+                suppression.get("window"), delivery_id)
         if route_config.get("deliver_only"):
             return await self._handle_deliver_only(prompt, payload, route_config, route_name, event_type, delivery_id,
-                                                   profile)
+                                                   profile, suppression.get("pending"))
         return self._dispatch_agent_run(request, route_config, route_name, profile, payload, prompt, event_type,
-                                        delivery_id, now)
+                                        delivery_id, now, suppression.get("pending"))
 
     def _dispatch_agent_run(self, request, route_config: dict, route_name: str, profile, payload: Any, prompt: str,
-                            event_type: str, delivery_id: str, now: float) -> "web.Response":
+                            event_type: str, delivery_id: str, now: float,
+                            suppression_pending: Optional[dict] = None) -> "web.Response":
         """Record delivery info, spawn the agent run, and return 202 immediately."""
         # delivery_id in the session key → concurrent webhooks on one route get independent runs.
         session_chat_id = f"webhook:{route_name}:{delivery_id}"
@@ -625,7 +1085,9 @@ class WebhookAdapter(BasePlatformAdapter):
         self._delivery_info[session_chat_id] = {
             "deliver": route_config.get("deliver", "log"), "profile": profile,
             "deliver_extra": self._render_delivery_extra(route_config.get("deliver_extra", {}), payload),
-            "card": route_config.get("card"), "payload": payload}
+            "card": route_config.get("card"), "payload": payload,
+            # Consumed by the first send() that actually reaches the target.
+            "suppression": suppression_pending}
         self._delivery_info_created[session_chat_id] = now
         self._delivery_info_order.append((now, session_chat_id))
         self._prune_delivery_info(now)
@@ -648,7 +1110,16 @@ class WebhookAdapter(BasePlatformAdapter):
     async def on_processing_complete(self, event: "MessageEvent", outcome: Any) -> None:
         """Close the one-shot per-delivery session: ``prune_sessions`` only reaps rows with ``ended_at`` set, so
         unclosed webhook sessions leak unbounded. Fires at the true end of the run; ``end_session()`` is
-        first-reason-wins."""
+        first-reason-wins.
+
+        Also the release point for the subject's in-flight reservation:
+        ``_commit_subject_delivery`` pops the pending entry the moment a
+        message lands, so anything still sitting here when the run ends means
+        the turn said nothing (or the target rejected it) — and the subject
+        gets its voice back immediately rather than waiting out the hold.
+        Success, failure and cancellation all reach here, so no path leaks a
+        reservation for longer than the run itself."""
+        self._release_subject_reservation(self._delivery_info.get(event.source.chat_id))
         await self._end_webhook_session(event, event.source.chat_id)
 
     async def _end_webhook_session(self, event: "MessageEvent", session_chat_id: str) -> None:
@@ -850,8 +1321,18 @@ class WebhookAdapter(BasePlatformAdapter):
                 if not home:
                     return SendResult(success=False, error=f"No chat_id or home channel for {platform_name}")
                 chat_id = home.chat_id
+            # Every webhook delivery is an unsolicited push: an HTTP POST from an
+            # external service, acknowledged with 202 before the run even starts,
+            # landing in a chat where nobody asked a question and nobody is
+            # waiting on an answer.  Marking it lets the Teams adapter apply
+            # the cap it already applies to cron output — without it, a
+            # 6000-char ConnectWise summary still arrives as two or three
+            # posts.  Adapters that do not read the key are unaffected.
+            metadata: Dict[str, Any] = {AUTONOMOUS_DELIVERY_METADATA_KEY: True}
             thread_id = extra.get("message_thread_id") or extra.get("thread_id")  # Telegram forum topics
-            return await adapter.send(chat_id, content, metadata={"thread_id": thread_id} if thread_id else None)
+            if thread_id:
+                metadata["thread_id"] = thread_id
+            return await adapter.send(chat_id, content, metadata=metadata)
 
     def _delivery_config(self, profile: Optional[str]):
         """Gateway config of the profile a delivery is bound to (call inside ``_profile_scope``)."""

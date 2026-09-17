@@ -22,7 +22,7 @@ from gateway.config import (
     Platform,
     PlatformConfig,
 )
-from gateway.platforms.base import SendResult
+from gateway.platforms.base import AUTONOMOUS_DELIVERY_METADATA_KEY, SendResult
 from gateway.platforms.event import MessageEvent
 from gateway.platforms.webhook import WebhookAdapter, _INSECURE_NO_AUTH
 
@@ -258,7 +258,8 @@ class TestCrossPlatformDelivery:
 
         assert result.success is True
         mock_tg_adapter.send.assert_awaited_once_with(
-            "12345", "I've acknowledged the alert.", metadata=None
+            "12345", "I've acknowledged the alert.",
+            metadata={"autonomous_delivery": True},
         )
         # Delivery info is retained after send() so interim status messages
         # don't strand the final response (TTL-based cleanup happens on POST).

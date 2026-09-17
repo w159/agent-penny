@@ -23,6 +23,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import Platform, PlatformConfig
+from gateway.authz_mixin import GatewayAuthorizationMixin
 from gateway.platforms.base import SendResult
 from gateway.platforms.webhook import (
     WebhookAdapter,
@@ -62,7 +63,7 @@ class _FakeChannel:
         return SendResult(success=True)
 
 
-class _FakeRunner:
+class _FakeRunner(GatewayAuthorizationMixin):
     def __init__(self, channel):
         self.adapters = {Platform("slack"): channel}
         self._profile_adapters = {}

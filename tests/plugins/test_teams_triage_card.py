@@ -134,6 +134,48 @@ def test_unrecognized_output_never_raises_and_yields_no_verdict(content):
     assert isinstance(prose, str)
 
 
+# ── the reply the webhook lane actually delivers ─────────────────────────
+
+def _prose_hidden(message):
+    """The model's prose must never reach the channel; only the card goes."""
+    return "nobody owns it" not in message
+
+
+def test_routine_reply_posts_with_verdict_stripped_and_plain_heading():
+    message = render_triage_message(
+        "ROUTINE\nKara is locked out of SharePoint and nobody owns it.", TICKET
+    )
+    card = _card_from(message)
+    assert _prose_hidden(message)
+    assert not _title(card).startswith("BLOCKED")
+
+
+def test_blocked_reply_posts_with_verdict_stripped_and_attention_heading():
+    message = render_triage_message(
+        "BLOCKED\nKara is locked out of SharePoint and nobody owns it.", TICKET
+    )
+    card = _card_from(message)
+    assert _prose_hidden(message)
+    assert _title(card).startswith("BLOCKED - ")
+
+
+def test_missing_verdict_line_is_read_as_routine():
+    message = render_triage_message(
+        "Kara is locked out of SharePoint and nobody owns it.", TICKET
+    )
+    card = _card_from(message)
+    assert not _title(card).startswith("BLOCKED")
+
+
+def test_ordinary_first_line_is_never_truncated():
+    """parse_verdict strips only an EXACT verdict token; an ordinary opening
+    sentence that merely contains the word passes through whole."""
+    content = "The ticket is BLOCKED, apparently.\nKara still cannot work."
+    verdict, prose = parse_verdict(content)
+    assert verdict is None
+    assert prose == content
+
+
 # ── card construction ────────────────────────────────────────────────────
 
 def test_blocked_verdict_marks_the_title():

@@ -31,6 +31,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import Platform, PlatformConfig
+from gateway.authz_mixin import GatewayAuthorizationMixin
 from gateway.platforms.base import (
     AUTONOMOUS_DELIVERY_METADATA_KEY,
     BasePlatformAdapter,
@@ -76,7 +77,7 @@ class _RecordingChannel:
         return SendResult(success=True)
 
 
-class _FakeRunner:
+class _FakeRunner(GatewayAuthorizationMixin):
     def __init__(self, adapters):
         self.adapters = adapters
         self._profile_adapters = {}
