@@ -104,7 +104,9 @@ class TestGetUserCalendarStatus:
         assert result["in_meeting"] is True
         assert result["subject"] == "1:1 with manager"
         assert result["meeting_ends_at"] is not None
+        assert result["meeting_ends_at_eastern"] == tool._eastern(NOW + timedelta(minutes=20))
         assert result["next_meeting_starts_at"] is None
+        assert result["next_meeting_starts_at_eastern"] is None
 
     async def test_in_meeting_hides_private_subject(self):
         client = _FakeClient({
@@ -127,6 +129,7 @@ class TestGetUserCalendarStatus:
         assert result["subject"] is None
         expected_next = (NOW + timedelta(minutes=30)).isoformat()
         assert result["next_meeting_starts_at"] == expected_next
+        assert result["next_meeting_starts_at_eastern"] == tool._eastern(NOW + timedelta(minutes=30))
 
     async def test_free_with_no_upcoming_meetings(self):
         client = _FakeClient({
@@ -167,7 +170,9 @@ class TestGetUserOutOfOffice:
         assert result["success"] is True
         assert result["status"] == "scheduled"
         assert result["scheduled_start_at"] == "2026-09-19T00:00:00.0000000"
+        assert result["scheduled_start_at_eastern"] == "09/18/2026 20:00 EDT"
         assert result["scheduled_end_at"] == "2026-09-22T00:00:00.0000000"
+        assert result["scheduled_end_at_eastern"] == "09/21/2026 20:00 EDT"
         assert "Out until Monday" in result["internal_message"]
 
     async def test_truncates_long_internal_message(self):

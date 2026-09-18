@@ -217,6 +217,27 @@ def _iso(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+# Mirrors plugins/platforms/teams/ticket_card.py's _ET_ZONE/_eastern_timestamp
+# convention (same zone id, same format) rather than inventing a second one.
+# Henssler staff are Eastern-time; a bare UTC timestamp read out loud in a
+# Teams chat is the wrong answer even when it's technically correct.
+_ET_ZONE = "America/New_York"
+
+
+def _eastern(dt: Optional[datetime]) -> Optional[str]:
+    """*dt* (any tzinfo, naive treated as UTC) as Eastern MM/DD/YYYY HH:MM, or
+    None when *dt* is None -- callers pair this with the UTC ISO field, never
+    replace it, so a downstream consumer needing the exact instant still has
+    it."""
+    if dt is None:
+        return None
+    from zoneinfo import ZoneInfo
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(ZoneInfo(_ET_ZONE)).strftime("%m/%d/%Y %H:%M %Z")
+
+
 def _parse_graph_datetime(value: str) -> Optional[datetime]:
     """Parse a Graph ``dateTime`` string (up to 7 fractional-second digits, no
     zone suffix when no ``Prefer: outlook.timezone`` header was sent -- ours
@@ -319,23 +340,29 @@ async def get_user_calendar_status(
 
     current = next((e for e in events if _event_start(e) <= now and (_event_end(e) or now) > now), None)
     if current is not None:
+        ends_at = _event_end(current)
         return {
             "success": True,
             "person": _person_summary(user),
             "in_meeting": True,
             "subject": None if _is_private(current) else current.get("subject"),
-            "meeting_ends_at": _event_end(current).isoformat() if _event_end(current) else None,
+            "meeting_ends_at": ends_at.isoformat() if ends_at else None,
+            "meeting_ends_at_eastern": _eastern(ends_at),
             "next_meeting_starts_at": None,
+            "next_meeting_starts_at_eastern": None,
         }
 
     upcoming = next((e for e in events if _event_start(e) > now), None)
+    starts_at = _event_start(upcoming) if upcoming else None
     return {
         "success": True,
         "person": _person_summary(user),
         "in_meeting": False,
         "subject": None,
         "meeting_ends_at": None,
-        "next_meeting_starts_at": _event_start(upcoming).isoformat() if upcoming else None,
+        "meeting_ends_at_eastern": None,
+        "next_meeting_starts_at": starts_at.isoformat() if starts_at else None,
+        "next_meeting_starts_at_eastern": _eastern(starts_at),
     }
 
 
@@ -367,12 +394,19 @@ async def get_user_out_of_office(
     if len(internal_message) > _MAX_OOO_MESSAGE_CHARS:
         internal_message = internal_message[:_MAX_OOO_MESSAGE_CHARS] + "... [truncated]"
 
+    # scheduledStartDateTime/EndDateTime.timeZone is "UTC" for every mailbox
+    # checked against the real tenant (2026-09-18) -- _parse_graph_datetime's
+    # naive-string-is-UTC assumption holds for this deployment.
+    scheduled_start_raw = ((auto_replies.get("scheduledStartDateTime") or {}).get("dateTime")) or None
+    scheduled_end_raw = ((auto_replies.get("scheduledEndDateTime") or {}).get("dateTime")) or None
     return {
         "success": True,
         "person": _person_summary(user),
         "status": auto_replies.get("status"),
-        "scheduled_start_at": ((auto_replies.get("scheduledStartDateTime") or {}).get("dateTime")) or None,
-        "scheduled_end_at": ((auto_replies.get("scheduledEndDateTime") or {}).get("dateTime")) or None,
+        "scheduled_start_at": scheduled_start_raw,
+        "scheduled_start_at_eastern": _eastern(_parse_graph_datetime(scheduled_start_raw or "")),
+        "scheduled_end_at": scheduled_end_raw,
+        "scheduled_end_at_eastern": _eastern(_parse_graph_datetime(scheduled_end_raw or "")),
         "internal_message": internal_message,
     }
 
@@ -445,7 +479,9 @@ GET_USER_CALENDAR_STATUS_SCHEMA = {
     "description": (
         "Check whether a Henssler staff member is in a meeting right now. Reports "
         "the meeting subject when it isn't marked private, or their next meeting "
-        "start time when they're currently free."
+        "start time when they're currently free. Henssler staff are Eastern time: "
+        "when telling a person a time, use meeting_ends_at_eastern / "
+        "next_meeting_starts_at_eastern, not the raw UTC fields."
     ),
     "parameters": {
         "type": "object",
@@ -459,7 +495,9 @@ GET_USER_OUT_OF_OFFICE_SCHEMA = {
     "description": (
         "Check a Henssler staff member's automatic-replies (out-of-office) setting: "
         "whether it's on, its scheduled start/end, and a truncated preview of the "
-        "internal reply message."
+        "internal reply message. Henssler staff are Eastern time: when telling a "
+        "person a time, use scheduled_start_at_eastern / scheduled_end_at_eastern, "
+        "not the raw UTC fields."
     ),
     "parameters": {
         "type": "object",
