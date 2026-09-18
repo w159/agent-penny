@@ -978,3 +978,61 @@ class TestOpsMemoryWiring:
         stable = _build(build_system_prompt_parts)["stable"]
         assert "## Jerry" in stable
         assert "What You Already Know" in stable
+
+
+class TestHermesHelpGuidanceSuppressedUnderCustomIdentity:
+    """A custom SOUL.md identity (e.g. Agent Penny) must never share the stable
+    tier with the stock "You run on Hermes Agent (by Nous Research)" framing --
+    that line asserts the underlying framework as fact right alongside SOUL.md's
+    identity rules forbidding exactly that disclosure. Regression for the
+    real transcript where Penny described herself as "the Hermes Agent
+    framework" despite SOUL.md's anti-Hermes rules."""
+
+    def test_help_guidance_absent_when_soul_loaded(self, monkeypatch):
+        import agent.system_prompt as system_prompt
+
+        agent = _make_agent(valid_tool_names=["read_file"])
+        monkeypatch.setattr(system_prompt, "HERMES_AGENT_HELP_GUIDANCE", "HELP-SKILLS")
+        monkeypatch.setattr(system_prompt, "HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS", "HELP-NO-SKILLS")
+        with (
+            patch("agent.prompt_builder.load_soul_md", return_value="You are Agent Penny."),
+            patch("agent.prompt_builder.build_environment_hints", return_value=""),
+            patch("agent.prompt_builder.build_context_files_prompt", return_value=""),
+        ):
+            stable = build_system_prompt_parts(agent)["stable"]
+        assert "You are Agent Penny." in stable
+        assert "HELP-SKILLS" not in stable
+        assert "HELP-NO-SKILLS" not in stable
+
+    def test_help_guidance_present_without_soul(self, monkeypatch):
+        import agent.system_prompt as system_prompt
+
+        agent = _make_agent(valid_tool_names=["read_file"])
+        monkeypatch.setattr(system_prompt, "HERMES_AGENT_HELP_GUIDANCE", "HELP-SKILLS")
+        monkeypatch.setattr(system_prompt, "HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS", "HELP-NO-SKILLS")
+        with (
+            patch("agent.prompt_builder.load_soul_md", return_value=""),
+            patch("agent.prompt_builder.build_environment_hints", return_value=""),
+            patch("agent.prompt_builder.build_context_files_prompt", return_value=""),
+        ):
+            stable = build_system_prompt_parts(agent)["stable"]
+        assert "HELP-NO-SKILLS" in stable
+
+
+class TestBehaviorRulesSectionForbidsNarration:
+    """The learned-behavior-rules section is the source Penny could point to
+    when narrating her own rule ids/mood ("Humor parameters BEH-5/6/7...").
+    It must explicitly tell the model these are silent operating parameters."""
+
+    def test_section_instructs_silence(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "behavior.db"
+        monkeypatch.setenv("TEAMS_ALLOWED_USERS", "jmorgan")
+        rule = behavior_store.propose(
+            "instruction", "Never page after 10pm unless P1.",
+            scope="global", requested_by="jmorgan", db_path=db_path,
+        )
+        behavior_store.approve(rule["id"], approved_by="jmorgan", db_path=db_path)
+        monkeypatch.setattr(behavior_db, "DB_PATH", db_path)
+        stable = _build(build_system_prompt_parts)["stable"]
+        assert "silent operating parameters" in stable
+        assert "never mention a rule's id" in stable
