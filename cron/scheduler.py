@@ -3909,6 +3909,78 @@ def maybe_run_trend_pass(adapters=None, loop=None, now=None) -> None:
         _TREND_PASS_LOCK.release()
 
 
+# Scheduled ConnectWise contact index refresh (cron/cw_contact_index.py) -
+# not a jobs.json entry, same rationale as maybe_run_trend_pass above: no
+# model narration, no owning origin chat, just a background data refresh
+# tools/cw_contact_tool.py's trend-by-requester query reads. Interval-based
+# (cron.contact_index.interval_hours) rather than trend's weekday/time
+# cadence - this has no "day" concept, just "don't run more often than X".
+_CONTACT_INDEX_LOCK = threading.Lock()
+
+
+def _contact_index_state_path() -> Path:
+    from cron.escalation import OPS_DIR
+    return OPS_DIR / "contact_index_schedule.json"
+
+
+def _contact_index_due(now, cfg=None) -> bool:
+    """Due when more than cron.contact_index.interval_hours (default 6) have
+    passed since the last successful refresh, or no refresh has ever run."""
+    if cfg is None:
+        from hermes_cli.config import load_config_readonly
+        cfg = load_config_readonly()
+    interval_hours = cfg_get(cfg, "cron", "contact_index", "interval_hours", default=6)
+    path = _contact_index_state_path()
+    try:
+        last_run_at = json.loads(path.read_text(encoding="utf-8")).get("last_run_at")
+    except (OSError, json.JSONDecodeError):
+        last_run_at = None
+    if not last_run_at:
+        return True
+    try:
+        last_dt = datetime.fromisoformat(last_run_at)
+    except ValueError:
+        return True
+    return (now - last_dt).total_seconds() >= interval_hours * 3600
+
+
+def _mark_contact_index_ran(now) -> None:
+    path = _contact_index_state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"last_run_at": now.astimezone(timezone.utc).isoformat()}), encoding="utf-8")
+
+
+def maybe_run_contact_index_refresh(now=None) -> None:
+    """Fire cron/cw_contact_index.py's refresh_index at most once per
+    cron.contact_index.interval_hours. cron.contact_index.enabled is checked
+    HERE, before any due-check or lock, matching maybe_run_trend_pass's
+    cost shape when the feature is off. Runs synchronously (no model call,
+    no delivery) - a slow CW pull blocks this tick, not the gateway loop,
+    same tradeoff run_trend_pass's inline blocking pull makes.
+    """
+    from hermes_cli.config import load_config_readonly
+    cfg = load_config_readonly()
+    if not cfg_get(cfg, "cron", "contact_index", "enabled", default=True):
+        return
+    now = now or _hermes_now()
+    if not _contact_index_due(now, cfg=cfg):
+        return
+    if not _CONTACT_INDEX_LOCK.acquire(blocking=False):
+        logger.info("contact_index: previous refresh still in flight - skipping this tick")
+        return
+    try:
+        window_days = cfg_get(cfg, "cron", "contact_index", "window_days", default=90)
+        from cron.cw_contact_index import refresh_index
+
+        try:
+            refresh_index(days=window_days)
+            _mark_contact_index_ran(now)
+        except Exception as e:
+            logger.error("contact_index: scheduled refresh failed (%s) - will retry next tick", e, exc_info=True)
+    finally:
+        _CONTACT_INDEX_LOCK.release()
+
+
 def tick(
     verbose: bool = True, adapters=None, loop=None, sync: bool = True, *, can_dispatch=None):
     """Check and run all due jobs. File-locked so only one tick runs at a time (gateway ticker vs
@@ -3949,6 +4021,10 @@ def tick(
         # daily cadence even on an otherwise-idle tick. No-ops entirely when
         # cron.trend.enabled is false (the shipped default).
         maybe_run_trend_pass(adapters=adapters, loop=loop)
+        # Same independent-of-jobs.json shape as the trend pass above, on
+        # its own interval-based cadence. No-ops entirely when
+        # cron.contact_index.enabled is false.
+        maybe_run_contact_index_refresh()
 
         due_jobs = get_due_jobs()
         _sweep_stale_inflight_for_tick(due_jobs)

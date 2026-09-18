@@ -135,6 +135,12 @@ TOOLSETS = {
         "a meeting, out of office, or free) by email or display name",
         ["get_user_presence", "get_user_calendar_status", "get_user_out_of_office"],
     ),
+    "cw_contact": _ts(
+        "ConnectWise ticket-contact lookups: who's the end-user on a ticket, which "
+        "tickets a given contact has filed, and who's filing the most tickets recently "
+        "(requester trend, from a locally refreshed index)",
+        ["get_ticket_contact", "find_tickets_by_contact", "ticket_trend_by_requester"],
+    ),
     "context_engine": _ts("Runtime tools exposed by the active context engine"),
     "session_search": _ts("Search and recall past conversations with summarization", ["session_search"]),
     "connections": _ts("Remote connector discovery, execution, and account authorization", ["manage_connections"]),
