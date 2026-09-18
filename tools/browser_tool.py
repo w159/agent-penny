@@ -1301,12 +1301,16 @@ def _routed_handler(name: str, fallback):
     return handler
 
 
+from tools.connector_action_gate import require_capability_approval
+
 for _name, _emoji, _check_fn, _defaults, *_extra in _BROWSER_TOOL_TABLE:
     if _check_fn is None:  # also binds the legacy check_browser_<x>_requirements globals (tests + callers)
         _check_fn = globals()[f"check_{_name}_requirements"] = _routed_check_fn(_name)
-    registry.register(name=_name, toolset="browser", schema=_BROWSER_SCHEMA_MAP[_name],
-                      handler=_routed_handler(_name, _fallback_call(_name, _defaults, *_extra)),
-                      check_fn=_check_fn, emoji=_emoji)
+    registry.register(
+        name=_name, toolset="browser", schema=_BROWSER_SCHEMA_MAP[_name],
+        handler=require_capability_approval("browser", _name)(_routed_handler(_name, _fallback_call(_name, _defaults, *_extra))),
+        check_fn=_check_fn, emoji=_emoji,
+    )
 
 
 # ---- BEGIN PLUGIN-COMPAT (revert-scheduled; see COMPAT_MANIFEST.md) ----

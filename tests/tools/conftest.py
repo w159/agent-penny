@@ -56,6 +56,54 @@ def _materialize_mcp_sdk_symbols():
 
 
 @pytest.fixture(autouse=True)
+def _outbound_contact_gate_open_by_default():
+    """Default-allow tools/outbound_contact_gate.py for every test in this
+    directory that does not test it directly.
+
+    The gate (2026-09-18 capability review) blocks any ``send_message``
+    whose resolved target is not already on the established IT roster, and
+    fails closed when there is no live approval session to ask -- exactly
+    what an ordinary unit test looks like from its point of view. Tests
+    written before the gate existed exercise unrelated send mechanics
+    (target parsing, relay egress, plugin dispatch, media handling) and
+    have no roster/approval fixture of their own, so without this they all
+    fail the same way: gate says "error", send never happens.
+
+    Its own coverage (tests/tools/test_outbound_contact_gate.py) patches
+    this back off, or asserts against the real function directly, so it is
+    unaffected.
+    """
+    from unittest.mock import patch
+    with patch(
+        "tools.outbound_contact_gate.check_outbound_contact",
+        return_value=(True, "test_default_allow"),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _capability_action_gate_approved_by_default():
+    """Default-approve tools/connector_action_gate.py's capability-tool
+    extension (browser_click/type/press, mutating computer_use actions) for
+    every test in this directory that does not test the gate directly.
+
+    Same rationale as the outbound-contact fixture above: tests written
+    before the 2026-09-18 capability review exercise browser/computer_use
+    mechanics with no approval session registered, so an ACTION-classified
+    call would otherwise fail closed and never reach the code under test.
+    tests/tools/test_capability_action_gate.py exercises the gate itself
+    and patches this same target per-test, which takes precedence for the
+    duration of its own ``with`` block.
+    """
+    from unittest.mock import patch
+    with patch(
+        "tools.connector_action_gate.request_connector_action_approval",
+        return_value=(True, "test_default_allow"),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def _clear_web_result_cache():
     """Reset the web_search TTL memo between tests.
 

@@ -30,14 +30,17 @@ def prepare_send_message_platforms() -> None:
     discover_plugins()
 
 
-def send_message_tool(args, **kw):
-    """Handle cross-channel send_message tool calls."""
+def send_message_tool(args, *, operator_initiated: bool = False, **kw):
+    """Handle cross-channel send_message tool calls. ``operator_initiated`` MUST
+    only ever be passed by a trusted Python call site (``hermes send``) --
+    NEVER read from ``args``, which an LLM tool call fully controls; that
+    would let a self-crafted argument bypass tools/outbound_contact_gate.py."""
     action = args.get("action", "send")
     if action == "list":
         return _handle_list()
     if action in ("react", "unreact"):
         return _handle_react(args, remove=action == "unreact")
-    return _handle_send(args)
+    return _handle_send(args, operator_initiated=operator_initiated)
 
 
 def _resolve_tool_target(target: str, *, pass_unresolved_references: bool = False):
@@ -199,7 +202,7 @@ def _handle_react(args, remove=False):
     return json.dumps(result if isinstance(result, dict) else {"success": bool(result)})
 
 
-def _handle_send(args):
+def _handle_send(args, *, operator_initiated: bool = False):
     target, message = args.get("target", ""), args.get("message", "")
     if not target or not message:
         return tool_error("Both 'target' and 'message' are required when action='send'")
@@ -251,6 +254,29 @@ def _handle_send(args):
                                             native_token=getattr(pconfig, "token", None))
     if _relay_denial:
         return tool_error(_relay_denial)
+
+    # Outbound-contact gate: Jerry's rule is that Penny never messages anyone
+    # outside the established IT roster / conversation without his explicit
+    # per-instance approval first. `_operator_initiated` is set only by
+    # `hermes send` (Jerry running the CLI himself needs no self-approval) --
+    # every other caller (agent tool call via the opt-in MCP server, cron
+    # autonomous delivery, the kanban notifier) is gated. See
+    # tools/outbound_contact_gate.py.
+    if not operator_initiated and not used_home_channel:
+        from tools.approval import get_current_session_key
+        from tools.outbound_contact_gate import check_outbound_contact
+        session_key = get_current_session_key(default="")
+        approved, outcome = check_outbound_contact(
+            platform_name=platform_name, chat_id=chat_id, thread_id=thread_id,
+            message=cleaned_message, session_key=session_key,
+        )
+        if not approved:
+            return tool_error(
+                f"Message to this target was NOT sent: it is outside the "
+                f"established IT roster / conversation and requires Jerry's "
+                f"express approval first (outcome: {outcome}). Do not retry "
+                f"without a human approving it."
+            )
 
     try:
         from model_tools import _run_async

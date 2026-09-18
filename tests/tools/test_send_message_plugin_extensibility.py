@@ -244,6 +244,7 @@ pconfig = SimpleNamespace(enabled=True, token=None, extra={})
 config = SimpleNamespace(platforms={platform: pconfig}, get_home_channel=lambda p: None)
 with patch("gateway.config.load_gateway_config", return_value=config), \
      patch("tools.interrupt.is_interrupted", return_value=False), \
+     patch("tools.outbound_contact_gate.check_outbound_contact", return_value=(True, "test_bypass")), \
      patch("gateway.mirror.mirror_to_session", return_value=True):
     host_send = json.loads(send_message_tool({"target": "fmsg:@Alice@Example.COM",
                                               "message": "hello", "subject": "hi"}))

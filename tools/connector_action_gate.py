@@ -310,6 +310,61 @@ def classify_connector_tool(name: str) -> Optional[str]:
         return READ
     return ACTION
 
+# ---------------------------------------------------------------------------
+# Capability-tool extension -- same READ/ACTION scheme, applied to the
+# browser, computer_use, vision, and tts toolsets (2026-09-18 capability
+# review). These are native tools, not MCP connector calls, so they are
+# governed by name (and, for ``computer_use``, by its ``action`` argument)
+# rather than by an MCP server prefix. The rule mirrors the connector rule
+# verbatim: anything that only reads/observes (a webpage, a screenshot, an
+# image, speaking text aloud) auto-executes; anything that mutates external
+# state (a browser click/keystroke/form submission, a computer_use click or
+# keystroke that changes something) blocks on the same named-approver flow
+# as a NinjaOne device action. Default-deny applies here too.
+# ---------------------------------------------------------------------------
+
+_CAPABILITY_READ_TOOLS: frozenset[str] = frozenset({
+    # browser -- navigation and observation only; no page mutation.
+    "browser_navigate", "browser_snapshot", "browser_scroll", "browser_back",
+    "browser_get_images", "browser_vision", "browser_console",
+    # vision / tts -- describing an image or speaking text aloud is a read,
+    # never a mutation of anything outside the conversation.
+    "vision_analyze", "video_analyze", "text_to_speech",
+})
+
+_CAPABILITY_ACTION_TOOLS: frozenset[str] = frozenset({
+    # browser -- these are exactly the primitives a form submission,
+    # checkout, or purchase is built from.
+    "browser_click", "browser_type", "browser_press",
+})
+
+# computer_use is one tool multiplexed over an ``action`` argument (cua-driver
+# style). Only the observational actions are READ; every other action (click
+# variants, keyboard input, drag) is ACTION by default-deny.
+_COMPUTER_USE_READ_ACTIONS: frozenset[str] = frozenset({
+    "screenshot", "cursor_position", "wait",
+})
+
+_CAPABILITY_GOVERNED_NAMES: frozenset[str] = _CAPABILITY_READ_TOOLS | _CAPABILITY_ACTION_TOOLS | frozenset({"computer_use"})
+
+
+def classify_capability_tool(name: str, arguments: Optional[dict] = None) -> Optional[str]:
+    """Classify a browser/computer_use/vision/tts tool call as READ or ACTION.
+
+    ``None`` means the tool is outside this extension's scope entirely (the
+    caller must not gate it here). ``computer_use`` classifies by its
+    ``action`` argument since one tool name covers both a screenshot and a
+    mutating click.
+    """
+    bare = _bare_tool_name(name)
+    if bare == "computer_use":
+        action = str((arguments or {}).get("action", "")).strip().lower()
+        return READ if action in _COMPUTER_USE_READ_ACTIONS else ACTION
+    if bare not in _CAPABILITY_GOVERNED_NAMES:
+        return None
+    return READ if bare in _CAPABILITY_READ_TOOLS else ACTION
+
+
 
 # ---------------------------------------------------------------------------
 # Approver allowlist -- person-scoped, AAD object id, config-driven.
@@ -589,3 +644,72 @@ def request_connector_action_approval(
         outcome="approved", approved_by=approved_by,
     )
     return True, "approved"
+
+
+# ---------------------------------------------------------------------------
+# Handler wrapper -- single call site for browser/computer_use registration
+# loops to gate an ACTION-classified capability call the same way
+# ``tools/mcp_tool_handlers.py`` gates an ACTION-classified connector call.
+# Reuses ``request_connector_action_approval`` unmodified (server_name is
+# "browser" / "computer_use" instead of an MSP connector name) -- one
+# approval mechanism, not a second one for native tools.
+# ---------------------------------------------------------------------------
+
+
+def require_capability_approval(server_name: str, tool_name: str):
+    """Decorator factory: wraps a ``(args, **kw) -> result`` handler so an
+    ACTION-classified call blocks on express approval before it runs, and a
+    READ-classified (or ungoverned) call passes straight through. Fails
+    closed on any error in the gate itself, mirroring the MCP wiring.
+    ``tool_name`` is fixed at registration time -- ``computer_use`` still
+    classifies per-call by its ``action`` argument inside
+    ``classify_capability_tool``."""
+
+    def _decorate(handler):
+        def _wrapped(args: dict, **kw):
+            try:
+                verdict = classify_capability_tool(tool_name, args)
+            except Exception as exc:  # pragma: no cover - defensive, mirrors MCP wiring
+                logger.error(
+                    "connector_action_gate: capability classify failed for %s/%s: %s -- failing closed",
+                    server_name, tool_name, exc,
+                )
+                return tool_error_denied(tool_name)
+            if verdict != ACTION:
+                return handler(args, **kw)
+            try:
+                from tools.approval import get_current_session_key
+                session_key = get_current_session_key(default="")
+            except Exception:
+                session_key = ""
+            try:
+                approved, outcome = request_connector_action_approval(
+                    session_key=session_key, server_name=server_name,
+                    tool_name=tool_name, arguments=args or {},
+                )
+            except Exception as exc:
+                logger.error(
+                    "connector_action_gate: capability approval raised for %s/%s: %s -- failing closed",
+                    server_name, tool_name, exc,
+                )
+                return tool_error_denied(tool_name)
+            if not approved:
+                return (
+                    f'{{"error": "Tool \'{tool_name}\' requires express approval from a named '
+                    f'approver before it can run and was not approved (outcome: {outcome}). '
+                    f'Do not retry without a human approving it."}}'
+                )
+            return handler(args, **kw)
+
+        _wrapped.__name__ = getattr(handler, "__name__", "_gated_capability_handler")
+        return _wrapped
+
+    return _decorate
+
+
+def tool_error_denied(tool_name: str) -> str:
+    """Fail-closed JSON error string for a capability gate internal failure."""
+    return (
+        f'{{"error": "Tool \'{tool_name}\' blocked: the capability security gate '
+        f'failed to evaluate this call and fails closed on error."}}'
+    )

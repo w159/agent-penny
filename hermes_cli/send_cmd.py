@@ -223,7 +223,13 @@ def cmd_send(args: argparse.Namespace) -> None:
 
     # Routes to the platform adapter (bot-token path for built-ins, live-adapter path for plugin
     # platforms); takes the standard tool-call dict and returns a JSON string.
-    result = send_message_tool({"action": "send", "target": target, "message": message})
+    # `operator_initiated=True`: Jerry running `hermes send` himself is a
+    # direct human action, not agent-initiated outbound contact -- it must
+    # not be gated by tools/outbound_contact_gate.py (which only blocks
+    # Penny messaging someone on her own initiative). Passed as a real
+    # keyword argument, never through `args`, which an LLM tool call fully
+    # controls.
+    result = send_message_tool({"action": "send", "target": target, "message": message}, operator_initiated=True)
     sys.exit(_emit_result(result, json_mode=getattr(args, "json", False), quiet=getattr(args, "quiet", False)))
 
 

@@ -84,6 +84,12 @@ def _send(target: str, sent):
         "tools.send_message_tool._send_to_platform", side_effect=_record
     ), patch(
         "gateway.mirror.mirror_to_session", return_value=False
+    ), patch(
+        # This suite tests the RELAY egress guard, not the IT-roster
+        # outbound-contact gate (tools/outbound_contact_gate.py) -- bypass
+        # it here so its own dedicated tests own that coverage.
+        "tools.outbound_contact_gate.check_outbound_contact",
+        return_value=(True, "test_bypass"),
     ):
         return json.loads(
             send_message_tool(
@@ -275,6 +281,9 @@ def _send_slack(target: str, sent, *, resolves_to: str | None = SLACK_DM):
         "tools.send_message_tool._resolve_slack_user_target", side_effect=_resolve
     ), patch(
         "gateway.mirror.mirror_to_session", return_value=False
+    ), patch(
+        "tools.outbound_contact_gate.check_outbound_contact",
+        return_value=(True, "test_bypass"),
     ):
         return json.loads(
             send_message_tool({"action": "send", "target": target, "message": "hello"})
