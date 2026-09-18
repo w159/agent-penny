@@ -128,14 +128,37 @@ def _person_summary(user: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _graph_permission_message(action: str, exc: MicrosoftGraphAPIError) -> str:
+def _graph_permission_message(
+    action: str, exc: MicrosoftGraphAPIError, *, needed_permission: str = "Calendars.Read, Presence.Read.All, or MailboxSettings.Read",
+) -> str:
     return (
         f"Cannot {action}: Microsoft Graph denied this request (insufficient privileges). "
         "The Entra app registration has likely not yet been granted -- or admin-consented "
-        "for -- the application permission this needs (Calendars.Read, Presence.Read.All, "
-        f"or MailboxSettings.Read). Ask an admin to finish granting it, then retry. ({exc})"
+        f"for -- the application permission this needs ({needed_permission}). "
+        f"Ask an admin to finish granting it, then retry. ({exc})"
     )
 
+
+async def _resolve_person_or_error(
+    client: MicrosoftGraphClient, person: str, action: str
+) -> tuple[Optional[dict[str, Any]], Optional[dict[str, Any]]]:
+    """``_resolve_person`` wrapped so every failure mode -- bad input, no match,
+    ambiguous match, or a 403 from the lookup itself (needs ``User.Read.All``,
+    distinct from this tool's three named permissions) -- returns an error dict
+    instead of an exception escaping to the caller."""
+    try:
+        return await _resolve_person(client, person), None
+    except ScheduleLookupError as exc:
+        return None, {"success": False, "error": str(exc)}
+    except MicrosoftGraphAPIError as exc:
+        if exc.status_code == 403:
+            return None, {
+                "success": False,
+                "error": _graph_permission_message(action, exc, needed_permission="User.Read.All"),
+            }
+        return None, {"success": False, "error": f"Microsoft Graph error looking up '{person}': {exc}"}
+    except MicrosoftGraphClientError as exc:
+        return None, {"success": False, "error": f"Microsoft Graph request looking up '{person}' failed: {exc}"}
 
 async def _resolve_person(client: MicrosoftGraphClient, person: str) -> dict[str, Any]:
     """Resolve *person* (email/UPN or display name) to a Graph user resource.
@@ -236,10 +259,9 @@ async def get_user_presence(
 ) -> dict[str, Any]:
     """Resolve *person* then GET /users/{id}/presence (availability, activity)."""
     client = client or _build_client()
-    try:
-        user = await _resolve_person(client, person)
-    except ScheduleLookupError as exc:
-        return {"success": False, "error": str(exc)}
+    user, error = await _resolve_person_or_error(client, person, "look up that person")
+    if error is not None:
+        return error
 
     try:
         presence = await client.get_json(f"/users/{user['id']}/presence")
@@ -267,10 +289,9 @@ async def get_user_calendar_status(
 ) -> dict[str, Any]:
     """Resolve *person* then report whether they're in a meeting right now."""
     client = client or _build_client()
-    try:
-        user = await _resolve_person(client, person)
-    except ScheduleLookupError as exc:
-        return {"success": False, "error": str(exc)}
+    user, error = await _resolve_person_or_error(client, person, "look up that person")
+    if error is not None:
+        return error
 
     now = now or datetime.now(timezone.utc)
     window_start, window_end = now - _CALENDAR_LOOKBACK, now + _CALENDAR_LOOKAHEAD
@@ -323,10 +344,9 @@ async def get_user_out_of_office(
 ) -> dict[str, Any]:
     """Resolve *person* then report their automatic-replies (OOO) setting."""
     client = client or _build_client()
-    try:
-        user = await _resolve_person(client, person)
-    except ScheduleLookupError as exc:
-        return {"success": False, "error": str(exc)}
+    user, error = await _resolve_person_or_error(client, person, "look up that person")
+    if error is not None:
+        return error
 
     try:
         settings = await client.get_json(

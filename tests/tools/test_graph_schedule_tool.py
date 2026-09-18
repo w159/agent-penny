@@ -221,6 +221,20 @@ class TestPersonResolution:
         assert result["success"] is False
         assert "person is required" in result["error"]
 
+    async def test_permission_missing_on_resolution_itself_returns_clear_message(self):
+        """The /users/{upn} or /users lookup can itself 403 (needs User.Read.All,
+        distinct from the three named permissions) before any presence/calendar/
+        mailbox call ever runs -- this must never escape as a raw exception."""
+        client = _FakeClient({
+            "/users/jane.doe@henssler.com": MicrosoftGraphAPIError(
+                status_code=403, method="GET", url="/users/jane.doe@henssler.com",
+                message="Authorization_RequestDenied",
+            ),
+        })
+        result = await tool.get_user_presence("jane.doe@henssler.com", client=client)
+        assert result["success"] is False
+        assert "User.Read.All" in result["error"]
+
 
 @pytest.mark.anyio
 class TestRegistryDispatch:
