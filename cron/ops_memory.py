@@ -30,6 +30,7 @@ OUTAGES_FILE = OPS_DIR / "active_outages.md"
 SECURITY_FILE = OPS_DIR / "security_watch.md"
 ROLE_FILE = OPS_DIR / "ROLE.md"
 PATTERNS_FILE = OPS_DIR / "patterns.md"
+DREAMS_FILE = OPS_DIR / "DREAMS.md"
 LOCK_FILE = OPS_DIR / ".ops.lock"
 _LOCK_TIMEOUT_SECONDS = 10
 
@@ -383,6 +384,23 @@ def extract_operational_memory(job_id: str, agent_output: str, job_name: str) ->
             except Exception as e:
                 print(f"[ops_memory] trend detection error: {e}", file=sys.stderr)
 
+            # Nightly self-reflection: pulls the day's real Teams + ConnectWise +
+            # behavior-correction activity and writes DREAMS.md deterministically,
+            # rather than trusting the job's own agent turn to gather and format it
+            # correctly by free-hand file-tool use (see cron/day_review.py's module
+            # docstring). Gated to the one job that owns end-of-day reflection so the
+            # other operational_memory jobs (which fire every 15-30 minutes) don't
+            # re-run a full day's analysis on every tick.
+            gap_count = 0
+            if job_name == "penny-memory-maintenance":
+                try:
+                    from cron.day_review import run_nightly_review
+
+                    review = run_nightly_review()
+                    gap_count = len(review.get("gaps", []))
+                except Exception as e:
+                    print(f"[ops_memory] nightly review error: {e}", file=sys.stderr)
+
             # Rotate archives if files exceed size cap
             _rotate_archives()
 
@@ -391,7 +409,8 @@ def extract_operational_memory(job_id: str, agent_output: str, job_name: str) ->
             print(
                 f"[ops_memory] captured {len(mentions)} ticket mention(s), "
                 f"{event_count} event update(s), {stall_count} stall flag(s), "
-                f"0 roster update(s) for job={job_name!r} ({job_id})",
+                f"{gap_count} nightly-review gap(s), 0 roster update(s) for "
+                f"job={job_name!r} ({job_id})",
                 file=sys.stderr,
             )
 
@@ -607,6 +626,28 @@ def record_behavior_pattern(action_type: str, observed: str, assumed: str, why: 
         else:
             content = entry
         _write_with_cap(PATTERNS_FILE, content)
+
+
+def append_dreams_entry(entry: str) -> None:
+    """Prepend a dated nightly-review entry to DREAMS.md (newest first, same convention
+    as events.md). Replaces the old convention of the nightly job's own agent turn using
+    the raw file tool to write this file free-hand: a deterministic, locked, size-capped
+    writer means the entry always lands (no reliance on the model remembering the exact
+    file path/format) and DREAMS.md can never blow past MAX_FILE_SIZE the way an
+    unbounded model-authored append could.
+
+    ``entry`` is expected to already be a complete ``## <date> — ...`` section (see
+    cron/day_review.py's build_dreams_narrative); this function only handles placement,
+    locking, and the size cap, mirroring _apply_event_update's prepend behavior.
+    """
+    entry = entry.strip()
+    if not entry:
+        return
+    with _ops_lock():
+        content = DREAMS_FILE.read_text(encoding="utf-8") if DREAMS_FILE.exists() else ""
+        if content:
+            entry = entry + "\n\n" + content
+        _write_with_cap(DREAMS_FILE, entry)
 
 
 @contextlib.contextmanager

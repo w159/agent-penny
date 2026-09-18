@@ -31,6 +31,7 @@ def _isolated_ops_files(tmp_path, monkeypatch):
     monkeypatch.setattr(ops_memory, "SECURITY_FILE", tmp_path / "security_watch.md")
     monkeypatch.setattr(ops_memory, "ROLE_FILE", tmp_path / "ROLE.md")
     monkeypatch.setattr(ops_memory, "PATTERNS_FILE", tmp_path / "patterns.md")
+    monkeypatch.setattr(ops_memory, "DREAMS_FILE", tmp_path / "DREAMS.md")
     monkeypatch.setattr(ops_memory, "LOCK_FILE", tmp_path / ".ops.lock")
     monkeypatch.setattr(ops_memory, "ARCHIVE_DIR", archive_dir)
     # Trend detection hits a real log file / real tickets — neutralize it so
