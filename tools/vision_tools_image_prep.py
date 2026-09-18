@@ -31,6 +31,18 @@ _EXTENSION_MIME_TYPES = {
 # inline. SVG/BMP/TIFF are rejected with a non-retryable 400.
 _ANTHROPIC_SUPPORTED_MEDIA_TYPES = frozenset({"image/jpeg", "image/png", "image/gif", "image/webp"})
 
+# Media types the AUXILIARY vision backend (auxiliary.vision in config.yaml — a separate,
+# independently-configured model/endpoint from the main chat model, e.g. Ollama's
+# OpenAI-compatible /v1/chat/completions) can reliably decode. Unlike Anthropic's Messages API,
+# which explicitly decodes only the first frame of an animated GIF, general OpenAI-compatible
+# vision backends (Ollama included) have been observed to 400 with "invalid image input" on a
+# real (non-trivial) GIF — animated or not — even when the model otherwise supports vision
+# (verified against gemma4:31b-cloud: a real JPEG succeeds, the same GIF 400s, the GIF's first
+# frame re-encoded as PNG succeeds). GIF is therefore excluded here and always normalized to a
+# static PNG (first frame) before reaching the aux backend, regardless of what the main model
+# would have accepted natively.
+_AUX_BACKEND_SUPPORTED_MEDIA_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+
 
 _MAGIC_MIME_TYPES = (
     (b"\xff\xd8\xff", "image/jpeg"), ((b"GIF87a", b"GIF89a"), "image/gif"), (b"BM", "image/bmp"),
@@ -67,10 +79,14 @@ def _detect_image_mime_type_from_bytes(data: bytes) -> Optional[str]:
     return None
 
 
-def _supported_media_types() -> frozenset:
-    """Formats the ACTIVE main model's server can decode. The managed llama-server decodes with
+def _supported_media_types(*, aux_backend: bool = False) -> frozenset:
+    """Formats the target server can decode. ``aux_backend=True`` selects the conservative
+    auxiliary-vision-model set (see ``_AUX_BACKEND_SUPPORTED_MEDIA_TYPES``); otherwise this
+    narrows to the ACTIVE main model's server. The managed llama-server decodes with
     stb_image — no WebP — and an undecodable image part fails SILENTLY (the model confabulates),
     so the set is narrowed there and normalization converts those formats to PNG."""
+    if aux_backend:
+        return _AUX_BACKEND_SUPPORTED_MEDIA_TYPES
     try:
         from agent.auxiliary_client import _runtime_main_value as _v
         from hermes_cli.local_runtime.capabilities import ACCEPTED_IMAGE_MIMES, is_managed_provider
@@ -118,12 +134,15 @@ def _rasterize_svg_to_png(svg_path: Path, out_path: Path) -> bool:
 
 
 def _normalize_to_supported_image(
-    image_path: Path, detected_mime: str) -> tuple[Optional[Path], Optional[str], Optional[str]]:
+    image_path: Path, detected_mime: str, *, aux_backend: bool = False,
+) -> tuple[Optional[Path], Optional[str], Optional[str]]:
     """Ensure an image is in a provider-supported format. Returns ``(path, mime, error)``: the input
     unchanged when supported; ``(new_png_path, "image/png", None)`` after conversion — a temp file
     the CALLER must clean up; ``(None, None, message)`` when impossible. SVG is rasterized; other
-    Pillow-readable rasters (BMP, TIFF) re-encode to PNG."""
-    if detected_mime in _supported_media_types():
+    Pillow-readable rasters (BMP, TIFF) re-encode to PNG. ``aux_backend=True`` uses the
+    conservative auxiliary-vision-model format set (excludes GIF; see
+    ``_AUX_BACKEND_SUPPORTED_MEDIA_TYPES``)."""
+    if detected_mime in _supported_media_types(aux_backend=aux_backend):
         return image_path, detected_mime, None
     out_dir = get_hermes_dir("cache/vision", "temp_vision_images")
     out_dir.mkdir(parents=True, exist_ok=True)

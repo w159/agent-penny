@@ -1126,3 +1126,48 @@ class TestVisionCpuBurstCap:
             f"analyses were serialized to the cap (peak={calls_peak}); only the "
             "encode burst should be bounded, not the whole call"
         )
+
+
+# ---------------------------------------------------------------------------
+# Aux backend GIF normalization — real image bytes through the real prep pipeline
+# ---------------------------------------------------------------------------
+
+
+class TestAuxBackendGifNormalization:
+    """A real GIF sent to the ``auxiliary.vision`` LLM (a separate, independently configured
+    backend from the main model — e.g. Ollama's OpenAI-compatible endpoint) must arrive as a
+    static PNG, not the raw GIF container. Production (gemma4:31b-cloud via Ollama) 400s with
+    "invalid image input" on a real GIF even though the same model accepts a real JPEG — a prior
+    fix that only round-tripped a synthetic 1x1 pixel over raw HTTP never exercised the real
+    ``_prepare_image``/``_normalize_to_supported_image`` pipeline, so it could not have caught
+    this. This test uses real, multi-frame GIF bytes built with Pillow and drives the actual
+    ``vision_analyze_tool`` call path — only the network LLM call is mocked (to assert on the
+    exact payload it was about to send), never the image encoding — so a future regression to
+    "just pass the GIF through" fails here instead of in production."""
+
+    @pytest.mark.asyncio
+    async def test_real_gif_normalized_to_png_before_aux_llm_call(self, tmp_path):
+        pil_image = pytest.importorskip("PIL.Image")
+        gif_path = tmp_path / "real.gif"
+        frames = [pil_image.new("RGB", (32, 32), (i * 40, 10, 200)) for i in range(3)]
+        frames[0].save(gif_path, save_all=True, append_images=frames[1:], duration=100, loop=0)
+
+        mock_response = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.message.content = "A blue square"
+        mock_response.choices = [mock_choice]
+
+        with patch(
+            "tools.vision_tools.async_call_llm", new_callable=AsyncMock, return_value=mock_response,
+        ) as mock_llm:
+            data = json.loads(await vision_analyze_tool(str(gif_path), "describe this", "test/model"))
+
+        assert data["success"] is True, data
+        sent_kwargs = mock_llm.call_args.kwargs
+        image_part = sent_kwargs["messages"][0]["content"][1]
+        sent_data_url = image_part["image_url"]["url"]
+        # The wire payload must be a static PNG — an unconverted GIF data URL here means the
+        # aux-backend normalization was bypassed and the real backend would 400.
+        assert sent_data_url.startswith("data:image/png;base64,"), (
+            f"GIF reached the aux LLM call unconverted: {sent_data_url[:40]}"
+        )

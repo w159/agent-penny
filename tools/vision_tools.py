@@ -522,11 +522,15 @@ class _PreparedImage(NamedTuple):
 
 async def _prepare_image(
     image_url: str, task_id: Optional[str], region: Optional[list], *, validate_decode: bool,
+    aux_backend: bool = False,
 ) -> _PreparedImage:
     """Resolve → materialize → normalize → (validate) → (crop). Raises ``_ImagePrepError``.
     Unsupported formats (SVG, BMP) become PNG BEFORE encoding — an unsupported media_type baked
     into immutable history would 400 on every resume. The crop runs BEFORE any downscale so the
-    region keeps the full resolution budget. On error no temp file is left."""
+    region keeps the full resolution budget. ``aux_backend=True`` (the ``auxiliary.vision``
+    LLM path, a separate backend from the main model) also normalizes GIF to a static PNG first
+    frame — general OpenAI-compatible vision backends have been observed to reject real GIF
+    content that Anthropic's native path accepts. On error no temp file is left."""
     from tools.image_source import ImageResolutionError, ResolveContext, resolve_image_source
     try:
         resolved = await resolve_image_source(image_url, ResolveContext(task_id=task_id))
@@ -538,7 +542,8 @@ async def _prepare_image(
     await asyncio.to_thread(path.write_bytes, resolved.data)
     mime, size_bytes, crop_offset = resolved.mime, len(resolved.data), {}
     try:
-        normalized_path, mime, norm_err = await asyncio.to_thread(_normalize_to_supported_image, path, mime)
+        normalized_path, mime, norm_err = await asyncio.to_thread(
+            _normalize_to_supported_image, path, mime, aux_backend=aux_backend)
         if norm_err or normalized_path is None:
             raise _ImagePrepError(norm_err or "Image normalization failed.")
         if normalized_path != path:
@@ -762,7 +767,7 @@ async def vision_analyze_tool(
     """Describe an image (URL, local path, data: URL) with the auxiliary vision LLM. ``user_prompt``
     is pre-formatted by the caller. Temp images live under $HERMES_HOME/cache/vision/."""
     async def stage(prompt: str, debug_call_data: dict, temp_paths: list) -> tuple:
-        prepared = await _prepare_image(image_url, task_id, region, validate_decode=False)
+        prepared = await _prepare_image(image_url, task_id, region, validate_decode=False, aux_backend=True)
         temp_paths.append(prepared.path)
         logger.info("Image ready (%.1f KB)", prepared.size_bytes / 1024)
         # Send at full resolution first; on a size rejection, downscale and retry.
