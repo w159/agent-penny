@@ -1,0 +1,6 @@
+name: cw_contact_context
+version: "1.0.0"
+description: "Structural pre-fetch for end-user/ticket-contact context. When a ConnectWise ticket number appears in an incoming Teams/webhook message, looks up that ticket's contact and their recent ticket history via tools/cw_contact_tool.py and injects it into the turn so replies carry real context instead of a generic answer, without depending on the model choosing to call the lookup tools itself."
+author: "NousResearch (Hermes core)"
+hooks:
+  - pre_llm_call
