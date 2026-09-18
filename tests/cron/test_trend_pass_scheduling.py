@@ -49,6 +49,29 @@ class TestDisabledNeverFires:
         assert not _isolated_trend_pass_state.exists()
 
 
+class TestHomeTargetHelpersAreImported:
+    """Regression test for a 2026-09-18 incident: cron/scheduler.py's own
+    _resolve_trend_pass_target() calls _iter_home_target_platforms() and
+    _get_home_target_chat_id() as bare module names, but a refactor moved
+    both functions into cron/scheduler_delivery.py and only re-imported
+    some of that module's names (see the `from cron.scheduler_delivery
+    import (...)` block near the bottom of scheduler.py). The two home-
+    target helpers were left off that list, so every real (unmocked) call
+    raised `NameError: name '_iter_home_target_platforms' is not defined`
+    and the scheduled pass silently failed every Mon/Wed/Fri. Deliberately
+    does NOT monkeypatch either helper, so it exercises the real import
+    wiring rather than a mocked stand-in that would mask the missing
+    import."""
+
+    def test_resolve_trend_pass_target_does_not_raise_nameerror(self):
+        from cron.scheduler import _resolve_trend_pass_target
+
+        platform_name, chat_id = _resolve_trend_pass_target()
+
+        assert isinstance(platform_name, str)
+        assert isinstance(chat_id, str)
+
+
 class TestEnabledDailyInvocation:
     def _enable(self, monkeypatch):
         monkeypatch.setattr(
