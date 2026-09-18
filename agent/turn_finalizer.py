@@ -452,6 +452,83 @@ def _append_file_mutation_footer(agent, final_response, logger):
     return final_response
 
 
+# Prompt wording ("never mention a rule's id ... not even as a closing aside" in
+# _render_behavior_rules_section, "Relevance rule (hard rule)" in SOUL.md) was proven
+# insufficient in production (Teams message ending "(Humor parameters BEH-5/6/7 are
+# still active-so while I'm blind, my snark remains 20/20.)" after the instruction was
+# already live). A model can ignore its own system prompt; this is a structural,
+# code-level backstop that runs on the actual draft text the same way the file-mutation
+# footer does, so the rule holds even when the model forgets it.
+_SELF_REFERENCE_ASIDE_RE = re.compile(
+    r"\b(BEH-\d+|humor parameters?|operating parameters?|snark (?:level|remains|is)\b|"
+    r"mood (?:report|remains|is)\b|behavior rules? (?:are|is) (?:still )?active)\b",
+    re.IGNORECASE,
+)
+
+# A user who directly asks about rule/humor/mood state is owed a real answer; only an
+# UNPROMPTED closing aside tacked onto an otherwise-unrelated reply gets stripped.
+_RULE_STATE_QUESTION_RE = re.compile(
+    r"\b(BEH-\d+|humor parameters?|snark|mood|behavior rules?)\b",
+    re.IGNORECASE,
+)
+
+
+def _find_trailing_parenthetical(text: str) -> Optional[Tuple[int, int]]:
+    """Span ``(start, end)`` of a parenthetical that runs to the very end of *text*,
+    balancing nested parens from the close backward. ``None`` if *text* doesn't end
+    with ``)`` or the parens never balance (malformed/embedded, not a trailing unit)."""
+    if not text.endswith(")"):
+        return None
+    depth = 0
+    for i in range(len(text) - 1, -1, -1):
+        char = text[i]
+        if char == ")":
+            depth += 1
+        elif char == "(":
+            depth -= 1
+            if depth == 0:
+                return i, len(text)
+    return None
+
+
+def _strip_behavior_state_aside(agent, final_response, user_message, logger):
+    """Structural backstop for the "never mention rule ids/humor state" instruction:
+    strip a trailing self-referential parenthetical or sentence rather than trust the
+    model to have honored the prompt wording, which production showed is not reliable
+    on its own (see _render_behavior_rules_section / SOUL.md's Relevance rule).
+
+    Only acts on a genuine closing ASIDE — the matched unit sits at the very end of the
+    reply with real content still ahead of it. A user who directly asked about rule/
+    humor/mood state (``_RULE_STATE_QUESTION_RE`` against this turn's own message) is
+    owed a real answer, so that whole turn is left untouched rather than risk deleting
+    the substance of a legitimate reply."""
+    if not isinstance(final_response, str) or not final_response.strip():
+        return final_response
+    try:
+        _user_text = _summarize_user_message_for_log(user_message)
+        if _RULE_STATE_QUESTION_RE.search(_user_text or ""):
+            return final_response
+        text = final_response.rstrip()
+        trailing_paren = _find_trailing_parenthetical(text)
+        if trailing_paren:
+            start, end = trailing_paren
+            if _SELF_REFERENCE_ASIDE_RE.search(text[start:end]):
+                prefix = text[:start].rstrip()
+                if prefix:
+                    logger.info("Stripped trailing behavior-state aside from reply")
+                    return prefix
+                return final_response
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        if len(sentences) >= 2 and _SELF_REFERENCE_ASIDE_RE.search(sentences[-1]):
+            prefix = text[: -len(sentences[-1])].rstrip()
+            if prefix:
+                logger.info("Stripped trailing behavior-state aside from reply")
+                return prefix
+    except Exception as _strip_err:
+        logger.debug("behavior-state aside strip failed: %s", _strip_err)
+    return final_response
+
+
 def _explain_abnormal_exit(agent, final_response, _turn_exit_reason, preserved_verification_fallback, logger):
     """Turn-completion explainer: on abnormal exits, surface one explanation from
     ``_turn_exit_reason``. Only acts when no usable reply exists (empty, "(empty)",
@@ -593,6 +670,7 @@ def finalize_turn(
 
     # Response transforms apply only to real, uninterrupted responses.
     if final_response and not interrupted:
+        final_response = _strip_behavior_state_aside(agent, final_response, original_user_message, logger)
         final_response = _append_file_mutation_footer(agent, final_response, logger)
     if not interrupted:
         final_response = _explain_abnormal_exit(
