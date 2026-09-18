@@ -130,6 +130,11 @@ TOOLSETS = {
     "memory": _ts("Persistent memory across sessions (personal notes + user profile)", ["memory"]),
     "behavior": _ts("Propose and approve changes to the agent's own behavior, visibly, in chat",
                     ["propose_behavior_change", "approve_behavior_change"]),
+    "schedule": _ts(
+        "Microsoft Graph-backed staff schedule/presence lookups (is this person in "
+        "a meeting, out of office, or free) by email or display name",
+        ["get_user_presence", "get_user_calendar_status", "get_user_out_of_office"],
+    ),
     "context_engine": _ts("Runtime tools exposed by the active context engine"),
     "session_search": _ts("Search and recall past conversations with summarization", ["session_search"]),
     "connections": _ts("Remote connector discovery, execution, and account authorization", ["manage_connections"]),
