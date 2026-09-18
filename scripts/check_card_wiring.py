@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -80,13 +81,38 @@ def check_penny_ancestor(repo_root: Path, pin_sha: str | None = None) -> str | N
     return None
 
 
-def run_checks(repo_root: Path, pin_sha: str | None = None) -> list[str]:
+def check_schedule_toolset(hermes_home: Path | None) -> str | None:
+    """The 2026-09-18 availability-hallucination fix only holds if the webhook
+    lane can actually reach tools/graph_schedule_tool.py's tools. ``schedule``
+    lives outside the default ``hermes-webhook`` bundle (toolsets.py), so a
+    config.yaml reset (a fresh ``hermes tools`` save, a restored backup, a
+    hermes update) can silently drop it while everything else still imports
+    cleanly. Optional: pass ``None`` (the default in tests) to skip this check
+    entirely rather than depend on a real ~/.hermes on the machine running
+    the test suite.
+    """
+    if hermes_home is None:
+        return None
+    config_path = hermes_home / "config.yaml"
+    if not config_path.exists():
+        return f"missing {config_path}"
+    import yaml  # local import: only the live script and its tests need PyYAML
+
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    webhook_toolsets = ((config.get("platform_toolsets") or {}).get("webhook")) or []
+    if "schedule" not in webhook_toolsets:
+        return "platform_toolsets.webhook in config.yaml lacks 'schedule'"
+    return None
+
+
+def run_checks(repo_root: Path, pin_sha: str | None = None, hermes_home: Path | None = None) -> list[str]:
     failures = [
         reason
         for reason in (
             check_ticket_card(repo_root),
             check_webhook_call_site(repo_root),
             check_penny_ancestor(repo_root, pin_sha),
+            check_schedule_toolset(hermes_home),
         )
         if reason is not None
     ]
@@ -104,7 +130,8 @@ def main(argv: list[str] | None = None, repo_root: Path | None = None) -> int:
     except subprocess.CalledProcessError:
         print("UNHEALTHY: cwd is not inside a git repository", file=sys.stderr)
         return 2 if args.post_update else 1
-    failures = run_checks(root)
+    hermes_home = Path(os.environ.get("HERMES_HOME") or (Path.home() / ".hermes"))
+    failures = run_checks(root, hermes_home=hermes_home)
     for reason in failures:
         print(f"UNHEALTHY: {reason}", file=sys.stderr)
     if failures:

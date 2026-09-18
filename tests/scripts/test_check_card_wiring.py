@@ -85,3 +85,34 @@ def test_post_update_exit_code(repo: Path, monkeypatch: pytest.MonkeyPatch, caps
     monkeypatch.setattr(ccw, "PENNY_PIN_SHA", FAR_PIN)
     assert ccw.main(["--post-update"], repo_root=repo) == 2
     assert "CARD WIRING REGRESSED" in capsys.readouterr().err
+
+
+def test_schedule_toolset_present_passes(repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(ccw, "PENNY_PIN_SHA", _git(repo, "rev-parse", "HEAD"))
+    hermes_home = tmp_path / "hermes-home"
+    hermes_home.mkdir()
+    (hermes_home / "config.yaml").write_text(
+        "platform_toolsets:\n  webhook:\n    - hermes-webhook\n    - schedule\n"
+    )
+    assert ccw.run_checks(repo, hermes_home=hermes_home) == []
+
+
+def test_schedule_toolset_missing_fails(repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """The 2026-09-18 availability-hallucination fix: schedule tools reaching the
+    webhook lane is not covered by the ticket-card checks above and needs its own."""
+    monkeypatch.setattr(ccw, "PENNY_PIN_SHA", _git(repo, "rev-parse", "HEAD"))
+    hermes_home = tmp_path / "hermes-home"
+    hermes_home.mkdir()
+    (hermes_home / "config.yaml").write_text(
+        "platform_toolsets:\n  webhook:\n    - hermes-webhook\n"
+    )
+    failures = ccw.run_checks(repo, hermes_home=hermes_home)
+    assert len(failures) == 1
+    assert "lacks 'schedule'" in failures[0]
+
+
+def test_schedule_toolset_check_skipped_when_hermes_home_not_given(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default behavior (no hermes_home passed) stays a no-op so the ticket-card
+    tests above never depend on the real machine's ~/.hermes."""
+    monkeypatch.setattr(ccw, "PENNY_PIN_SHA", _git(repo, "rev-parse", "HEAD"))
+    assert ccw.run_checks(repo) == []
