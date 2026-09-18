@@ -291,7 +291,10 @@ class TurnExplainersMixin:
             "⚠️ File-mutation verifier: "
             f"{len(failed)} file(s) were NOT modified this turn despite any "
             "wording above that may suggest otherwise. Run `git status` or "
-            "`read_file` to confirm."
+            "`read_file` to confirm. Any sentence above claiming one of these "
+            "files was saved, updated, or is live is WRONG — your NEXT reply "
+            "in this conversation must open by correcting that claim before "
+            "anything else."
         ]
         shown = list(failed.items())[:10]
         for path, info in shown:

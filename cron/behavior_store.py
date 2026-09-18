@@ -77,10 +77,24 @@ def propose(
     requested_by: str,
     source_chat_id: Optional[str] = None,
     source_message_id: Optional[str] = None,
+    reason: Optional[str] = None,
     now: Optional[str] = None,
     db_path: Optional[Path] = None,
 ) -> dict:
-    """Store a PENDING proposal. Never renders until approve()."""
+    """Store a PENDING proposal. Never renders until approve().
+
+    ``reason`` is an optional audit note for WHY this was proposed (e.g. an
+    automated guard's catch); it lands in the ``audit`` table's ``reason``
+    column alongside the ``proposed`` event, never in the rendered rule text.
+
+    Instruction dedup checks PENDING and ACTIVE rows: an automated proposer
+    (e.g. the file-mutation verifier) may see the same pattern many times
+    before a human approves or rejects the first one, and re-proposing would
+    spam the approval queue with duplicates of a decision nobody has made
+    yet. The returned dict's ``deduped`` key distinguishes "matched an
+    existing row" (True) from "inserted a new one" (False) for callers that
+    only want to act (e.g. post a visibility message) once per proposal.
+    """
     if kind not in ("knob", "instruction"):
         raise ValueError(f"kind must be 'knob' or 'instruction', got {kind!r}")
     if not text or not text.strip():
@@ -98,14 +112,16 @@ def propose(
         value_json = None
         with contextlib.closing(connect(db_path)) as conn:
             existing = conn.execute(
-                "SELECT id, text FROM rules WHERE kind='instruction' AND active=1"
+                "SELECT id, text FROM rules WHERE kind='instruction' AND status IN ('pending', 'active')"
             ).fetchall()
             normalized = _normalize_text(text)
             for row in existing:
                 if _normalize_text(row["text"]) == normalized:
-                    return _row_to_dict(
+                    matched = _row_to_dict(
                         conn.execute("SELECT * FROM rules WHERE id=?", (row["id"],)).fetchone()
                     )
+                    matched["deduped"] = True
+                    return matched
 
     with contextlib.closing(connect(db_path)) as conn:
         conn.execute("BEGIN IMMEDIATE")
@@ -120,12 +136,14 @@ def propose(
                  source_chat_id, source_message_id, now),
             )
             rule_id = cur.lastrowid
-            _audit(conn, rule_id, "proposed", requested_by, None, now)
+            _audit(conn, rule_id, "proposed", requested_by, reason, now)
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")
             raise
-        return _row_to_dict(conn.execute("SELECT * FROM rules WHERE id=?", (rule_id,)).fetchone())
+        created = _row_to_dict(conn.execute("SELECT * FROM rules WHERE id=?", (rule_id,)).fetchone())
+        created["deduped"] = False
+        return created
 
 
 def approve(proposal_id: int, *, approved_by: str, now: Optional[str] = None, db_path: Optional[Path] = None) -> dict:

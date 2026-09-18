@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from contextlib import suppress
 from typing import Any, Callable, List, Optional, Tuple
 
@@ -334,9 +335,103 @@ def _log_turn_exit(agent, messages, final_response, api_call_count, _turn_exit_r
         logger.info(_diag_msg, *_diag_args)
 
 
+# Same-turn tool refusal described as success in the final text (#config-write-vision-
+# toolset incident): the file-mutation verifier only knows a write/patch call errored and
+# was never superseded — it does not parse the model's prose. These two patterns narrow the
+# self-improvement trigger to turns that actually look like the "refused but claimed live"
+# discrepancy, not every legitimate "I couldn't write that, here's why" turn (which already
+# behaves correctly and needs no correction proposed against it).
+_UNVERIFIED_SUCCESS_CLAIM_RE = re.compile(
+    r"\b(is now live|now live|successfully (updated|saved|written|applied|modified)|"
+    r"has been (updated|saved|written|applied|modified)|no further action needed|"
+    r"(config|file)(?:'s)? is live|changes (?:are|have been) (?:saved|applied|live))\b",
+    re.IGNORECASE,
+)
+_FAILURE_ACKNOWLEDGED_RE = re.compile(
+    r"\b(refused|denied|did not (?:land|save|write)|couldn't (?:write|save)|"
+    r"failed to (?:write|save)|was not (?:saved|modified|written)|blocked)\b",
+    re.IGNORECASE,
+)
+
+
+def _final_response_claims_unverified_success(final_response) -> bool:
+    """True when *final_response* reads as an unqualified success claim with no
+    acknowledgement of a failure — the exact shape of the false-success incident this
+    guard exists to catch."""
+    if not final_response:
+        return False
+    return bool(_UNVERIFIED_SUCCESS_CLAIM_RE.search(final_response)) and not (
+        _FAILURE_ACKNOWLEDGED_RE.search(final_response)
+    )
+
+
+_TOOL_REFUSAL_CORRECTION_TEXT = (
+    "When a write_file/patch tool call errors or is refused in the current turn, and no "
+    "later tool call proves the same file was actually modified, the final response must "
+    "never claim that file was saved, updated, or is live. State plainly that the edit "
+    "did not land, quote the refusal reason, and say what happens next (retry via an "
+    "approved path such as 'hermes config', or ask a human to make the change)."
+)
+
+
+def _notify_tool_refusal_correction_proposed(row, logger) -> None:
+    """Post the auto-proposal to the originating Teams chat via the existing behavior-
+    change visibility seam, so the human sees it without digging through behavior.db."""
+    try:
+        from tools.behavior_change_tool import _current_identity, _format_beh_id, _post_visibility_message
+        _user_id, chat_id, _message_id, platform = _current_identity()
+        beh_id = _format_beh_id(row["id"])
+        message = (
+            f"Self-correction proposed: {beh_id} — I described a file change as landed "
+            "this turn when the write was actually refused. Proposing a standing rule so "
+            f"I stop doing that: \"{_TOOL_REFUSAL_CORRECTION_TEXT}\"\n"
+            f"An authorized teammate can activate it by replying: approve {beh_id}"
+        )
+        _post_visibility_message(platform, chat_id, message)
+    except Exception as _notify_err:
+        logger.debug("file-mutation verifier: correction visibility post failed: %s", _notify_err)
+
+
+def _propose_tool_refusal_correction(agent, failed, final_response, logger) -> None:
+    """Self-improvement loop: when the verifier catches a same-turn tool refusal that the
+    final response described as a success, auto-propose a durable behavior rule capturing
+    the pattern (behavior_store.propose), using the verifier's own catch as the audit
+    justification (``reason``) — no second, parallel logging mechanism. behavior_store's
+    pending+active dedup means this only ever creates ONE pending proposal for the
+    pattern; every later catch matches the existing row and is a silent no-op here, so a
+    human's approval is a single ``approve BEH-<n>`` instead of re-litigating each
+    recurrence. Never auto-approved: this changes how Penny talks about her own actions,
+    which stays a human call (see behavior_store's commit model)."""
+    try:
+        from cron import behavior_store
+        paths_preview = ", ".join(list(failed)[:3])
+        reason = (
+            "file-mutation verifier: same-turn tool refusal described as success for "
+            f"{paths_preview or 'a tracked path'} — final response: "
+            f"{(final_response or '').strip()[:200]!r}"
+        )
+        row = behavior_store.propose(
+            "instruction", _TOOL_REFUSAL_CORRECTION_TEXT, scope="honesty",
+            requested_by="file-mutation-verifier", reason=reason,
+        )
+        if not row.get("deduped"):
+            logger.warning(
+                "file-mutation verifier auto-proposed behavior rule BEH-%s from a caught "
+                "false-success claim (pending human approval)", row.get("id"),
+            )
+            _notify_tool_refusal_correction_proposed(row, logger)
+    except Exception as _prop_err:
+        logger.debug("file-mutation verifier auto-propose failed: %s", _prop_err)
+
+
 def _append_file_mutation_footer(agent, final_response, logger):
     """Append the verifier advisory when ``write_file`` / ``patch`` calls failed and were
-    never superseded by a successful write to the same path (surfaces over-claiming)."""
+    never superseded by a successful write to the same path (surfaces over-claiming).
+
+    Also drives the self-improvement loop: a turn whose text reads as an unqualified
+    success claim over a failed mutation auto-proposes a standing correction (see
+    ``_propose_tool_refusal_correction``) instead of relying on a human to notice the
+    footer, remember the incident, and hand-author the same rule every time it recurs."""
     try:
         # File-mutation verifier footer. This catches the specific case — reported by Ben Eng
         # (#15524-adjacent) — where a model issues a batch of parallel patches, half of them fail with
@@ -347,6 +442,8 @@ def _append_file_mutation_footer(agent, final_response, logger):
         # Empty/interrupted turns already have other surface text that shouldn't be augmented.
         _failed = getattr(agent, "_turn_failed_file_mutations", None) or {}
         if _failed and agent._file_mutation_verifier_enabled():
+            if _final_response_claims_unverified_success(final_response):
+                _propose_tool_refusal_correction(agent, _failed, final_response, logger)
             footer = agent._format_file_mutation_failure_footer(_failed)
             if footer:
                 final_response = final_response.rstrip() + "\n\n" + footer
