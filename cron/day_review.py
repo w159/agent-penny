@@ -192,21 +192,34 @@ def detect_contact_context_gaps(teams_activity: dict) -> list[dict]:
 def gather_ticket_activity(date_str: str, *, cw_db_path: Optional[Path] = None) -> dict:
     """Real ConnectWise ticket activity for the day from the local
     ticket-contact index (cron/cw_contact_index.py), which is refreshed on
-    its own schedule and is the same store tools/cw_contact_tool.py queries."""
+    its own schedule and is the same store tools/cw_contact_tool.py queries.
+
+    `tickets_touched` counts canonical tickets (resolve_canonical_ticket_id),
+    not raw rows: several of today's rows can be linked children of the same
+    parent (Jerry's parent-rollup requirement) or of a parent enriched on an
+    earlier day, so they must not each add 1 to the day's touched count.
+    `tickets` still lists every raw row touched today -- the rollup only
+    changes the count, never what got listed.
+    """
     cw_db_path = cw_db_path or cw_contact_index.DB_PATH
     conn = cw_contact_index.connect(cw_db_path)
     try:
         rows = conn.execute(
-            "SELECT id, contact_name, company_name, status, summary FROM tickets "
+            "SELECT id, contact_name, company_name, status, summary, parent_ticket_id FROM tickets "
             "WHERE date_entered LIKE ? ORDER BY date_entered ASC",
             (f"{date_str}%",),
         ).fetchall()
+        merged_ids = cw_contact_index.merged_parent_ids(conn)
     finally:
         conn.close()
     tickets_today = [dict(r) for r in rows]
+    effective_tickets = [
+        t for t in tickets_today if not (t.get("parent_ticket_id") and t["parent_ticket_id"] in merged_ids)
+    ]
+    canonical_ids = {cw_contact_index.resolve_canonical_ticket_id(t) for t in effective_tickets}
     return {
         "date": date_str,
-        "tickets_touched": len(tickets_today),
+        "tickets_touched": len(canonical_ids),
         "tickets": tickets_today,
         "top_requesters": cw_contact_index.trend_by_requester(
             days=1, min_tickets=1, limit=10, db_path=cw_db_path
@@ -251,12 +264,39 @@ def propose_contact_gap_rule(
     )
 
 
+def gather_pending_rules(*, db_path: Optional[Path] = None) -> list[dict]:
+    """Rules still awaiting human approval, from behavior_store's own read
+    path (``history()``) rather than hand-rolled SQL -- mirrors
+    gather_behavior_corrections's reuse of the same accessor. Not scoped to
+    the review date: a rule proposed on an earlier day and still pending is
+    exactly what the narrative's Tomorrow line should flag."""
+    rows = behavior_store.history(limit=200, db_path=db_path)
+    return [r for r in rows if r.get("status") == "pending"]
+
+
+def _describe_pending_rule(rule: dict) -> str:
+    """Plain-language description of a pending behavior_store rule for the
+    Tomorrow line -- what kind of change it is and where it applies, never
+    the raw rule id or its literal instruction/knob text (that's for a
+    human reviewing behavior_store directly, not for the nightly log)."""
+    scope = rule.get("scope") or "unscoped"
+    if rule.get("kind") == "knob":
+        return f"a '{rule.get('key')}' setting change for {scope}"
+    return f"a new instruction for {scope}"
+
+
 def build_dreams_narrative(
     date_str: str, teams_activity: dict, ticket_activity: dict,
     corrections: list[dict], gaps: list[dict], proposal: Optional[dict],
+    pending_rules: list[dict],
 ) -> str:
     """Human-readable daily narrative for DREAMS.md, grounded in the
-    deterministic gather_* results above rather than free-hand model recall."""
+    deterministic gather_* results above rather than free-hand model recall.
+
+    Includes Lessons and Tomorrow lines so the entry satisfies DREAMS.md's
+    own documented '## YYYY-MM-DD' format (memories/ops/ROLE.md's lesson #6
+    names this as the entrypoint session's daily checklist) -- both built
+    only from data already gathered above, never fabricated prose."""
     lines = [f"## {date_str} — End of Day Summary"]
     lines.append(
         f"- Teams activity: {teams_activity['message_count']} message(s) across "
@@ -291,6 +331,23 @@ def build_dreams_narrative(
             lines.append(f"  -> Auto-proposed BEH-{proposal.get('id')} ({state}); pending human approval.")
     else:
         lines.append("- No recurring end-user/ticket-contact recognition gaps detected today.")
+
+    gap_note = (
+        f"end-user/ticket-contact recognition gap fired {len(gaps)} time(s) today"
+        if gaps else "no recurring gaps detected today"
+    )
+    if corrections:
+        scopes = ", ".join(sorted({c.get("scope") or "unscoped" for c in corrections}))
+        correction_note = f"{len(corrections)} behavior correction(s) logged ({scopes})"
+    else:
+        correction_note = "no behavior corrections logged"
+    lines.append(f"**Lessons:** {gap_note}; {correction_note}.")
+
+    if pending_rules:
+        descriptions = "; ".join(_describe_pending_rule(r) for r in pending_rules)
+        lines.append(f"**Tomorrow:** {len(pending_rules)} rule(s) awaiting approval: {descriptions}.")
+    else:
+        lines.append("**Tomorrow:** No rules awaiting approval.")
     return "\n".join(lines) + "\n"
 
 
@@ -310,7 +367,10 @@ def run_nightly_review(
     corrections = gather_behavior_corrections(date_str, db_path=behavior_db_path)
     gaps = detect_contact_context_gaps(teams_activity)
     proposal = propose_contact_gap_rule(gaps, date_str=date_str, db_path=behavior_db_path)
-    entry = build_dreams_narrative(date_str, teams_activity, ticket_activity, corrections, gaps, proposal)
+    pending_rules = gather_pending_rules(db_path=behavior_db_path)
+    entry = build_dreams_narrative(
+        date_str, teams_activity, ticket_activity, corrections, gaps, proposal, pending_rules,
+    )
 
     from cron import ops_memory
 
@@ -323,5 +383,6 @@ def run_nightly_review(
         "corrections": corrections,
         "gaps": gaps,
         "proposal": proposal,
+        "pending_rules": pending_rules,
         "entry": entry,
     }

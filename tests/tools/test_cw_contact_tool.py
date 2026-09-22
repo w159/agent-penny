@@ -153,9 +153,109 @@ class TestTicketTrendByRequester:
         result = await tool.ticket_trend_by_requester(days=365, min_tickets=1)
         assert result["success"] is True
         assert result["requesters"] == [
-            {"contact_name": "Erica Martin", "contact_email": "e@x.com", "company": "Henssler Financial", "ticket_count": 1}
+            {
+                "contact_name": "Erica Martin", "contact_email": "e@x.com", "company": "Henssler Financial",
+                "ticket_count": 1, "related_ticket_ids": [],
+            }
         ]
         assert result["index_stale"] is False
+
+
+@pytest.mark.anyio
+class TestContactSemanticPattern:
+    def _seed(self, db_path, tickets):
+        """tickets: list of (id, summary) for a single contact 'Nicole McFarland'."""
+        from cron.cw_contact_index import connect
+
+        conn = connect(db_path)
+        for ticket_id, summary in tickets:
+            conn.execute(
+                "INSERT INTO tickets (id, date_entered, summary, contact_name, contact_email, "
+                "company_name, indexed_at) VALUES (?, '2026-09-01T00:00:00Z', ?, 'Nicole McFarland', "
+                "'n@x.com', 'Henssler Financial', '2026-09-18T00:00:00+00:00')",
+                (ticket_id, summary),
+            )
+        conn.execute("INSERT OR REPLACE INTO schema_meta (key, value) VALUES ('last_refreshed_at', '2026-09-18T18:00:00+00:00')")
+        conn.close()
+
+    async def test_empty_index_is_a_clear_message(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "empty.db"
+        monkeypatch.setattr("cron.cw_contact_index.DB_PATH", db_path)
+        result = await tool.contact_semantic_pattern("Nicole McFarland")
+        assert result["success"] is False
+        assert "hasn't run its first refresh" in result["error"]
+
+    async def test_no_tickets_for_contact_is_a_clear_message(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "index.db"
+        monkeypatch.setattr("cron.cw_contact_index.DB_PATH", db_path)
+        from cron.cw_contact_index import connect
+
+        # A non-empty index (so the freshness check passes) with no rows for this contact.
+        conn = connect(db_path)
+        conn.execute(
+            "INSERT INTO tickets (id, date_entered, summary, contact_name, contact_email, "
+            "company_name, indexed_at) VALUES (99, '2026-09-01T00:00:00Z', 'unrelated', "
+            "'Someone Else', 's@x.com', 'Henssler Financial', '2026-09-18T00:00:00+00:00')"
+        )
+        conn.execute("INSERT OR REPLACE INTO schema_meta (key, value) VALUES ('last_refreshed_at', '2026-09-18T18:00:00+00:00')")
+        conn.close()
+        result = await tool.contact_semantic_pattern("Nicole McFarland")
+        assert result["success"] is False
+        assert "No ConnectWise tickets found" in result["error"]
+
+    async def test_single_ticket_is_not_a_pattern(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "index.db"
+        monkeypatch.setattr("cron.cw_contact_index.DB_PATH", db_path)
+        self._seed(db_path, [(1, "Outlook keeps signing out")])
+        result = await tool.contact_semantic_pattern("Nicole McFarland")
+        assert result["success"] is True
+        assert result["has_recurring_pattern"] is False
+        assert "Only one ticket" in result["pattern_summary"]
+
+    async def test_semantically_similar_tickets_are_a_real_pattern(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "index.db"
+        monkeypatch.setattr("cron.cw_contact_index.DB_PATH", db_path)
+        self._seed(db_path, [
+            (1, "Outlook keeps signing out every 30 minutes"),
+            (2, "Outlook logged me out again, third time today"),
+        ])
+        # Two near-identical vectors -- a genuine cluster, no real embedding endpoint needed.
+        monkeypatch.setattr(tool, "embed_texts", lambda texts: [[1.0, 0.0], [0.99, 0.01]])
+        result = await tool.contact_semantic_pattern("Nicole McFarland")
+        assert result["success"] is True
+        assert result["has_recurring_pattern"] is True
+        assert set(result["evidence_ticket_ids"]) == {1, 2}
+
+    async def test_semantically_unrelated_tickets_are_not_a_pattern(self, monkeypatch, tmp_path):
+        db_path = tmp_path / "index.db"
+        monkeypatch.setattr("cron.cw_contact_index.DB_PATH", db_path)
+        self._seed(db_path, [
+            (1, "Outlook keeps signing out every 30 minutes"),
+            (2, "Printer in the Naples office is offline"),
+        ])
+        # Orthogonal vectors -- no genuine similarity, must not be reported as a pattern.
+        monkeypatch.setattr(tool, "embed_texts", lambda texts: [[1.0, 0.0], [0.0, 1.0]])
+        result = await tool.contact_semantic_pattern("Nicole McFarland")
+        assert result["success"] is True
+        assert result["has_recurring_pattern"] is False
+
+    async def test_embedding_failure_surfaces_as_error_not_a_silent_no_pattern(self, monkeypatch, tmp_path):
+        from cron.trend_vectors import EmbeddingError
+
+        db_path = tmp_path / "index.db"
+        monkeypatch.setattr("cron.cw_contact_index.DB_PATH", db_path)
+        self._seed(db_path, [
+            (1, "Outlook keeps signing out every 30 minutes"),
+            (2, "Outlook logged me out again, third time today"),
+        ])
+
+        def _raise(texts):
+            raise EmbeddingError("boom")
+
+        monkeypatch.setattr(tool, "embed_texts", _raise)
+        result = await tool.contact_semantic_pattern("Nicole McFarland")
+        assert result["success"] is False
+        assert "unavailable" in result["error"]
 
 
 @pytest.mark.anyio
@@ -188,7 +288,7 @@ class TestRegistryDispatch:
 
 
 class TestToolsetRegistration:
-    def test_cw_contact_toolset_lists_all_three_tools(self):
+    def test_cw_contact_toolset_lists_all_four_tools(self):
         import toolsets
 
         info = toolsets.get_toolset_info("cw_contact")
@@ -197,4 +297,5 @@ class TestToolsetRegistration:
             "get_ticket_contact",
             "find_tickets_by_contact",
             "ticket_trend_by_requester",
+            "contact_semantic_pattern",
         }

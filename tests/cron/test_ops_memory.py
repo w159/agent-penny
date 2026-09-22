@@ -10,6 +10,7 @@ respect the size cap/rotation, and the newly-injected files (active
 outages, ROLE.md lessons) must actually reach a built job prompt.
 """
 import re
+import types
 from datetime import datetime, timezone
 
 import pytest
@@ -140,6 +141,85 @@ class TestSizeCapAndRotation:
             "job-6", "#77777 new mention", "triage-board-sweep"
         )
         assert len(ops_memory.TICKETS_FILE.read_bytes()) <= ops_memory.MAX_FILE_SIZE
+
+
+class TestApplyStallFlags:
+    """apply_stall_flags() used to append a brand-new '- **Auto-flag:**
+    stalled ...' line every run (every 15-30 min during business hours) --
+    ticket #91590 alone reached 40+ near-identical lines in production,
+    growing straight into MAX_FILE_SIZE. It must now update a single line
+    in place per ticket, refreshing the reading without growing the file,
+    while leaving append-only 'Seen:' mention-history lines untouched.
+    """
+
+    def _finding(self, ticket_id="91590", hours_stale=48.3, threshold_hours=24, priority="Priority 3 - Medium"):
+        return types.SimpleNamespace(
+            ticket_id=ticket_id, hours_stale=hours_stale,
+            threshold_hours=threshold_hours, priority=priority,
+        )
+
+    def test_first_flag_adds_one_line_with_first_seen_date_fallback(self, tmp_path):
+        ops_memory.TICKETS_FILE.write_text(
+            "## #91590 — (auto-captured)\n"
+            "- **First seen:** 2026-09-17 in triage-nag\n",
+            encoding="utf-8",
+        )
+        ops_memory.apply_stall_flags([self._finding()])
+
+        content = ops_memory.TICKETS_FILE.read_text(encoding="utf-8")
+        assert content.count("- **Auto-flag:**") == 1
+        assert "stalled 48.3h" in content
+        # No dated flag existed yet -- falls back to the ticket's own real
+        # First seen date rather than fabricating today's date.
+        assert "First flagged 2026-09-17." in content
+
+    def test_repeated_calls_update_in_place_without_growing_the_file(self, tmp_path):
+        ops_memory.TICKETS_FILE.write_text(
+            "## #91590 — (auto-captured)\n"
+            "- **First seen:** 2026-09-17 in triage-nag\n",
+            encoding="utf-8",
+        )
+        readings = [48.3, 48.5, 48.7, 49.2, 49.4]
+        for hours in readings:
+            ops_memory.apply_stall_flags([self._finding(hours_stale=hours)])
+
+        content = ops_memory.TICKETS_FILE.read_text(encoding="utf-8")
+        # This is the exact production defect: 40+ near-identical lines for
+        # one ticket. After every repeated call there must still be exactly one.
+        assert content.count("- **Auto-flag:**") == 1
+        assert "stalled 49.4h" in content  # latest reading survives
+        assert "stalled 48.3h" not in content  # earlier readings do not pile up
+        # The date recorded on the very first flag carries forward across
+        # every later update, not the fallback re-firing each time.
+        assert "First flagged 2026-09-17." in content
+
+    def test_seen_mention_lines_survive_stall_flag_collapse(self, tmp_path):
+        ops_memory.TICKETS_FILE.write_text(
+            "## #91590 — (auto-captured)\n"
+            "- **First seen:** 2026-09-17 in triage-nag\n"
+            "- **Seen:** 2026-09-17 in triage-nag — \"original mention\"\n"
+            "- **Auto-flag:** stalled 48.3h (threshold 24h for Priority 3 - Medium), "
+            "no activity since last update.\n"
+            "- **Auto-flag:** stalled 48.5h (threshold 24h for Priority 3 - Medium), "
+            "no activity since last update.\n",
+            encoding="utf-8",
+        )
+        ops_memory.apply_stall_flags([self._finding(hours_stale=50.0)])
+
+        content = ops_memory.TICKETS_FILE.read_text(encoding="utf-8")
+        assert content.count("- **Auto-flag:**") == 1
+        assert "stalled 50.0h" in content
+        assert "- **Seen:** 2026-09-17 in triage-nag — \"original mention\"" in content
+
+    def test_untracked_ticket_is_never_invented(self, tmp_path):
+        ops_memory.TICKETS_FILE.write_text(
+            "## #91590 — (auto-captured)\n- **First seen:** 2026-09-17 in triage-nag\n",
+            encoding="utf-8",
+        )
+        ops_memory.apply_stall_flags([self._finding(ticket_id="99999")])
+
+        content = ops_memory.TICKETS_FILE.read_text(encoding="utf-8")
+        assert "#99999" not in content
 
 
 class TestRoleLessonsExtraction:

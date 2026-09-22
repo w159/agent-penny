@@ -468,6 +468,16 @@ def _apply_ticket_update(update: dict) -> None:
         _write_with_cap(TICKETS_FILE, content)
 
 
+def _find_ticket_section(content: str, ticket_id: str):
+    """Locate one ticket's whole '## #<id> ...' section (up to the next
+    ticket header, an old-style '---' separator, or end of file) -- shared
+    by every function that reads/modifies/writes a single ticket's section
+    in tickets.md, so the boundary rule lives in exactly one place.
+    """
+    pattern = rf"(## #{re.escape(ticket_id)} .*?)(?=\n## #|\n---\n|\Z)"
+    return re.search(pattern, content, flags=re.DOTALL)
+
+
 def _apply_ticket_mention(ticket_id: str, date: str, job_name: str, context_line: str) -> None:
     """Record that a ticket was mentioned in a job's output.
 
@@ -478,6 +488,11 @@ def _apply_ticket_mention(ticket_id: str, date: str, job_name: str, context_line
     ticket not yet tracked, creates a minimal stub — there's nothing
     richer to preserve, and the stub carries only what was literally
     observed (id, date, job, the line it appeared in).
+
+    "Seen" notes are deliberately append-only (unlike apply_stall_flags's
+    single in-place Auto-flag line): each one records a distinct mention
+    with its own real context line, so collapsing them the way stall
+    flags were collapsed would destroy history rather than redundancy.
 
     The read → dedup-check → write is wrapped in ``_ops_lock()`` so two
     cron processes racing this function for the same ticket cannot both
@@ -496,11 +511,11 @@ def _apply_ticket_mention(ticket_id: str, date: str, job_name: str, context_line
         if header in content:
             if note.strip() in content:
                 return  # already recorded, avoid duplicate append
-            pattern = rf"({re.escape(header)} .*?)(?=\n## #|\n---\n|\Z)"
-            new_content = re.sub(
-                pattern, lambda m: m.group(1).rstrip("\n") + "\n" + note, content, count=1, flags=re.DOTALL
-            )
-            if new_content == content:
+            section_match = _find_ticket_section(content, ticket_id)
+            if section_match:
+                new_section = section_match.group(1).rstrip("\n") + "\n" + note
+                new_content = content[:section_match.start(1)] + new_section + content[section_match.end(1):]
+            else:
                 # Header matched the substring check but not the section regex
                 # (e.g. it's the last entry with no trailing section boundary
                 # right after it) — fall back to a straight append of the note
@@ -539,16 +554,39 @@ def _apply_event_update(update: dict) -> None:
         _write_with_cap(EVENTS_FILE, entry)
 
 
+_STALL_FLAG_RE = re.compile(
+    r"- \*\*Auto-flag:\*\* stalled [\d.]+h \(threshold [\d.]+h for [^)]*\), "
+    r"no activity since last update\.(?: First flagged (\d{4}-\d{2}-\d{2})\.)?\n"
+)
+_TICKET_FIRST_SEEN_RE = re.compile(r"\*\*First seen:\*\* (\d{4}-\d{2}-\d{2})")
+
+
 def apply_stall_flags(stall_findings: list) -> None:
     """
-    Append a dated blocker note to an already-tracked ticket's tickets.md
-    section when trend detection finds it stalled past its priority's
-    threshold. Only touches tickets already present — never fabricates a
-    ticket entry from detection output alone. Idempotent: skips if the
-    exact note is already there, so a re-run on unchanged data is a no-op.
+    Update a single, in-place stalled-status line per already-tracked
+    ticket in tickets.md when trend detection finds it stalled past its
+    priority's threshold: latest hours-stale reading, threshold, and the
+    date this ticket was first flagged. Replaces the ticket's prior
+    Auto-flag line(s) instead of appending a fresh one every run (every
+    15-30 min during business hours) -- the previous append-only version
+    put ticket #91590 alone at 40+ near-identical lines, growing straight
+    into this file's own MAX_FILE_SIZE cap. "Seen" mention-history lines
+    (_apply_ticket_mention) are a different, intentionally-append-only
+    field and are never touched here.
+
+    Only touches tickets already present — never fabricates a ticket entry
+    from detection output alone. When a ticket has no prior dated
+    Auto-flag line to carry forward, "first flagged" falls back to the
+    ticket's own recorded "First seen" date rather than today's date --
+    the honest anchor for a ticket that has clearly been stalled since
+    before this line format existed, not a fabricated one. Idempotent: an
+    unchanged reading on a re-run leaves the section byte-identical, so it
+    is skipped rather than rewriting the file for nothing.
     """
     if not stall_findings:
         return
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     with _ops_lock():
         content = TICKETS_FILE.read_text(encoding="utf-8") if TICKETS_FILE.exists() else ""
@@ -561,15 +599,28 @@ def apply_stall_flags(stall_findings: list) -> None:
             header = f"## #{ticket_id}"
             if header not in content:
                 continue  # don't invent tickets we haven't already tracked
-            note = (
+            section_match = _find_ticket_section(content, ticket_id)
+            if not section_match:
+                continue
+            section = section_match.group(1)
+
+            existing_dates = [d for d in _STALL_FLAG_RE.findall(section) if d]
+            if existing_dates:
+                first_flagged = existing_dates[0]
+            else:
+                first_seen_match = _TICKET_FIRST_SEEN_RE.search(section)
+                first_flagged = first_seen_match.group(1) if first_seen_match else today
+
+            new_line = (
                 f"- **Auto-flag:** stalled {finding.hours_stale}h "
                 f"(threshold {finding.threshold_hours}h for {finding.priority}), "
-                f"no activity since last update.\n"
+                f"no activity since last update. First flagged {first_flagged}.\n"
             )
-            if note.strip() in content:
-                continue  # already flagged, avoid duplicate append
-            pattern = rf"({re.escape(header)} .*?)(?=\n## #|\n---\n|\Z)"
-            content = re.sub(pattern, lambda m: m.group(1).rstrip("\n") + "\n" + note, content, flags=re.DOTALL)
+            without_old_flags = _STALL_FLAG_RE.sub("", section)
+            new_section = without_old_flags.rstrip("\n") + "\n" + new_line
+            if new_section == section:
+                continue  # unchanged reading, no-op — avoid rewriting the file for nothing
+            content = content[:section_match.start(1)] + new_section + content[section_match.end(1):]
             changed = True
 
         if changed:
@@ -628,26 +679,78 @@ def record_behavior_pattern(action_type: str, observed: str, assumed: str, why: 
         _write_with_cap(PATTERNS_FILE, content)
 
 
-def append_dreams_entry(entry: str) -> None:
-    """Prepend a dated nightly-review entry to DREAMS.md (newest first, same convention
-    as events.md). Replaces the old convention of the nightly job's own agent turn using
-    the raw file tool to write this file free-hand: a deterministic, locked, size-capped
-    writer means the entry always lands (no reliance on the model remembering the exact
-    file path/format) and DREAMS.md can never blow past MAX_FILE_SIZE the way an
-    unbounded model-authored append could.
+DREAMS_HEADER = (
+    "# Agent Penny — DREAMS.md\n"
+    "\n"
+    "Nightly reflection journal. Each entry is dated and covers what happened on\n"
+    "the Triage board that day, lessons learned, mistakes made, and self-improvement\n"
+    "goals.\n"
+    "\n"
+    "## Format\n"
+    "\n"
+    "```\n"
+    "## YYYY-MM-DD\n"
+    "**Board activity:** <what moved, what stalled, what closed>\n"
+    "**What went right:** <wins>\n"
+    "**What went wrong:** <mistakes, misses, things Jerry corrected>\n"
+    "**Lessons:** <specific, actionable takeaways>\n"
+    "**Tomorrow:** <what to watch for>\n"
+    "```\n"
+    "\n"
+    "Be honest, not flattering. This is where Penny gets better.\n"
+    "\n"
+    "---"
+)
+_DREAM_ENTRY_DATE_RE = re.compile(r"\A## (\d{4}-\d{2}-\d{2})\b")
+_DREAM_TOP_ENTRY_RE = re.compile(
+    r"\A(## \d{4}-\d{2}-\d{2}\b.*?)(?=\n\n## \d{4}-\d{2}-\d{2}\b|\n\n---\n|\Z)", re.DOTALL
+)
 
-    ``entry`` is expected to already be a complete ``## <date> — ...`` section (see
-    cron/day_review.py's build_dreams_narrative); this function only handles placement,
-    locking, and the size cap, mirroring _apply_event_update's prepend behavior.
+
+def append_dreams_entry(entry: str) -> None:
+    """Insert a dated nightly-review entry into DREAMS.md, newest first,
+    directly below the file's fixed header (title + Format documentation
+    block) -- never above it. Replaces the old convention of the nightly
+    job's own agent turn using the raw file tool to write this file
+    free-hand, and replaces this function's own earlier unconditional
+    blind prepend, which buried the header one entry further down every
+    single night (it was two entries deep in production before this fix).
+
+    A second call for the same date -- e.g. a manual verification run
+    followed by the real cron fire later the same day, exactly what
+    corrupted the live file on 2026-09-18 with two near-duplicate
+    '## 2026-09-18' entries -- replaces the existing top entry for that
+    date in place instead of prepending a duplicate. Only the top-most
+    entry is ever checked: entries are always inserted newest-first
+    directly under the header, so a same-date collision can only ever
+    appear there.
+
+    ``entry`` is expected to already be a complete ``## <date> — ...``
+    section (see cron/day_review.py's build_dreams_narrative); this
+    function only handles header placement, dedup, locking, and the size
+    cap, mirroring _apply_event_update's prepend behavior.
     """
     entry = entry.strip()
     if not entry:
         return
+    entry_date_match = _DREAM_ENTRY_DATE_RE.match(entry)
+    entry_date = entry_date_match.group(1) if entry_date_match else None
+
     with _ops_lock():
         content = DREAMS_FILE.read_text(encoding="utf-8") if DREAMS_FILE.exists() else ""
-        if content:
-            entry = entry + "\n\n" + content
-        _write_with_cap(DREAMS_FILE, entry)
+        body = content[len(DREAMS_HEADER):] if content.startswith(DREAMS_HEADER) else content
+        body = body.lstrip("\n")
+
+        body_date_match = _DREAM_ENTRY_DATE_RE.match(body) if body else None
+        if entry_date and body_date_match and body_date_match.group(1) == entry_date:
+            top_match = _DREAM_TOP_ENTRY_RE.match(body)
+            new_body = entry + body[top_match.end():]
+        elif body:
+            new_body = entry + "\n\n" + body
+        else:
+            new_body = entry
+
+        _write_with_cap(DREAMS_FILE, DREAMS_HEADER + "\n\n" + new_body)
 
 
 @contextlib.contextmanager

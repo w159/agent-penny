@@ -199,6 +199,59 @@ class TestGatherTicketActivity:
         assert result["tickets_touched"] == 1
         assert result["tickets"][0]["contact_name"] == "Erica Martin"
 
+    def test_linked_children_collapse_into_parent_canonical_count(self, tmp_path):
+        cw_db = tmp_path / "cw.db"
+        conn = cw_contact_index.connect(cw_db)
+        # Real shape of the Outlook cluster: parent + two of that day's
+        # linked children all touched the same day -- must count as 1, not 3.
+        conn.execute(
+            "INSERT INTO tickets (id, date_entered, contact_name, contact_email, company_name, indexed_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (92827, "2026-09-18T10:00:00.000Z", "Scarlet Mendoza", "smendoza@henssler.com",
+             "Henssler Financial", "2026-09-18T10:00:00.000Z"),
+        )
+        conn.execute(
+            "INSERT INTO tickets (id, date_entered, contact_name, contact_email, company_name, "
+            "parent_ticket_id, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (93980, "2026-09-18T11:00:00.000Z", "Nicole McFarland", "n@henssler.com",
+             "Henssler Financial", 92827, "2026-09-18T11:00:00.000Z"),
+        )
+        conn.execute(
+            "INSERT INTO tickets (id, date_entered, contact_name, contact_email, company_name, "
+            "parent_ticket_id, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (94325, "2026-09-18T12:00:00.000Z", "Nicole McFarland", "n@henssler.com",
+             "Henssler Financial", 92827, "2026-09-18T12:00:00.000Z"),
+        )
+        conn.commit()
+        conn.close()
+
+        result = day_review.gather_ticket_activity("2026-09-18", cw_db_path=cw_db)
+
+        assert result["tickets_touched"] == 1
+        assert len(result["tickets"]) == 3
+
+    def test_merged_away_child_excluded_from_touched_count(self, tmp_path):
+        cw_db = tmp_path / "cw.db"
+        conn = cw_contact_index.connect(cw_db)
+        conn.execute(
+            "INSERT INTO tickets (id, date_entered, contact_name, contact_email, company_name, "
+            "has_merged_child_flag, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (100, "2026-09-18T09:00:00.000Z", "Real Merge Parent", "rm@henssler.com",
+             "Henssler Financial", 1, "2026-09-18T09:00:00.000Z"),
+        )
+        conn.execute(
+            "INSERT INTO tickets (id, date_entered, contact_name, contact_email, company_name, "
+            "parent_ticket_id, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (101, "2026-09-18T10:00:00.000Z", "Someone Else", "se@henssler.com",
+             "Henssler Financial", 100, "2026-09-18T10:00:00.000Z"),
+        )
+        conn.commit()
+        conn.close()
+
+        result = day_review.gather_ticket_activity("2026-09-18", cw_db_path=cw_db)
+
+        assert result["tickets_touched"] == 1
+
 
 class TestGatherBehaviorCorrections:
     def test_filters_by_proposal_date(self, tmp_path):
@@ -279,6 +332,8 @@ class TestRunNightlyReview:
         assert "## 2026-09-18 — End of Day Summary" in written
         assert "Recurring-behavior gap detected" in written
         assert f"Auto-proposed BEH-{result['proposal']['id']}" in written
+        assert "**Lessons:** end-user/ticket-contact recognition gap fired 1 time(s) today" in written
+        assert "**Tomorrow:** 1 rule(s) awaiting approval: a new instruction for ops-review." in written
 
     def test_no_gap_day_still_writes_a_grounded_entry(self, tmp_path, state_db):
         _insert_session(state_db, "teams-1", source="teams")
@@ -296,6 +351,8 @@ class TestRunNightlyReview:
         assert result["gaps"] == []
         assert result["proposal"] is None
         assert "No recurring end-user/ticket-contact recognition gaps detected today" in result["entry"]
+        assert "**Lessons:** no recurring gaps detected today; no behavior corrections logged." in result["entry"]
+        assert "**Tomorrow:** No rules awaiting approval." in result["entry"]
 
 
 class TestAppendDreamsEntry:
@@ -309,6 +366,50 @@ class TestAppendDreamsEntry:
     def test_blank_entry_is_a_no_op(self, tmp_path):
         ops_memory.append_dreams_entry("   \n")
         assert not ops_memory.DREAMS_FILE.exists()
+
+    def test_header_stays_at_the_top_across_multiple_dated_entries(self, tmp_path):
+        """The bug this guards: append_dreams_entry() used to blind-prepend
+        every new entry to position 0, burying the file's own fixed header
+        one entry further down every single call -- it was two entries deep
+        in production before the fix."""
+        ops_memory.append_dreams_entry("## 2026-08-04 — End of Day Summary\n- day 1\n")
+        ops_memory.append_dreams_entry("## 2026-08-05 — End of Day Summary\n- day 2\n")
+        ops_memory.append_dreams_entry("## 2026-08-06 — End of Day Summary\n- day 3\n")
+
+        content = ops_memory.DREAMS_FILE.read_text(encoding="utf-8")
+        assert content.startswith(ops_memory.DREAMS_HEADER)
+        # Newest entry lands right after the header, not just "somewhere above" the rest.
+        header_end = len(ops_memory.DREAMS_HEADER)
+        assert content[header_end:].lstrip("\n").startswith("## 2026-08-06")
+        assert content.index("2026-08-06") < content.index("2026-08-05") < content.index("2026-08-04")
+
+    def test_same_date_second_call_replaces_instead_of_duplicating(self, tmp_path):
+        """Exactly the 2026-09-18 production corruption: a manual
+        verification run followed by the real cron fire later the same day
+        must collapse into one entry, not two near-duplicates."""
+        ops_memory.append_dreams_entry(
+            "## 2026-09-18 — End of Day Summary\n- notifications (11)\n"
+        )
+        ops_memory.append_dreams_entry(
+            "## 2026-09-18 — End of Day Summary\n- notifications (12)\n"
+        )
+
+        content = ops_memory.DREAMS_FILE.read_text(encoding="utf-8")
+        assert content.count("## 2026-09-18 — End of Day Summary") == 1
+        assert "notifications (12)" in content
+        assert "notifications (11)" not in content
+
+    def test_same_date_replace_preserves_older_entries_below(self, tmp_path):
+        ops_memory.append_dreams_entry("## 2026-09-17 — End of Day Summary\n- old day\n")
+        ops_memory.append_dreams_entry("## 2026-09-18 — End of Day Summary\n- first run\n")
+        ops_memory.append_dreams_entry("## 2026-09-18 — End of Day Summary\n- second run\n")
+
+        content = ops_memory.DREAMS_FILE.read_text(encoding="utf-8")
+        assert content.count("## 2026-09-18 — End of Day Summary") == 1
+        assert "second run" in content
+        assert "first run" not in content
+        assert "## 2026-09-17 — End of Day Summary" in content  # untouched, still below
+        assert "old day" in content
 
 
 class TestNightlyReviewHookGating:

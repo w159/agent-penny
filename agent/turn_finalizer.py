@@ -473,15 +473,27 @@ _RULE_STATE_QUESTION_RE = re.compile(
 )
 
 
+_TRAILING_DECORATION_RE = re.compile(
+    r"[\s\U0001F300-\U0001FAFF\u2600-\u27BF\uFE0F]+$"
+)
+
+
 def _find_trailing_parenthetical(text: str) -> Optional[Tuple[int, int]]:
-    """Span ``(start, end)`` of a parenthetical that runs to the very end of *text*,
-    balancing nested parens from the close backward. ``None`` if *text* doesn't end
-    with ``)`` or the parens never balance (malformed/embedded, not a trailing unit)."""
-    if not text.endswith(")"):
+    """Span ``(start, end)`` of a parenthetical that runs to the (decoration-tolerant)
+    end of *text*: balances nested parens from the close backward, ignoring a trailing
+    run of whitespace/emoji after the final ``)`` so a model closing a self-referential
+    aside with an emoji (e.g. ``"...still baked in.) 😄"``, the 2026-09-21 production
+    incident -- the emoji made the old ``text.endswith(")")`` check fail outright, so
+    the aside was never even examined) still gets caught. ``end`` is always the full
+    length of *text*, so the trailing decoration is dropped along with the aside.
+    ``None`` if *text* has no closing paren at its (decoration-trimmed) end or the
+    parens never balance (malformed/embedded, not a trailing unit)."""
+    trimmed = _TRAILING_DECORATION_RE.sub("", text)
+    if not trimmed.endswith(")"):
         return None
     depth = 0
-    for i in range(len(text) - 1, -1, -1):
-        char = text[i]
+    for i in range(len(trimmed) - 1, -1, -1):
+        char = trimmed[i]
         if char == ")":
             depth += 1
         elif char == "(":
@@ -518,12 +530,29 @@ def _strip_behavior_state_aside(agent, final_response, user_message, logger):
                     logger.info("Stripped trailing behavior-state aside from reply")
                     return prefix
                 return final_response
+        # Sentence fallback for an aside with no wrapping parens at all. A single
+        # aside can itself land as more than one "sentence" under this naive
+        # splitter -- e.g. "(Humor parameters: MAX. Useful: still baked in.)"
+        # splits after "MAX." even though it's one closing unit -- so checking
+        # only the very last sentence missed the marker phrase sitting in an
+        # earlier fragment of that same trailing unit (2026-09-21 production
+        # incident). Grow the trailing window one sentence at a time, capped, so
+        # a legitimate long reply that happens to use one of these words early on
+        # is never bulk-deleted.
+        boundaries = list(re.finditer(r"(?<=[.!?])\s+", text))
         sentences = re.split(r"(?<=[.!?])\s+", text)
-        if len(sentences) >= 2 and _SELF_REFERENCE_ASIDE_RE.search(sentences[-1]):
-            prefix = text[: -len(sentences[-1])].rstrip()
-            if prefix:
-                logger.info("Stripped trailing behavior-state aside from reply")
-                return prefix
+        if len(sentences) >= 2:
+            max_window = min(3, len(sentences) - 1)
+            for window in range(1, max_window + 1):
+                boundary_idx = len(sentences) - 1 - window
+                start = boundaries[boundary_idx].end() if boundary_idx >= 0 else 0
+                suffix = text[start:]
+                if _SELF_REFERENCE_ASIDE_RE.search(suffix):
+                    prefix = text[:start].rstrip()
+                    if prefix:
+                        logger.info("Stripped trailing behavior-state aside from reply")
+                        return prefix
+                    break
     except Exception as _strip_err:
         logger.debug("behavior-state aside strip failed: %s", _strip_err)
     return final_response

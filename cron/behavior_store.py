@@ -29,7 +29,7 @@ from __future__ import annotations
 import contextlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -38,7 +38,7 @@ from cron.behavior_knobs import validate_knob
 
 __all__ = [
     "DB_PATH", "propose", "approve", "reject", "retire",
-    "render_active_rules", "count_active", "history", "validate_knob",
+    "render_active_rules", "count_active", "history", "list_stale_pending", "validate_knob",
 ]
 
 
@@ -300,4 +300,23 @@ def history(key: Optional[str] = None, limit: int = 50, db_path: Optional[Path] 
             ).fetchall()
         else:
             rows = conn.execute("SELECT * FROM rules ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        return [_row_to_dict(r) for r in rows]
+
+
+def list_stale_pending(
+    older_than_hours: int = 24, *, now: Optional[str] = None, db_path: Optional[Path] = None,
+) -> list[dict]:
+    """Pending proposals at least ``older_than_hours`` old, oldest first -- the queue nobody has
+    approved or rejected yet. A proposal never renders on its own (see the module docstring), so
+    without a deterministic read like this one a stale row is invisible until someone thinks to go
+    look for it. Pure read, no rendering: cron/behavior_nag.py turns this into the Teams-safe
+    one-liners an existing delivering job's prompt can surface (never raw rows, never rule ids)."""
+    cutoff = (datetime.fromisoformat(now) if now else datetime.now(timezone.utc)) - timedelta(
+        hours=older_than_hours
+    )
+    with contextlib.closing(connect(db_path)) as conn:
+        rows = conn.execute(
+            "SELECT * FROM rules WHERE status='pending' AND created_at <= ? ORDER BY created_at",
+            (cutoff.isoformat(),),
+        ).fetchall()
         return [_row_to_dict(r) for r in rows]

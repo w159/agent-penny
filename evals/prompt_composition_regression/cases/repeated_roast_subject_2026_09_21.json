@@ -1,0 +1,25 @@
+{
+  "id": "repeated-roast-subject-2026-09-21",
+  "description": "Real 2026-09-21 production incident: 'roast an end user for me' produced the exact same Jarvis Williams 'Waiting Client Response pile is aging like forgotten yogurt' material Penny had already used earlier in the same session. SOUL.md's 'Vary it' rule alone was not reliable. Fixed with a new structural plugin, plugins/roast_variety_context/, whose pre_llm_call hook scans the model's own last 6 messages in the internal IT Teams chat for roster names already named and injects a plain fact ('X was named N messages ago') so the next roast can't plausibly repeat the subject without knowing it. This case represents the turn immediately AFTER the assistant message below: user_message is the next trigger; conversation_history is the exact fixture from the plugin's own test suite.",
+  "platform": "teams",
+  "session_id": "agent:main:teams:group:19:d72b9e0d737b4dda960814e674c260b7@thread.v2",
+  "conversation_history": [
+    {"role": "user", "content": "roast an end user for me"},
+    {"role": "assistant", "content": "Jarvis Williams' Waiting Client Response pile is aging again."}
+  ],
+  "user_message": "roast someone else for me, same energy",
+  "tier": "deterministic",
+  "checker": "roast_variety_context",
+  "checker_input": {
+    "roster_names": ["Jarvis Williams", "Nicole McFarland"]
+  },
+  "expected": {
+    "must_contain": ["Jarvis Williams", "your last message"],
+    "must_not_contain": ["Nicole McFarland"]
+  },
+  "judge": {
+    "pass_criteria": "The context injected before the model drafts must name Jarvis Williams as recently used ('your last message') so a repeat of the same subject is a documented choice, not an accident. It must not falsely flag Nicole McFarland, who was never mentioned.",
+    "fail_criteria": "No context is injected, or Jarvis Williams is not flagged as recently used, or an unmentioned roster name is flagged."
+  },
+  "source": "tests/plugins/test_roast_variety_context_plugin.py::TestRecentlyUsedNames::test_name_in_last_message_flagged_as_last_message"
+}

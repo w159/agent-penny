@@ -356,6 +356,29 @@ def _build_job_prompt(
             logger.warning("operational_memory: failed to load for job %r: %s", job.get("id"), e)
             # non-fatal - the job just runs without remembered context this cycle
 
+    # Stale pending behavior-change proposal nag (cron/behavior_nag.py,
+    # cron/behavior_store.py's list_stale_pending()). propose()/approve() means a
+    # proposal never renders anywhere on its own; left alone it just sits invisible
+    # until someone thinks to go check for it. Scoped to jobs opted in via
+    # `"nag_stale_proposals": true`, mirroring board_watch/outage_routing above,
+    # instead of a dedicated job/adapter this data doesn't need. Phrasing is
+    # generated deterministically (never freeform) and is already SOUL.md-safe --
+    # no rule id, no "rule"/"behavior_store"/"pending"/"approval" vocabulary -- so
+    # nothing here depends on the model filtering banned words out of a quote.
+    if job.get("nag_stale_proposals"):
+        try:
+            from cron.behavior_nag import render_stale_pending_nag
+
+            nag_block = render_stale_pending_nag()
+            if nag_block:
+                prompt = nag_block + "\n" + prompt
+                has_injected_data = True
+            # Empty block -> inject nothing, same silent-when-quiet convention as
+            # outage_routing/board_watch above.
+        except Exception as e:
+            logger.warning("nag_stale_proposals: failed to compute for job %r: %s", job.get("id"), e)
+            # non-fatal - the next scheduled run tries again
+
     prompt = _CRON_HINT + prompt
     skill_names = _job_skill_names(job)
     if not skill_names:

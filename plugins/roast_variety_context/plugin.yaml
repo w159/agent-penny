@@ -1,0 +1,6 @@
+name: roast_variety_context
+version: "1.0.0"
+description: "Structural anti-repetition for roast material in the internal IT Teams chat. Scans the model's own recent messages in the session for roster.md names it already used and injects a plain fact (who, how many messages ago) so a reply can't plausibly repeat the same roast subject/joke without knowing it - the code-level backstop for SOUL.md's 'Vary it' rule, since a model can ignore its own system prompt in production."
+author: "NousResearch (Hermes core)"
+hooks:
+  - pre_llm_call

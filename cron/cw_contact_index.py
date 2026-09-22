@@ -34,7 +34,34 @@ from hermes_constants import get_hermes_home
 logger = logging.getLogger(__name__)
 
 DB_PATH = get_hermes_home() / "memories" / "ops" / "cw_ticket_index.db"
-SCHEMA_VERSION = 1
+
+# v2 (2026-09-22): additive columns for cron/ticket_context_enrichment.py's
+# nightly per-ticket digest -- owner, close/resolve timestamps, CW's real
+# parent/merge-linkage fields, issue/resolution text with an explicit
+# resolution_source provenance marker (this tenant's resolutionFlag notes
+# are essentially never set, so a caller must be able to tell "CW's own
+# resolution flag" apart from "best-effort last-note heuristic" apart from
+# "nothing at all" -- see ticket_context_enrichment.py's module docstring).
+# All nullable/defaulted so an old reader that doesn't know about them
+# keeps working unchanged against a migrated row.
+_CONTEXT_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("owner_id", "INTEGER"),
+    ("owner_name", "TEXT"),
+    ("owner_identifier", "TEXT"),
+    ("contact_phone", "TEXT"),
+    ("issue_text", "TEXT"),
+    ("resolution_text", "TEXT"),
+    ("resolution_source", "TEXT"),
+    ("closed_date", "TEXT"),
+    ("closed_flag", "INTEGER"),
+    ("date_resolved", "TEXT"),
+    ("configurations", "TEXT"),
+    ("parent_ticket_id", "INTEGER"),
+    ("has_child_ticket", "INTEGER"),
+    ("has_merged_child_flag", "INTEGER"),
+    ("context_enriched_at", "TEXT"),
+)
+SCHEMA_VERSION = 2
 
 
 def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
@@ -79,8 +106,28 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_contact_name ON tickets (contact_name, date_entered)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_contact_email ON tickets (contact_email)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_company ON tickets (company_name, date_entered)")
+
+    # v2 migration: add any _CONTEXT_COLUMNS missing from an existing table.
+    # SQLite has no "ADD COLUMN IF NOT EXISTS", so PRAGMA table_info is the
+    # idempotency check -- safe to run against the real 5,722-row database on
+    # every connect() without erroring or duplicate-adding a column.
+    existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(tickets)")}
+    for column, column_type in _CONTEXT_COLUMNS:
+        if column not in existing_columns:
+            conn.execute(f"ALTER TABLE tickets ADD COLUMN {column} {column_type}")
+
+    # Both the parent-rollup queries (resolve_canonical_ticket_id / merged_parent_ids)
+    # and the nightly enrichment orchestrator's due-list filter on these constantly.
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_parent_ticket_id ON tickets (parent_ticket_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_context_enriched_at ON tickets (context_enriched_at)")
+
+    # UPSERT, not INSERT OR IGNORE: an already-migrated v1 database must have
+    # its schema_version row advanced to v2, not frozen at the value it was
+    # created with.
     conn.execute(
-        "INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),)
+        "INSERT INTO schema_meta (key, value) VALUES ('schema_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (str(SCHEMA_VERSION),),
     )
 
 
@@ -253,38 +300,107 @@ def tickets_for_contact(
         conn.close()
 
 
+def resolve_canonical_ticket_id(ticket_row: dict) -> int:
+    """The ticket id that counts/trend rollups attribute to: a bundled
+    child's parent_ticket_id when CW set one, else the ticket's own id.
+
+    Every count/trend function in this module routes through this single
+    definition so a requester's whole duplicate cluster (e.g. the real
+    2026-09 Outlook-access-denied cluster: parent #92827 plus 6 linked
+    children) counts once toward volume, never once per child (Jerry's
+    parent-rollup requirement, 2026-09-22). `ticket_row` is a plain dict
+    (e.g. `dict(sqlite3.Row(...))`) with at least `id` and
+    `parent_ticket_id` keys.
+    """
+    parent_id = ticket_row.get("parent_ticket_id")
+    return int(parent_id) if parent_id else int(ticket_row["id"])
+
+
+def merged_parent_ids(conn: sqlite3.Connection) -> set[int]:
+    """Ticket ids where CW's own hasMergedChildTicketFlag is set: a real
+    "Merge Ticket" action ran against at least one of this ticket's
+    children, so that child's content was literally absorbed into this
+    parent, not merely linked to it. Queried against the whole table (not
+    a date-windowed subset) because the flag lives on the parent, which
+    can easily be older than the window a caller is counting within."""
+    return {row["id"] for row in conn.execute("SELECT id FROM tickets WHERE has_merged_child_flag = 1")}
+
+
+def rollup_canonical_ticket_counts(rows: list[dict], *, group_fields: tuple[str, ...]) -> list[dict]:
+    """Group ticket rows by `group_fields` and count DISTINCT canonical
+    ticket ids per group, not raw rows -- the shared rollup both
+    trend_by_requester() and day_review.gather_ticket_activity() build on.
+
+    `rows` must already exclude merged-away children (see
+    merged_parent_ids() above) -- fully absorbed content is not distinct
+    duplicate-signal evidence, so it must never reach this function at
+    all, not even as a related_ticket_ids entry. A plain parentTicketId
+    link (the common case: still independently worked, just related) DOES
+    reach here -- it rolls into its parent's ticket_count and is listed in
+    that group's related_ticket_ids as supporting duplicate-signal
+    evidence, per Jerry's explicit two-weight requirement.
+    """
+    groups: dict[tuple, dict] = {}
+    for row in rows:
+        key = tuple(row.get(field) for field in group_fields)
+        canonical_id = resolve_canonical_ticket_id(row)
+        group = groups.setdefault(key, {"canonical_ids": set(), "raw_ids": []})
+        group["canonical_ids"].add(canonical_id)
+        group["raw_ids"].append(row["id"])
+
+    results = []
+    for key, group in groups.items():
+        related_ids = sorted(tid for tid in group["raw_ids"] if tid not in group["canonical_ids"])
+        entry = dict(zip(group_fields, key))
+        entry["ticket_count"] = len(group["canonical_ids"])
+        entry["related_ticket_ids"] = related_ids
+        results.append(entry)
+    return results
+
+
 def trend_by_requester(
     *, days: int = 30, min_tickets: int = 2, limit: int = 20, db_path: Optional[Path] = None,
 ) -> list[dict]:
     """Ticket counts per contact within the last `days`, descending - the
     aggregate query the old per-cluster trend pipeline had no way to answer
-    (it clusters by symptom text, never by who's filing the tickets)."""
+    (it clusters by symptom text, never by who's filing the tickets).
+
+    `ticket_count` is a count of canonical tickets (resolve_canonical_ticket_id),
+    not raw rows: a contact's own tickets that are all linked children of the
+    same parent (or of each other) count once, not once each. Each result's
+    `related_ticket_ids` carries the non-canonical raw ids rolled into that
+    count, as supporting duplicate-signal evidence - never inflating the
+    count itself. Children whose parent had a real CW "Merge Ticket" action
+    run (merged_parent_ids) are dropped before grouping: fully absorbed
+    content, not even distinct evidence.
+    """
     since_iso = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
     conn = connect(db_path)
     try:
+        merged_ids = merged_parent_ids(conn)
         cursor = conn.execute(
-            """
-            SELECT contact_name, contact_email, company_name, COUNT(*) AS ticket_count
-            FROM tickets
-            WHERE date_entered >= ? AND contact_name != ''
-            GROUP BY contact_name, contact_email, company_name
-            HAVING COUNT(*) >= ?
-            ORDER BY ticket_count DESC
-            LIMIT ?
-            """,
-            (since_iso, min_tickets, limit),
+            "SELECT id, contact_name, contact_email, company_name, parent_ticket_id FROM tickets "
+            "WHERE date_entered >= ? AND contact_name != ''",
+            (since_iso,),
         )
-        return [
-            {
-                "contact_name": r["contact_name"],
-                "contact_email": r["contact_email"],
-                "company": r["company_name"],
-                "ticket_count": r["ticket_count"],
-            }
-            for r in cursor.fetchall()
-        ]
+        rows = [dict(r) for r in cursor.fetchall()]
     finally:
         conn.close()
+
+    rows = [r for r in rows if not (r.get("parent_ticket_id") and r["parent_ticket_id"] in merged_ids)]
+    grouped = rollup_canonical_ticket_counts(rows, group_fields=("contact_name", "contact_email", "company_name"))
+    grouped = [g for g in grouped if g["ticket_count"] >= min_tickets]
+    grouped.sort(key=lambda g: g["ticket_count"], reverse=True)
+    return [
+        {
+            "contact_name": g["contact_name"],
+            "contact_email": g["contact_email"],
+            "company": g["company_name"],
+            "ticket_count": g["ticket_count"],
+            "related_ticket_ids": g["related_ticket_ids"],
+        }
+        for g in grouped[:limit]
+    ]
 
 
 def trend_by_company(*, days: int = 30, min_tickets: int = 2, limit: int = 20, db_path: Optional[Path] = None) -> list[dict]:

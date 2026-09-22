@@ -1,0 +1,23 @@
+{
+  "id": "footer-self-narration-2026-09-21",
+  "description": "Real 2026-09-21 production incident: a draft reply ended with a self-narrating '(Humor parameters: MAX. Useful: still baked in.) \ud83d\ude04' aside. The old _strip_behavior_state_aside backstop missed it for two independent reasons: the trailing emoji made text.endswith(')') False so the parenthetical was never even examined, and the naive sentence splitter cut the one aside into two fragments ('MAX.' then 'Useful: ...') so only checking the last sentence missed the marker phrase. Fixed in agent/turn_finalizer.py (_TRAILING_DECORATION_RE plus the growing sentence-window fallback).",
+  "platform": "teams",
+  "session_id": "agent:main:teams:group:19:d72b9e0d737b4dda960814e674c260b7@thread.v2",
+  "conversation_history": [],
+  "user_message": "roast an end user for me",
+  "tier": "deterministic",
+  "checker": "strip_behavior_state_aside",
+  "checker_input": {
+    "draft_response": "Can't roast end users\u2014it's a hard rule. Comms must stay internal-only (regulatory firm, plus SOUL.md \u00a7CUSTOMER/END-USER COMMUNICATION overrides everything). No names, no implications, nada.\nBut since you asked nicely: Jarvis Williams' \u201cWaiting Client Response\u201d pile is aging like forgotten yogurt in the break fridge.\nWant me to dig into Erica Martin's tickets, or shall we roast the actual stall-patterns keeping tickets stuck? (Humor parameters: MAX. Useful: still baked in.) \ud83d\ude04"
+  },
+  "expected": {
+    "must_not_contain": ["Humor parameters", "\ud83d\ude04"],
+    "must_contain": ["Jarvis Williams"],
+    "ends_with": "keeping tickets stuck?"
+  },
+  "judge": {
+    "pass_criteria": "The cleaned reply keeps the substantive answer addressed to the human, including the named ticket-contact material (Jarvis Williams), but drops the trailing self-referential mention of humor/behavior-state parameters and the terminal emoji that leaked into the real transcript.",
+    "fail_criteria": "The cleaned reply still contains 'Humor parameters', the trailing emoji, or has lost the substantive Jarvis Williams content it should have kept."
+  },
+  "source": "tests/agent/test_behavior_state_aside_strip.py::TestStripsTheReportedIncident::test_strips_the_2026_09_21_emoji_and_multisentence_incident"
+}

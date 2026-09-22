@@ -30,6 +30,8 @@ from typing import Any, Optional
 
 from cron.cw_client import CWClient, CWError
 from cron.cw_contact_index import contacts_matching, index_freshness, tickets_for_contact, trend_by_requester
+from cron.trend_cluster_embed import DEFAULT_SIMILARITY_THRESHOLD
+from cron.trend_vectors import EmbeddingError, cluster_by_similarity, embed_texts
 from tools.registry import registry, tool_error, tool_result
 
 logger = logging.getLogger(__name__)
@@ -191,6 +193,91 @@ async def ticket_trend_by_requester(*, days: int = 30, min_tickets: int = 2, lim
     }
 
 
+async def contact_semantic_pattern(
+    contact: str, *, limit: int = 20, similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+) -> dict[str, Any]:
+    """Real semantic-similarity read on one contact's own ticket history: embeds
+    each of their ticket summaries through cron/trend_vectors.py (the same
+    embedding layer cron/trend_cluster_embed.py uses for org-wide trend
+    detection - bge-m3 cosine similarity, not a keyword match) and clusters
+    them, so a claim like "this is their third distinct flavor of Outlook
+    trouble this month" is backed by a real semantic grouping of their own
+    ticket text instead of a hand-typed guess. Reads the local contact index
+    (see cron/cw_contact_index.py) - same source and staleness contract as
+    ticket_trend_by_requester - never a live 90-day CW pull.
+
+    This is the grounding tool SOUL.md's end-user roast budget requires before
+    a specific end user becomes joke material in the internal IT Teams chat:
+    a genuine cluster of 2+ semantically-similar tickets is a real pattern;
+    an empty or single-ticket history is not, and this function says so
+    plainly rather than inventing one.
+    """
+    contact = (contact or "").strip()
+    if not contact:
+        return {"success": False, "error": "contact is required (a contact's name or email address)."}
+    limit = max(1, min(int(limit or 20), _MAX_SEARCH_RESULTS))
+
+    freshness = index_freshness()
+    if freshness["row_count"] == 0:
+        return {
+            "success": False,
+            "error": (
+                "The ConnectWise contact index is empty - it hasn't run its first refresh yet. "
+                "It refreshes automatically every few hours; try again shortly."
+            ),
+        }
+
+    is_email = "@" in contact
+    rows = tickets_for_contact(
+        contact_email=contact if is_email else None,
+        contact_name=None if is_email else contact,
+        limit=limit,
+    )
+    if not rows:
+        return {
+            "success": False,
+            "error": f"No ConnectWise tickets found in the local index for contact matching '{contact}'.",
+        }
+
+    texts = [r["summary"] for r in rows if r.get("summary")]
+    if len(texts) < 2:
+        _audit_log("contact_semantic_pattern", contact, result_count=len(rows))
+        return {
+            "success": True,
+            "contact_query": contact,
+            "ticket_count": len(rows),
+            "has_recurring_pattern": False,
+            "pattern_summary": "Only one ticket on file with real text - not enough history for a real pattern.",
+            "evidence_ticket_ids": [r["id"] for r in rows],
+        }
+
+    try:
+        vectors = embed_texts(texts)
+    except EmbeddingError as exc:
+        return {"success": False, "error": f"Semantic pattern lookup unavailable: {exc}"}
+
+    textual_rows = [r for r in rows if r.get("summary")]
+    groups = cluster_by_similarity(textual_rows, vectors, threshold=similarity_threshold)
+    largest = max(groups, key=len)
+    has_pattern = len(largest) >= 2
+    evidence = [textual_rows[i] for i in largest] if has_pattern else textual_rows[:1]
+
+    _audit_log("contact_semantic_pattern", contact, result_count=len(rows))
+    return {
+        "success": True,
+        "contact_query": contact,
+        "ticket_count": len(rows),
+        "has_recurring_pattern": has_pattern,
+        "pattern_summary": (
+            f"{len(largest)} of their {len(rows)} tickets semantically cluster together, "
+            f"e.g. \"{evidence[0]['summary']}\"" if has_pattern
+            else "Their tickets don't semantically cluster - each looks like a distinct, one-off issue."
+        ),
+        "evidence_ticket_ids": [e["id"] for e in evidence],
+        "cluster_similarity_threshold": similarity_threshold,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Registry handlers -- thin argument parsing + JSON-string boundary.
 # ---------------------------------------------------------------------------
@@ -221,6 +308,17 @@ async def _handle_ticket_trend_by_requester(args: dict, **kw: Any) -> str:
         min_tickets=args.get("min_tickets") or 2,
         limit=args.get("limit") or 20,
     )
+    if not result["success"]:
+        return tool_error(result["error"])
+    return tool_result({k: v for k, v in result.items() if k != "success"})
+
+
+async def _handle_contact_semantic_pattern(args: dict, **kw: Any) -> str:
+    contact = (args.get("contact") or "").strip()
+    if not contact:
+        return tool_error("contact is required (a contact's name or email address).")
+    limit = args.get("limit") or 20
+    result = await contact_semantic_pattern(contact, limit=limit)
     if not result["success"]:
         return tool_error(result["error"])
     return tool_result({k: v for k, v in result.items() if k != "success"})
@@ -283,6 +381,29 @@ TICKET_TREND_BY_REQUESTER_SCHEMA = {
     },
 }
 
+CONTACT_SEMANTIC_PATTERN_SCHEMA = {
+    "name": "contact_semantic_pattern",
+    "description": (
+        "Semantic-similarity check on one contact/end-user's own ConnectWise ticket "
+        "history: embeds their ticket summaries and clusters them by real similarity "
+        "(not a keyword match) to say whether they have a genuine recurring pattern "
+        "versus a set of one-off issues. Use this before making a specific end user "
+        "roast/joke material in the internal IT Teams chat - it is the evidence bar, "
+        "not a vibe check."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "contact": {
+                "type": "string",
+                "description": "The contact's name or email address, e.g. 'Erica Martin' or 'EMartin@HENSSLER.com'.",
+            },
+            "limit": {"type": "integer", "description": "Max tickets to consider (default 20, max 25)."},
+        },
+        "required": ["contact"],
+    },
+}
+
 
 registry.register(
     name="get_ticket_contact",
@@ -315,4 +436,15 @@ registry.register(
     requires_env=_CW_ENV_VARS,
     is_async=True,
     emoji="\U0001f4c8",
+)
+
+registry.register(
+    name="contact_semantic_pattern",
+    toolset="cw_contact",
+    schema=CONTACT_SEMANTIC_PATTERN_SCHEMA,
+    handler=_handle_contact_semantic_pattern,
+    check_fn=check_cw_contact_requirements,
+    requires_env=_CW_ENV_VARS,
+    is_async=True,
+    emoji="\U0001f9e0",
 )

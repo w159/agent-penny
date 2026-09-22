@@ -61,6 +61,39 @@ class TestStripsTheReportedIncident:
 
         assert cleaned == "The patch landed clean."
 
+    def test_strips_the_2026_09_21_emoji_and_multisentence_incident(self):
+        # Real production incident: a trailing parenthetical that (a) is itself split
+        # into two "sentences" by the naive splitter ("MAX." then "Useful: ...") so
+        # only checking the last sentence missed the marker phrase, and (b) is
+        # followed by a trailing emoji so `text.endswith(")")` was False and the
+        # parenthetical was never even examined. Both defeated the old stripper
+        # outright and the footer reached the user verbatim.
+        draft = (
+            "Can't roast end users\u2014it's a hard rule. Comms must stay internal-only "
+            "(regulatory firm, plus SOUL.md \u00a7CUSTOMER/END-USER COMMUNICATION overrides "
+            "everything). No names, no implications, nada.\n"
+            "But since you asked nicely: Jarvis Williams' \u201cWaiting Client Response\u201d "
+            "pile is aging like forgotten yogurt in the break fridge.\n"
+            "Want me to dig into Erica Martin's tickets, or shall we roast the actual "
+            "stall-patterns keeping tickets stuck? (Humor parameters: MAX. Useful: "
+            "still baked in.) \U0001F604"
+        )
+        cleaned = _strip_behavior_state_aside(_FakeAgent(), draft, "roast an end user for me", logger)
+
+        assert "Humor parameters" not in cleaned
+        assert "\U0001F604" not in cleaned
+        assert cleaned.endswith("keeping tickets stuck?")
+        # The substantive (if policy-confused) answer survives untouched.
+        assert "Jarvis Williams" in cleaned
+
+    def test_strips_trailing_parenthetical_aside_followed_by_bare_emoji_no_split(self):
+        # Same emoji-after-paren shape but the aside is a single sentence, isolating
+        # that half of the fix from the multi-sentence-window half above.
+        draft = "Ticket #4821 is closed. (Snark level remains 20/20.) \U0001F604"
+        cleaned = _strip_behavior_state_aside(_FakeAgent(), draft, "status on 4821?", logger)
+
+        assert cleaned == "Ticket #4821 is closed."
+
 
 # ---------------------------------------------------------------------------
 # Legitimate content that superficially resembles the pattern must survive.

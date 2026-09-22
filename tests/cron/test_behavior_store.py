@@ -204,3 +204,67 @@ def test_reject_closes_out_pending_without_rendering(db_path):
     assert row["status"] == "rejected"
     with pytest.raises(ValueError, match="not pending"):
         store.approve(p["id"], approved_by=ERNESTO, db_path=db_path)
+
+
+def test_list_stale_pending_empty_when_nothing_pending(db_path):
+    assert store.list_stale_pending(db_path=db_path) == []
+    store.propose(
+        "instruction", "fresh, not stale yet", scope="global", requested_by=JARVIS,
+        now="2026-09-18T12:00:00+00:00", db_path=db_path,
+    )
+    assert store.list_stale_pending(
+        older_than_hours=24, now="2026-09-18T13:00:00+00:00", db_path=db_path,
+    ) == []
+
+
+def test_list_stale_pending_respects_age_boundary(db_path):
+    p = store.propose(
+        "instruction", "still waiting on someone", scope="triage", requested_by=JARVIS,
+        now="2026-09-18T12:00:00+00:00", db_path=db_path,
+    )
+    just_under = store.list_stale_pending(
+        older_than_hours=24, now="2026-09-19T11:59:59+00:00", db_path=db_path,
+    )
+    assert just_under == []
+
+    exactly_at = store.list_stale_pending(
+        older_than_hours=24, now="2026-09-19T12:00:00+00:00", db_path=db_path,
+    )
+    assert [r["id"] for r in exactly_at] == [p["id"]]
+
+    past = store.list_stale_pending(
+        older_than_hours=24, now="2026-09-20T00:00:00+00:00", db_path=db_path,
+    )
+    assert [r["id"] for r in past] == [p["id"]]
+
+
+def test_list_stale_pending_excludes_approved_and_rejected(db_path):
+    approved = store.propose(
+        "instruction", "already decided", scope="triage", requested_by=JARVIS,
+        now="2026-09-01T00:00:00+00:00", db_path=db_path,
+    )
+    store.approve(approved["id"], approved_by=ERNESTO, now="2026-09-01T00:05:00+00:00", db_path=db_path)
+    rejected = store.propose(
+        "instruction", "already declined", scope="triage", requested_by=JARVIS,
+        now="2026-09-01T00:00:00+00:00", db_path=db_path,
+    )
+    store.reject(rejected["id"], rejected_by=ERNESTO, reason="no", db_path=db_path)
+
+    assert store.list_stale_pending(
+        older_than_hours=24, now="2026-09-05T00:00:00+00:00", db_path=db_path,
+    ) == []
+
+
+def test_list_stale_pending_orders_oldest_first(db_path):
+    newer = store.propose(
+        "instruction", "asked more recently", scope="triage", requested_by=JARVIS,
+        now="2026-09-10T00:00:00+00:00", db_path=db_path,
+    )
+    older = store.propose(
+        "instruction", "asked first", scope="triage", requested_by=JARVIS,
+        now="2026-09-01T00:00:00+00:00", db_path=db_path,
+    )
+    stale = store.list_stale_pending(
+        older_than_hours=24, now="2026-09-15T00:00:00+00:00", db_path=db_path,
+    )
+    assert [r["id"] for r in stale] == [older["id"], newer["id"]]
